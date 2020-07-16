@@ -1,0 +1,23 @@
+
+defaults:
+    results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
+    year_range: [ 2014, 2019 ]
+    day_range: [ 0, 360 ]
+    water_class_thresholds: [ 0.02, 0.93 ]
+    lake_masks:
+        basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
+        subdir: "{year}"
+        file: "{lake_index}_{year}.tif"
+        lake_index_range: [0,5000]
+        mask: 3
+        water: 1
+
+    source:
+      type: 'MPW'
+      url:  'https://floodmap.modaps.eosdis.nasa.gov/Products'
+      product:  '2D2OT'
+
+    water_maps:
+        threshold: 0.5
+        bin_size: 8
+
