@@ -7,21 +7,21 @@ This project computes surface water extents from lake shapefile boundary maps.  
 ```
 >> conda create --name floodmap
 >> conda activate floodmap
-(geoproc)>> conda install -c conda-forge xarray, numpy, rioxarray, shapely, regionmask, pandas, geopandas, wget 
-(geoproc)>> pip install wget
+(floodmap)>> conda install -c conda-forge xarray, numpy, rioxarray, shapely, regionmask, pandas, geopandas, wget 
+(floodmap)>> pip install wget
 ```
 #### Install floodmap
 ```
-(geoproc)>> git clone https://github.com/nasa-nccs-cds/floodmap.git
-(geoproc)>> cd floodmap
-(geoproc)>> python setup.py install
+(floodmap)>> git clone https://github.com/nasa-nccs-cds/floodmap.git
+(floodmap)>> cd floodmap
+(floodmap)>> python setup.py install
 ```
 #### Configure execution
 ```
-(geoproc)>> cp floodmap/specs/sample-specs.yml ~/specs.yml
-(geoproc)>> emacs ~/specs.yml
+(floodmap)>> cp ./specs/sample-specs.yml ~/specs.yml
+(floodmap)>> emacs ~/specs.yml
 ```
 #### Run floodmap
 ```
-(geoproc)>> python floodmap/exe/production.py ~/specs.yml
+(floodmap)>> python ./exe/floodmap.py ~/specs.yml
 ```
