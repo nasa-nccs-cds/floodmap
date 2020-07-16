@@ -1,5 +1,5 @@
 import yaml, sys
-from floodmap.surfaceMapping import LakeMaskProcessor
+from floodmap.surfaceMapping.processing import LakeMaskProcessor
 
 opspec_file = sys.argv[1]
 reproject_inputs = False

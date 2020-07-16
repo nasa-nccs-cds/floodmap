@@ -22,7 +22,7 @@ This project computes surface water extents from lake shapefile boundary maps.  
 ```
 #### Run floodmap
 ```
-(floodmap)>> python ./exe/floodmap.py ~/specs.yml
+(floodmap)>> python ./exe/production.py ~/specs.yml
 ```
 #### Documentation
 The floodmap user guide is found at `./docs/floodmap.pdf`
