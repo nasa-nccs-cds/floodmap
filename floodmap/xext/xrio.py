@@ -63,16 +63,16 @@ class XRio(XExtension):
         return result
 
     @classmethod
-    def print_array_dims( cls, filePaths: Union[ str, List[str] ], **kwargs ):
+    def print_array_dims( cls, logger, filePaths: Union[ str, List[str] ], **kwargs ):
         if isinstance( filePaths, str ): filePaths = [ filePaths ]
         result: xr.DataArray = None
-        print(f" ARRAY DIMS " )
+        logger.info(f" ARRAY DIMS " )
         for iF, file in enumerate(filePaths):
             data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
-                print( f"  ** Array[{iF}:{ntpath.basename(file)}]-> shape = {data_array.shape}")
+                logger.info( f"  ** Array[{iF}:{ntpath.basename(file)}]-> shape = {data_array.shape}")
         return result
 
     @classmethod

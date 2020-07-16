@@ -4,6 +4,7 @@ from multiprocessing import Pool, Lock, cpu_count
 from functools import partial
 import xarray as xr
 import numpy as np
+import logging
 import os, time, collections, traceback
 
 class LakeMaskProcessor:
@@ -11,7 +12,17 @@ class LakeMaskProcessor:
     def __init__( self, opspecs: Dict, **kwargs ):
         self._opspecs = { key.lower(): value for key,value in opspecs.items() }
         self._defaults = self._opspecs.get( "defaults", None )
-        self.waterMapGenerator = None
+        self.logger = self.getLogger( 'LakeMaskProcessor', logging.DEBUG )
+
+    @classmethod
+    def getLogger(cls, fname: str, level ):
+        logger = logging.getLogger(__name__)
+        logger.setLevel( level )
+        handler = logging.FileHandler( f"/tmp/{fname}.log")
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler( handler )
+        return logger
 
     def process_lakes( self, reproject_inputs, **kwargs ):
         year_range = self._defaults['year_range']
@@ -43,32 +54,30 @@ class LakeMaskProcessor:
         p.join()
 
     def process_lake_mask(self, lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_files: Tuple[int,Dict] ):
+        from .lakeExtentMapping import WaterMapGenerator
         lake_index, sorted_file_paths = lake_mask_files
+        logger = self.getLogger(f"WaterMapGenerator-{os.getpid()}", logging.DEBUG)
         try:
             time_values = np.array([self.get_date_from_year(year) for year in sorted_file_paths.keys()], dtype='datetime64[ns]')
             yearly_lake_masks: xr.DataArray = XRio.load(list(sorted_file_paths.values()), band=0, index=time_values)
             yearly_lake_masks.attrs.update(lakeMaskSpecs)
             yearly_lake_masks.name = f"Lake {lake_index} Mask"
             nx, ny = yearly_lake_masks.shape[-1], yearly_lake_masks.shape[-2]
-            lake_results = self.process_lake_masks(lake_index, yearly_lake_masks, **runSpecs )
-            print(f"Completed processing lake {lake_index}")
+            waterMapGenerator = WaterMapGenerator( {'lake_index': lake_index,  **self._defaults}, logger )
+            lake_results =  waterMapGenerator.process_yearly_lake_masks( lake_index, yearly_lake_masks, **runSpecs )
+            logger.info(f"Completed processing lake {lake_index}")
             return  [lake_index, lake_results, yearly_lake_masks]
         except Exception as err:
-            print(f"Skipping lake {lake_index} due to errors ")
-            traceback.print_exc()
+            logger.error(f"Skipping lake {lake_index} due to errors ")
+            logger.error( traceback.format_exc() )
             self.write_result_report(lake_index, traceback.format_exc())
 
     def convert(self, src_file: str, overwrite = True ) -> str:
         dest_file = src_file[:-4] + ".geo.tif"
         if overwrite or not os.path.exists(dest_file):
-            print( f"Saving converted input to {dest_file}")
+            self.logger.info( f"Saving converted input to {dest_file}")
             XRio.convert( src_file, dest_file )
         return dest_file
-
-    def process_lake_masks(self, lake_index: int, mask_files: xr.DataArray, **kwargs ) -> Optional[xr.DataArray]:
-        from .lakeExtentMapping import WaterMapGenerator
-        waterMapGenerator = WaterMapGenerator( { 'lake_index': lake_index, **self._defaults } )
-        return waterMapGenerator.process_yearly_lake_masks( lake_index, mask_files, **kwargs )
 
     def write_result_report( self, lake_index, report: str ):
         results_dir = self._defaults.get('results_dir')

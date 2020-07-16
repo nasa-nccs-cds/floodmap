@@ -5,7 +5,7 @@ This project computes surface water extents from lake shapefile boundary maps.  
 
 #### Build Conda Env
 ```
->> conda create --name floodmap
+>> conda create --name floodmap python=3.6
 >> conda activate floodmap
 (floodmap)>> conda install -c conda-forge xarray numpy rioxarray shapely regionmask pandas geopandas wget 
 ```
