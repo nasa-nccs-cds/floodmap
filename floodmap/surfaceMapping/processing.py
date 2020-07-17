@@ -52,7 +52,7 @@ class LakeMaskProcessor:
             with Pool(processes=nproc) as p:
                 results = p.imap( partial(self.process_lake_mask, lakeMaskSpecs, kwargs ), lake_masks.items(), 5 )
 
-            self.logger.info( "Processes completed- exiting.")
+            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {results}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )
