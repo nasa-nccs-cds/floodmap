@@ -7,7 +7,8 @@ import numpy as np
 from shapely.geometry import box, mapping
 from ..util.configuration import argfilter
 import rioxarray, traceback
-import rasterio
+import rasterio, logging
+from ..util.logs import getLogger
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import xarray as xr
 
@@ -20,6 +21,8 @@ class XRio(XExtension):
 
     @classmethod
     def open( cls, iFile: int, filename: str, **kwargs )-> Optional[xr.DataArray]:
+        from ..surfaceMapping.tiles import TileLocator
+        logger = getLogger(False)
         mask = kwargs.pop("mask", None)
         kill_zombies = kwargs.pop( "kill_zombies", False )
         oargs = argfilter( kwargs, parse_coordinates = None, chunks = None, cache = None, lock = None )
@@ -31,25 +34,24 @@ class XRio(XExtension):
             result.encoding = dict( dtype = str(np.dtype('f4')) )
             if mask is None: return result
             elif isinstance( mask, list ):
-                return result.xrio.subset( iFile, mask[:2], mask[2:] )
+                tile_bounds = TileLocator.get_bounds(result)
+                invert_y = (tile_bounds[2] > tile_bounds[3])
+                if iFile == 0: logger.info(f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
+                return result.xrio.subset( mask[:2], mask[2:], invert_y )
             elif isinstance( mask, GeoDataFrame ):
                 return result.xrio.clip( mask, **kwargs )
             else:
                 raise Exception( f"Unrecognized mask type: {mask.__class__.__name__}")
         except Exception as err:
-            print( f"XRio Error opening file {filename}: {err}")
-            traceback.print_exc()
+            logger.error( f"XRio Error opening file {filename}: {err}")
+            logger.error( traceback.format_exc() )
             if kill_zombies:
                 print(f"Deleting erroneous file")
                 os.remove( filename )
             return None
 
-    def subset(self, iFile: int, xbounds: List, ybounds: List )-> xr.DataArray:
-        from ..surfaceMapping.tiles import TileLocator
-        tile_bounds = TileLocator.get_bounds(self._obj)
-        xbounds.sort(), ybounds.sort( reverse = (tile_bounds[2] > tile_bounds[3]) )
-        if iFile == 0:
-            print( f"Subsetting array with bounds {tile_bounds} by xbounds = {xbounds}, ybounds = {ybounds}")
+    def subset(self, xbounds: List, ybounds: List, invert_y: bool  )-> xr.DataArray:
+        xbounds.sort(), ybounds.sort( reverse = invert_y )
         sel_args = { self._obj.dims[-1]: slice(*xbounds), self._obj.dims[-2]: slice(*ybounds) }
         return self._obj.sel(**sel_args)
 
@@ -63,12 +65,13 @@ class XRio(XExtension):
         return result
 
     @classmethod
-    def print_array_dims( cls, logger, filePaths: Union[ str, List[str] ], **kwargs ):
+    def print_array_dims( cls, filePaths: Union[ str, List[str] ], **kwargs ):
         if isinstance( filePaths, str ): filePaths = [ filePaths ]
+        logger = getLogger( False )
         result: xr.DataArray = None
         logger.info(f" ARRAY DIMS " )
         for iF, file in enumerate(filePaths):
-            data_array: xr.DataArray = cls.open( iF, file, **kwargs )
+            data_array: xr.DataArray = cls.open( iF, file, logger, **kwargs )
             if data_array is not None:
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
@@ -85,9 +88,6 @@ class XRio(XExtension):
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
                 result = data_array if result is None else cls.concat([result, data_array])
-                # try:
-                # except ValueError as err:
-                #     print( f"SKIPPED concatenating array[{iF}:{ntpath.basename(file)}], shape: {data_array.shape}, due to error: {err}")
         return result
 
     @classmethod
@@ -95,27 +95,9 @@ class XRio(XExtension):
         from datetime import datetime
         basename = filename[:-4] if filename.endswith(".tif") else filename
         toks = basename.split( "_")[1]
-#        print(f" get_date_from_filename: {filename}, toks = {toks}")
         try:    result = datetime.strptime(toks, '%Y%j').date()
         except: result = datetime.strptime(toks, '%Y' ).date()
         return np.datetime64(result)
-
-    @classmethod
-    def load1( cls, filePaths: Union[ str, List[str] ], **kwargs ) -> Union[ List[xr.DataArray], xr.DataArray ]:
-        if isinstance( filePaths, str ): filePaths = [ filePaths ]
-        array_list: List[xr.DataArray] = []
-        index_mask = np.full( [len(filePaths)], True )
-        for iF, file in enumerate(filePaths):
-            data_array: xr.DataArray = cls.open( iF, file, **kwargs )
-            if data_array is not None:
-                array_list.append( data_array )
-            else:
-                index_mask[iF] = False
-        if (len(array_list) > 1):
-            assert cls.mergable( array_list ), f"Attempt   to merge arrays with different shapes: {[ str(arr.shape) for arr in array_list ]}"
-            result = cls.merge( array_list, index_mask=index_mask, **kwargs )
-            return result
-        return array_list if (len(array_list) > 1) else array_list[0]
 
     @classmethod
     def convert(self, source_file_path: str, dest_file_path: str, espg = 4236 ):

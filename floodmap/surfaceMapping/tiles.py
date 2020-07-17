@@ -1,6 +1,7 @@
 import xarray as xa
 import geopandas as gpd
 from math import floor, ceil
+from ..util.logs import getLogger
 from typing import List, Union, Tuple, Optional
 
 class TileLocator:
@@ -48,7 +49,6 @@ class TileLocator:
         xvals = { cls.lon_label( xmin ), cls.lon_label( xmax ) }
         yvals = { cls.lat_label( ymin ), cls.lat_label( ymax ) }
         results = [ f"{xval}{yval}" for xval in xvals for yval in yvals ]
-        print( f"Inferring tiles {results} from xbounds = {[xmin,xmax]}, ybounds = {[ymin,ymax]}" )
         return results
 
     @classmethod

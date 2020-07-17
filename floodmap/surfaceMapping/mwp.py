@@ -1,11 +1,21 @@
-import time, os, wget, sys, pprint
+import time, os, wget, sys, pprint, logging
 from typing import List, Union, Dict
 import numpy as np
 from multiprocessing import Pool
 from floodmap.xext.xgeo import XGeo
+from ..util.logs import getLogger
 import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint
 from floodmap.util.configuration import ConfigurableObject
+
+def getStreamLogger( level ):
+    logger = logging.getLogger (__name__ )
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    return logger
 
 class MWPDataManager(ConfigurableObject):
 
@@ -13,6 +23,7 @@ class MWPDataManager(ConfigurableObject):
         ConfigurableObject.__init__( self, **kwargs )
         self.data_dir = data_dir
         self.data_source_url = data_source_url
+        self.logger = getLogger( False )
 
     def get_location_dir( self, location: str ) -> str:
         loc_dir = os.path.join( self.data_dir, location )
@@ -55,14 +66,14 @@ class MWPDataManager(ConfigurableObject):
                     target_url = self.data_source_url + f"/{location}/{iY}/{target_file}"
                     try:
                         wget.download( target_url, target_file_path )
-                        print(f"Downloading url {target_url} to file {target_file_path}")
+                        self.logger.info(f"Downloading url {target_url} to file {target_file_path}")
                         files.append( target_file_path )
-                    except Exception:
-                        print( f"     ---> Can't access {target_url}")
+                    except Exception as err:
+                        self.logger.error( f"     ---> Can't access {target_url}: {err}")
                 else:
-                    print(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
+                    self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
                     files.append( target_file_path )
-        print(" Downloaded replacement files:")
+        self.logger.info(" Downloaded replacement files:")
         pp( files )
         return files
 
@@ -83,12 +94,12 @@ class MWPDataManager(ConfigurableObject):
                         target_url = self.data_source_url + f"/{location}/{iY}/{target_file}"
                         try:
                             wget.download( target_url, target_file_path )
-                            print(f"Downloading url {target_url} to file {target_file_path}")
+                            self.logger.info(f"Downloading url {target_url} to file {target_file_path}")
                             files.append( target_file_path )
-                        except Exception:
-                            print( f"     ---> Can't access {target_url}")
+                        except Exception as err:
+                            self.logger.error( f"     ---> Can't access {target_url}: {err}")
                 else:
-                    print(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
+                    self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
                     files.append( target_file_path )
         return files
 

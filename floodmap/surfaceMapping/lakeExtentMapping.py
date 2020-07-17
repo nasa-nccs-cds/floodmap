@@ -9,12 +9,13 @@ from ..xext.xrio import XRio
 from  xarray.core.groupby import DatasetGroupBy
 from ..util.configuration import sanitize, ConfigurableObject
 from .tiles import TileLocator
+from ..util.logs import getLogger
 import numpy as np
 import os, time, collections, logging
 
 class WaterMapGenerator(ConfigurableObject):
 
-    def __init__( self, opspecs: Dict, logger, **kwargs ):
+    def __init__( self, opspecs: Dict, **kwargs ):
         self._opspecs = { key.lower(): value for key,value in opspecs.items() }
         ConfigurableObject.__init__( self, **kwargs )
         self.water_maps: xr.DataArray = None
@@ -23,7 +24,7 @@ class WaterMapGenerator(ConfigurableObject):
         self.yearly_lake_masks: xr.DataArray = None
         self.roi_bounds: gpd.GeoSeries = None
         self.mask_value = 5
-        self.logger = logger
+        self.logger = getLogger( False )
 
     def get_water_map_colors(self) -> List[Tuple]:
         return [(0, 'nodata', (0, 0, 0)),
@@ -267,7 +268,7 @@ class WaterMapGenerator(ConfigurableObject):
 
         year_range = kwargs.get('year_range')
         day_range = kwargs.get('day_range',[0,365])
-        dataMgr = MWPDataManager(results_dir, data_url)
+        dataMgr = MWPDataManager(results_dir, data_url )
 
         cropped_tiles: Dict[str,xr.DataArray] = {}
         file_paths = []
@@ -286,7 +287,7 @@ class WaterMapGenerator(ConfigurableObject):
                     if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
                 exc = traceback.format_exc()
                 self.logger.error( f"Error: {err}: \n{exc}" )
-                XRio.print_array_dims( self.logger, file_paths )
+                XRio.print_array_dims( file_paths )
         nTiles = len( cropped_tiles.keys() )
         if nTiles > 0:
             self.logger.info( f"Merging {nTiles} Tiles ")

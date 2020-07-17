@@ -1,10 +1,9 @@
-import yaml, sys
+from multiprocessing import freeze_support
 from floodmap.surfaceMapping.processing import LakeMaskProcessor
 
-opspec_file = sys.argv[1]
-reproject_inputs = False
-with open(opspec_file) as f:
-    opspecs = yaml.load(f, Loader=yaml.FullLoader)
-    lakeMaskProcessor = LakeMaskProcessor(opspecs)
+if __name__ == '__main__':
+    freeze_support()
+    reproject_inputs = False
+    lakeMaskProcessor = LakeMaskProcessor()
     lakeMaskProcessor.process_lakes( reproject_inputs, format="tif" )
 

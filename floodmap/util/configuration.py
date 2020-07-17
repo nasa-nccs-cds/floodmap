@@ -2,7 +2,7 @@ from shapely.geometry import Point
 import xarray as xr
 import string, random, json
 import pandas as pd
-import os
+import yaml, sys
 from typing import List, Dict
 
 def argfilter( args: Dict, **kwargs ) -> Dict:
@@ -78,6 +78,19 @@ class Region:
         self.origin: List[int] = origin
         self.size: int = size
         self.bounds: List[int] = [ origin[0] + size, origin[1] + size ]
+
+class OpSpecs:
+
+    def __init__(self):
+        opspec_file = sys.argv[1]
+        with open(opspec_file) as f:
+            self._specs = yaml.load(f, Loader=yaml.FullLoader)
+            self._defaults = self._specs.get( "defaults", {} )
+
+    def get( self, key: str , default = None ):
+        return self._defaults.get( key, default )
+
+opSpecs = OpSpecs()
 
 
 
