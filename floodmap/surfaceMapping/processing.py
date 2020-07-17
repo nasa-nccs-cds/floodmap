@@ -68,7 +68,7 @@ class LakeMaskProcessor:
 
             nproc = kwargs.get('np', cpu_count())
             items = list(lake_masks.items())
-            self.logger.info( f"Processing Lakes: {lake_masks.keys()}")
+            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}")
             with get_context("spawn").Pool(processes=nproc) as p:
                 results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
 

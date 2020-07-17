@@ -11,6 +11,7 @@ from ..util.configuration import sanitize, ConfigurableObject
 from .tiles import TileLocator
 from ..util.logs import getLogger
 import numpy as np
+from datetime import datetime
 import os, time, collections, logging
 
 class WaterMapGenerator(ConfigurableObject):
@@ -42,7 +43,6 @@ class WaterMapGenerator(ConfigurableObject):
 
     @classmethod
     def get_date_from_year(cls, year: int):
-        from datetime import datetime
         return np.datetime64( datetime(year, 7, 1) )
 
     def get_viable_file(self, fpaths: List[str] ) -> str:
@@ -109,7 +109,6 @@ class WaterMapGenerator(ConfigurableObject):
         return result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
 
     def get_water_probability( self, opspec: Dict, **kwargs ) -> xr.DataArray:
-        from datetime import datetime
         self.logger.info(f"Executing get_water_probability" )
         t0 = time.time()
         cache = kwargs.get( "cache", False )
@@ -235,7 +234,6 @@ class WaterMapGenerator(ConfigurableObject):
         return result
 
     def get_date_from_filename(self, filename: str):
-        from datetime import datetime
         toks = filename.split("_")
         result = datetime.strptime(toks[1], '%Y%j').date()
         return np.datetime64(result)
@@ -390,6 +388,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f" --------------------->> Skipping already processed file: {result_file}")
             return None
         else:
+            print( f"{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}: Worker-{os.getpid()} processing Lake {lake_index}")
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
             y_coord, x_coord = yearly_lake_masks.coords[ yearly_lake_masks.dims[-2]].values, yearly_lake_masks.coords[yearly_lake_masks.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
@@ -411,6 +410,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.write_water_area_results( result, patched_water_maps_file + ".txt" )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
+            print(f"{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}: Worker-{os.getpid()} Saving patched_water_maps for lake {lake_index} to {patched_water_maps_file}")
             self.logger.info( f"Saving patched_water_maps for lake {lake_index} to {patched_water_maps_file}")
             return patched_water_maps.assign_attrs( roi = self.roi_bounds )
 
