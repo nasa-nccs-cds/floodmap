@@ -410,8 +410,8 @@ class WaterMapGenerator(ConfigurableObject):
             self.write_water_area_results( result, patched_water_maps_file + ".txt" )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
-            print(f"{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}: Worker-{os.getpid()} Saving patched_water_maps for lake {lake_index} to {patched_water_maps_file}")
-            self.logger.info( f"Saving patched_water_maps for lake {lake_index} to {patched_water_maps_file}")
+            print(f"{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}: Worker-{os.getpid()} Saving results for lake {lake_index} to {patched_water_maps_file}.*")
+            self.logger.info( f"Saving results for lake {lake_index} to {patched_water_maps_file}.*")
             return patched_water_maps.assign_attrs( roi = self.roi_bounds )
 
     def write_water_area_results(self, patched_water_maps: xr.DataArray, outfile_path: str,  **kwargs ):
