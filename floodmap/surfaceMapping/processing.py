@@ -43,7 +43,7 @@ class LakeMaskProcessor:
     def __init__( self ):
         self.logger = getLogger( True, logging.DEBUG )
         self.pool: Pool = None
-        atexit.register( self.shutdown() )
+        atexit.register( self.shutdown )
 
     def process_lakes( self, reproject_inputs, **kwargs ):
         try:
