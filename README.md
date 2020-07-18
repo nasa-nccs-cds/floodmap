@@ -19,7 +19,7 @@ This project computes surface water extents from lake shapefile boundary maps.  
 #### Configure execution
 ```
 (floodmap)>> cp ./specs/sample-specs.yml ~/specs.yml
-(floodmap)>> emacs ~/specs.yml
+(floodmap)>> emacs -nw ~/specs.yml
 ```
 #### Run floodmap
 ```

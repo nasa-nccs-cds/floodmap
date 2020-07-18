@@ -18,3 +18,15 @@ def getLogger( master: bool, level = logging.DEBUG ):
             ch.setFormatter(formatter)
             logger.addHandler(ch)
     return logger
+
+
+def getConsoleLogger( level = logging.DEBUG ):
+    logger = logging.getLogger( f"console" )
+    logger.setLevel(level)
+    if not len(logger.handlers):
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    return logger

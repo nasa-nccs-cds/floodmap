@@ -1,13 +1,13 @@
 from typing import List, Union, Tuple, Dict, Optional
 from ..xext.xrio import XRio
-from multiprocessing import cpu_count, get_context, Pool
+from multiprocessing import cpu_count, get_context, Pool, Event
 from functools import partial
 from ..util.configuration import opSpecs
 from datetime import datetime
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
-import os, time, collections, traceback, logging
+import os, time, collections, traceback, logging, atexit
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')
@@ -42,6 +42,8 @@ class LakeMaskProcessor:
 
     def __init__( self ):
         self.logger = getLogger( True, logging.DEBUG )
+        self.pool: Pool = None
+        atexit.register( self.shutdown() )
 
     def process_lakes( self, reproject_inputs, **kwargs ):
         try:
@@ -70,6 +72,7 @@ class LakeMaskProcessor:
             items = list(lake_masks.items())
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}")
             with get_context("spawn").Pool(processes=nproc) as p:
+                self.pool = p
                 results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
 
             self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {results}")
@@ -93,5 +96,9 @@ class LakeMaskProcessor:
         sdims = [ array.dims[-2], array.dims[-1] ]
         rounded_coords = { dim: array.coords[dim].round( precision ) for dim in sdims }
         return array.assign_coords( rounded_coords )
+
+    def shutdown(self):
+        if self.pool is not None:
+            self.pool.terminate()
 
 
