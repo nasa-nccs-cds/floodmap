@@ -6,6 +6,7 @@ from glob import glob
 import functools, traceback
 from ..xext.xgeo import XGeo
 from ..xext.xrio import XRio
+from ..util.plot import plot_array
 from  xarray.core.groupby import DatasetGroupBy
 from ..util.configuration import sanitize, ConfigurableObject
 from .tiles import TileLocator
@@ -186,6 +187,9 @@ class WaterMapGenerator(ConfigurableObject):
                 self.logger.info(f"Cached water_maps to {water_maps_file}")
         self.logger.info( f" Completed get_water_maps in {time.time()-t0:.3f} seconds" )
         water_maps_array: xr.DataArray = water_maps_dset.water_maps
+        # class_counts = self.get_class_counts( water_maps_array.values[0] )
+        # for tI in range(water_maps_array.shape[0]):
+        #     plot_array( f"get_water_maps-{tI}", water_maps_array[tI] )
         water_maps_array.name = "Water_Maps"
         return water_maps_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
 
@@ -417,15 +421,21 @@ class WaterMapGenerator(ConfigurableObject):
         water_classes = kwargs.get('water_classes', [2,4] )
         time_axis = patched_water_maps.coords[ patched_water_maps.dims[0] ]
         water_counts, class_proportion = self.get_class_proportion(patched_water_maps, interp_water_class, water_classes)
+        # for tI in range(patched_water_maps.shape[0]):
+        #     plot_array( f"patch_water_maps-{tI}", patched_water_maps[tI] )
         with open( outfile_path, "a" ) as outfile:
             lines = ["date water_area_km2 percent_interploated\n"]
             for iTime in range( patched_water_maps.shape[0] ):
+#                class_counts = self.get_class_counts( patched_water_maps.values[iTime] )
                 percent_interp = class_proportion.values[iTime]
                 num_water_pixels = water_counts.values[iTime]
                 date = pd.Timestamp( time_axis.values[iTime] ).to_pydatetime()
                 lines.append( f"{str(date).split(' ')[0]} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n")
             outfile.writelines(lines)
             self.logger.info( f"Wrote results to file {outfile_path}")
+
+    def get_class_counts( self, array: np.ndarray )-> Dict:
+        return { ic: np.count_nonzero( array == ic ) for ic in range(10) }
 
     def repatch_water_maps(self, lakeId: str, **kwargs) -> xr.DataArray:
         t0 = time.time()
@@ -453,7 +463,9 @@ class WaterMapGenerator(ConfigurableObject):
         self.persistent_classes: xr.DataArray = self.get_persistent_classes( opspec, **kwargs )
         patched_water_maps: xr.DataArray = self.interpolate( **kwargs ).assign_attrs( **self.water_maps.attrs )
         patched_water_maps.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
-        return patched_water_maps.fillna( self.mask_value )
+        rv = patched_water_maps.fillna( self.mask_value )
+#        class_counts = self.get_class_counts( rv.values[0] )
+        return rv
 
     def get_cached_water_maps( self, lakeId: str ):
         opspec = self.get_opspec(lakeId.lower())
