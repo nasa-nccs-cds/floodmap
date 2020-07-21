@@ -68,7 +68,7 @@ class LakeMaskProcessor:
                     elif os.path.isfile( file_path ):
                         lake_masks[lake_index][year]= self.convert( file_path ) if reproject_inputs else file_path
 
-            nproc = kwargs.get('np', cpu_count())
+            nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}")
             with get_context("spawn").Pool(processes=nproc) as p:

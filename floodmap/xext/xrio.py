@@ -71,7 +71,7 @@ class XRio(XExtension):
         result: xr.DataArray = None
         logger.info(f" ARRAY DIMS " )
         for iF, file in enumerate(filePaths):
-            data_array: xr.DataArray = cls.open( iF, file, logger, **kwargs )
+            data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
