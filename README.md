@@ -4,6 +4,9 @@ This project computes surface water extents from lake shapefile boundary maps.  
 ## Installation
 
 #### Build Conda Env
+
+If Anaconda is not yet installed in your environment, see: https://www.anaconda.com/products/individual for installation instructions.
+   
 ```
 >> conda create --name floodmap python=3.6
 >> conda activate floodmap
