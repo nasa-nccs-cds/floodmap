@@ -1,4 +1,4 @@
-import time, os, sys, pprint, logging
+import time, os, sys, pprint, logging, pathlib
 from typing import List, Union, Dict
 import numpy as np
 from multiprocessing import Pool
@@ -18,6 +18,7 @@ def getStreamLogger( level ):
     return logger
 
 class MWPDataManager(ConfigurableObject):
+    BASE_DIR = pathlib.Path(__file__).parent.parent.parent.absolute()
 
     def __init__(self, data_dir: str, data_source_url: str, **kwargs ):
         ConfigurableObject.__init__( self, **kwargs )
@@ -87,26 +88,35 @@ class MWPDataManager(ConfigurableObject):
         key =       self.getParameter("key", **kwargs)
         collection = self.getParameter("collection", **kwargs)
         location_dir = self.get_location_dir( location )
+        hdf2nc = os.path.join( self.BASE_DIR, "bin", "h4tonccf_nc4" )
+        self.logger.info( f" %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% hdf2nc: {hdf2nc}  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% " )
         files = []
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
                 target_dir = f"{collection:02}/{product}/{iY}/{iFile:03}"
-                target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}.hdf"
-                target_file_path = "/".join( [ location_dir, "allData", target_dir, target_file ] )
-                if not os.path.exists( target_file_path ):
+                target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}"
+                target_file_path = "/".join( [ location_dir, "allData", target_dir, target_file] )
+                if not os.path.exists( target_file_path+".nc" ):
                     if download:
-                        target_url = "/".join( [self.data_source_url, target_dir, target_file] )
+                        target_url = "/".join( [self.data_source_url, target_dir, target_file+".hdf"] )
                         try:
                             download_script = f'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {key}" -P {location_dir}'
-                            self.logger.info(f"Downloading url {target_url} to file '{target_file_path}'")
+                            self.logger.info(f"Downloading url {target_url} to file '{target_file_path}.hdf'")
                             stream = os.popen( download_script )
                             self.logger.info( stream.read() )
-                            files.append( target_file_path )
+
+                            self.logger.info(f"Transforming '{target_file_path}.hdf' ---> '{target_file_path}.nc'")
+                            transform_script = f"{hdf2nc} '{target_file_path}.hdf' '{target_file_path}.nc'"
+                            stream = os.popen( transform_script )
+                            self.logger.info( stream.read() )
+
+                            os.remove(f"{target_file_path}.hdf")
+                            files.append( target_file_path+".nc"  )
                         except Exception as err:
                             self.logger.error( f"     ---> Can't access {target_url}: {err}")
                 else:
-                    self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
-                    files.append( target_file_path )
+                    self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}.nc")
+                    files.append( target_file_path+".nc" )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:
