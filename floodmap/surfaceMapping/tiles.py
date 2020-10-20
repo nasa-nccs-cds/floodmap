@@ -21,13 +21,13 @@ class TileLocator:
     @classmethod
     def lon_label(cls, lon: float ) -> str:
         ulon = cls.unwrap( lon )
-        if ulon < 0: return f"{cls.floor10(ulon):03d}W"
-        else:        return f"{cls.floor10(ulon):03d}E"
+        ilon = round( cls.floor10(ulon + 180)/10.0 )
+        return f"h{ilon:02d}"
 
     @classmethod
     def lat_label(cls, lat: float ) -> str:
-        if lat > 0: return f"{cls.ceil10(lat):03d}N"
-        else:       return f"{cls.ceil10(lat):03d}S"
+        ilat = round( cls.ceil10(90-lat)/10.0 )
+        return f"v{ilat:02d}"
 
     @classmethod
     def infer_tiles_xa( cls, array: xa.DataArray ) -> List[str]:

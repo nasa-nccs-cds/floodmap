@@ -1,7 +1,7 @@
 defaults:
     results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
-    year_range: [ 2014, 2019 ]
-    day_range: [ 0, 360 ]
+    year_range: [ 2020, 2020 ]
+    day_range: [ 286, 292 ]
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 2
@@ -14,9 +14,10 @@ defaults:
         water: 1
 
     source:
-      type: 'MPW'
-      url:  'https://floodmap.modaps.eosdis.nasa.gov/Products'
-      product:  '2D2OT'
+      url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/allData/'
+      collection: 61
+      product:  'MCDWD_L3_NRT'
+      key: 'E7BB20CA-12EA-11EB-9254-84C18306A814'
 
     water_maps:
         threshold: 0.5

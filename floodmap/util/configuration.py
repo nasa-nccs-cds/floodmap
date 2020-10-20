@@ -2,7 +2,7 @@ from shapely.geometry import Point
 import xarray as xr
 import string, random, json
 import pandas as pd
-import yaml, sys
+import yaml, sys, os
 from typing import List, Dict
 
 def argfilter( args: Dict, **kwargs ) -> Dict:
@@ -82,10 +82,16 @@ class Region:
 class OpSpecs:
 
     def __init__(self):
-        opspec_file = sys.argv[1]
-        with open(opspec_file) as f:
-            self._specs = yaml.load(f, Loader=yaml.FullLoader)
-            self._defaults = self._specs.get( "defaults", {} )
+        self._specs = {}
+        self._defaults = {}
+        opspec_file = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/.floodmap/specs.yml")
+        try:
+            with open(opspec_file) as f:
+                self._specs = yaml.load(f, Loader=yaml.FullLoader)
+                self._defaults = self._specs.get( "defaults", {} )
+        except:
+            print( f" **** Can't find spec file {opspec_file}, this application is not properly configured. **** ")
+
 
     def get( self, key: str , default = None ):
         return self._defaults.get( key, default )

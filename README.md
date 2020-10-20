@@ -10,8 +10,7 @@ If Anaconda is not yet installed in your environment, see: https://www.anaconda.
 ```
 >> conda create --name floodmap python=3.6
 >> conda activate floodmap
-(floodmap)>> conda install -c conda-forge xarray numpy zlib rioxarray shapely regionmask pandas bottleneck geopandas utm
-(floodmap)>> pip install wget
+(floodmap)>> conda install -c conda-forge xarray numpy zlib rioxarray shapely regionmask pandas bottleneck geopandas utm wget netcdf4 
 ```
 #### Install floodmap
 ```

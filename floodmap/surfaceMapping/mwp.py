@@ -1,4 +1,4 @@
-import time, os, wget, sys, pprint, logging
+import time, os, sys, pprint, logging
 from typing import List, Union, Dict
 import numpy as np
 from multiprocessing import Pool
@@ -49,6 +49,7 @@ class MWPDataManager(ConfigurableObject):
             return True
 
     def reload_damaged_files(self, location: str = "120W050N", **kwargs) -> List[str]:
+        import wget
         start_day = self.getParameter( "start_day", **kwargs )
         end_day =   self.getParameter( "end_day",   **kwargs )
         years =     self.getParameter( "years",      **kwargs )
@@ -77,24 +78,29 @@ class MWPDataManager(ConfigurableObject):
         pp( files )
         return files
 
-    def get_tile(self, location: str = "120W050N", **kwargs) -> List[str]:
+    def get_tile(self, location: str = "h19v08", **kwargs) -> List[str]:
         download =  self.getParameter( "download",  **kwargs )
         start_day = self.getParameter( "start_day", **kwargs )
         end_day =   self.getParameter( "end_day",   **kwargs )
         years =     self.getParameter( "years",   [ self.getParameter("year", **kwargs) ] )
         product =   self.getParameter( "product",   **kwargs )
+        key =       self.getParameter("key", **kwargs)
+        collection = self.getParameter("collection", **kwargs)
         location_dir = self.get_location_dir( location )
         files = []
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
-                target_file = f"MWP_{iY}{iFile:03}_{location}_{product}.tif"
-                target_file_path = os.path.join( location_dir, target_file )
+                target_dir = f"{collection:02}/{product}/{iY}/{iFile:03}"
+                target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}.hdf"
+                target_file_path = "/".join( [ location_dir, "allData", target_dir, target_file ] )
                 if not os.path.exists( target_file_path ):
                     if download:
-                        target_url = self.data_source_url + f"/{location}/{iY}/{target_file}"
+                        target_url = "/".join( [self.data_source_url, target_dir, target_file] )
                         try:
-                            wget.download( target_url, target_file_path )
-                            self.logger.info(f"Downloading url {target_url} to file {target_file_path}")
+                            download_script = f'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {key}" -P {location_dir}'
+                            self.logger.info(f"Downloading url {target_url} to file '{target_file_path}'")
+                            stream = os.popen( download_script )
+                            self.logger.info( stream.read() )
                             files.append( target_file_path )
                         except Exception as err:
                             self.logger.error( f"     ---> Can't access {target_url}: {err}")
