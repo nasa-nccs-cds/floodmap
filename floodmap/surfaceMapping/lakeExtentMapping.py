@@ -25,7 +25,7 @@ class WaterMapGenerator(ConfigurableObject):
         self.persistent_classes: xr.DataArray = None
         self.yearly_lake_masks: xr.DataArray = None
         self.roi_bounds: gpd.GeoSeries = None
-        self.mask_value = 5
+        self.mask_value = 255
         self.logger = getLogger( False )
 
     def get_water_map_colors(self) -> List[Tuple]:
@@ -106,8 +106,16 @@ class WaterMapGenerator(ConfigurableObject):
             result = xr.where( roi_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
         result = result.persist()
         result.name = "Persistent_Classes"
+
+#        plot_array( result.name, result.squeeze() )
         self.logger.info(f"Done get_persistent_classes in time {time.time() - t0}")
         return result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+
+    # *255: Insufficient data
+    # *0: No water
+    # *1: Water(matches standard reference water)
+    # *2: Recurring flood(expected seasonal flood)
+    # *3: Flood(unusual)
 
     def get_water_probability( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         self.logger.info(f"Executing get_water_probability" )
@@ -122,8 +130,9 @@ class WaterMapGenerator(ConfigurableObject):
             water_probability_dataset: xr.Dataset = xr.open_dataset(water_probability_file)
             water_probability: xr.DataArray = water_probability_dataset.water_probability
         else:
-            water = self.water_maps.isin([2, 3])
-            land = self.water_maps.isin([1])
+#            plot_array( "water_maps", self.water_maps.squeeze() )
+            water = self.water_maps.isin([1, 2, 3])
+            land = self.water_maps.isin([0])
             unmasked = (self.water_maps[0] != self.mask_value).drop_vars(self.water_maps.dims[0])
 
             if yearly:
@@ -237,9 +246,10 @@ class WaterMapGenerator(ConfigurableObject):
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result
 
-    def get_date_from_filename(self, filename: str):
-        toks = filename.split("_")
-        result = datetime.strptime(toks[1], '%Y%j').date()
+    def get_date_from_filepath(self, filepath: str):
+        toks = filepath.split("/")
+        sdate = toks[-3]+toks[-2]
+        result = datetime.strptime( sdate, '%Y%j').date()
         return np.datetime64(result)
 
     def infer_tile_locations(self) -> List[str]:
@@ -259,12 +269,11 @@ class WaterMapGenerator(ConfigurableObject):
         results_dir = kwargs.get('results_dir')
         lake_id = kwargs.get('lake_index')
         download = kwargs.get( 'download', True )
-
-
         source_spec = kwargs.get('source')
         data_url = source_spec.get('url')
         key = source_spec.get('key')
         product = source_spec.get('product')
+        varName = source_spec.get('varName')
         collection = source_spec.get('collection')
         locations = source_spec.get( 'location', self.infer_tile_locations() )
         if not locations:
@@ -282,17 +291,16 @@ class WaterMapGenerator(ConfigurableObject):
         for location in locations:
             try:
                 self.logger.info( f"Reading Location {location}" )
-                dataMgr.setDefaults(product=product, collection=collection, key=key, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
+                dataMgr.setDefaults(product=product, collection=collection, varName=varName, key=key, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
                 file_paths = dataMgr.get_tile(location)
-                time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
-                cropped_tiles[location] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                time_values = np.array([self.get_date_from_filepath(path) for path in file_paths], dtype='datetime64[ns]')
+                cropped_tiles[location] =  XRio.dsload( file_paths, varName, mask=self.roi_bounds, mask_value=self.mask_value, index=time_values, coords = ["time", "y", "x"] )
             except Exception as err:
                 self.logger.error( f"Error reading mpw data for location {location}, first file paths = {file_paths[0:10]} ")
                 for file in file_paths:
                     if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
                 exc = traceback.format_exc()
                 self.logger.error( f"Error: {err}: \n{exc}" )
-                XRio.print_array_dims( file_paths )
         nTiles = len( cropped_tiles.keys() )
         if nTiles > 0:
             self.logger.info( f"Merging {nTiles} Tiles ")
@@ -389,6 +397,7 @@ class WaterMapGenerator(ConfigurableObject):
         skip_existing = kwargs.get('skip_existing', True)
         format = kwargs.get('format','tif')
         results_dir = self._opspecs.get('results_dir')
+
         patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
         result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
         if skip_existing and os.path.isfile(result_file):
@@ -396,14 +405,15 @@ class WaterMapGenerator(ConfigurableObject):
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            y_coord, x_coord = yearly_lake_masks.coords[ yearly_lake_masks.dims[-2]].values, yearly_lake_masks.coords[yearly_lake_masks.dims[-1]].values
+            [ y_coord, x_coord ] = [ yearly_lake_masks.coords[ yearly_lake_masks.dims[idim]].values.tolist() for idim in [-2,-1] ]
+            y_coord.sort()
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             (water_mapping_data, time_values) = self.get_mpw_data( **self._opspecs )
             if water_mapping_data is None:
                 self.logger.warning( "No water mapping data! ABORTING ")
                 return None
-            wmd_y_coord, wmd_x_coord = water_mapping_data.coords[ water_mapping_data.dims[-2]].values, water_mapping_data.coords[water_mapping_data.dims[-1]].values
-            self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
+            wmd_y_coord, wmd_x_coord = [ water_mapping_data.coords[ water_mapping_data.dims[idim]].values.tolist() for idim in [-2,-1] ]
+            wmd_y_coord.sort()
             wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
             self.yearly_lake_masks: xr.DataArray = yearly_lake_masks  # .interp_like( water_mapping_data )
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {water_mapping_data.shape}, yearly_lake_masks shape = {yearly_lake_masks.shape}")

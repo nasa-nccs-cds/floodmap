@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, Union, Optional
 class XExtension(object):
     """  This is the base class for xarray extensions """
 
-    StandardAxisNames = { 'x': [ 'x', 'lon' ], 'y': [ 'y', 'lat' ], 't': [ 't', 'time' ] }
+    StandardAxisNames = { 'x': [ 'x', 'lon', 'longitude' ], 'y': [ 'y', 'lat', 'latitude' ], 't': [ 't', 'time' ] }
 
     def __init__(self, xarray_obj: xr.DataArray):
         self._obj: xr.DataArray = xarray_obj

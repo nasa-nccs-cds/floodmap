@@ -18,6 +18,7 @@ defaults:
       collection: 61
       product:  'MCDWD_L3_NRT'
       key: 'E7BB20CA-12EA-11EB-9254-84C18306A814'
+      varName: "Flood_3_Day_250m"
 
     water_maps:
         threshold: 0.5

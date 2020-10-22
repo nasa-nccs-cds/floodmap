@@ -26,7 +26,7 @@ class TileLocator:
 
     @classmethod
     def lat_label(cls, lat: float ) -> str:
-        ilat = round( cls.ceil10(90-lat)/10.0 )
+        ilat = round( cls.floor10(90-lat)/10.0 )
         return f"v{ilat:02d}"
 
     @classmethod

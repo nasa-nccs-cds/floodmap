@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Optional
+from typing import List, Union, Tuple, Optional, Dict, Hashable
 import pandas as pd
 from .xextension import XExtension
 from geopandas import GeoDataFrame
@@ -20,10 +20,26 @@ class XRio(XExtension):
         XExtension.__init__( self, xarray_obj )
 
     @classmethod
-    def open( cls, iFile: int, filename: str, **kwargs )-> Optional[xr.DataArray]:
+    def apply_mask(cls, iFile: int, data_array: xr.DataArray, **kwargs)-> xr.DataArray:
         from ..surfaceMapping.tiles import TileLocator
         logger = getLogger(False)
         mask = kwargs.pop("mask", None)
+        if mask is None:
+            return data_array
+        elif isinstance(mask, list):
+            tile_bounds = TileLocator.get_bounds(data_array)
+            invert_y = (tile_bounds[2] > tile_bounds[3])
+            if iFile== 0:
+                logger.info( f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
+            return data_array.xrio.subset(mask[:2], mask[2:], invert_y)
+        elif isinstance(mask, GeoDataFrame):
+            return data_array.xrio.clip(mask, **kwargs)
+        else:
+            raise Exception(f"Unrecognized mask type: {mask.__class__.__name__}")
+
+    @classmethod
+    def open( cls, iFile: int, filename: str, **kwargs )-> Optional[xr.DataArray]:
+        logger = getLogger(False)
         kill_zombies = kwargs.pop( "kill_zombies", False )
         oargs = argfilter( kwargs, parse_coordinates = None, chunks = None, cache = None, lock = None )
         try:
@@ -32,16 +48,7 @@ class XRio(XExtension):
             if band >= 0:
                 result = result.isel( band=band, drop=True )
             result.encoding = dict( dtype = str(np.dtype('f4')) )
-            if mask is None: return result
-            elif isinstance( mask, list ):
-                tile_bounds = TileLocator.get_bounds(result)
-                invert_y = (tile_bounds[2] > tile_bounds[3])
-                if iFile == 0: logger.info(f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
-                return result.xrio.subset( mask[:2], mask[2:], invert_y )
-            elif isinstance( mask, GeoDataFrame ):
-                return result.xrio.clip( mask, **kwargs )
-            else:
-                raise Exception( f"Unrecognized mask type: {mask.__class__.__name__}")
+            return cls.apply_mask( iFile, result, **kwargs )
         except Exception as err:
             logger.error( f"XRio Error opening file {filename}: {err}")
             logger.error( traceback.format_exc() )
@@ -65,20 +72,6 @@ class XRio(XExtension):
         return result
 
     @classmethod
-    def print_array_dims( cls, filePaths: Union[ str, List[str] ], **kwargs ):
-        if isinstance( filePaths, str ): filePaths = [ filePaths ]
-        logger = getLogger( False )
-        result: xr.DataArray = None
-        logger.info(f" ARRAY DIMS " )
-        for iF, file in enumerate(filePaths):
-            data_array: xr.DataArray = cls.open( iF, file, **kwargs )
-            if data_array is not None:
-                time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
-                data_array = data_array.expand_dims( { 'time': time_values }, 0 )
-                logger.info( f"  ** Array[{iF}:{ntpath.basename(file)}]-> shape = {data_array.shape}")
-        return result
-
-    @classmethod
     def load( cls, filePaths: Union[ str, List[str] ], **kwargs ) -> Union[ List[xr.DataArray], xr.DataArray ]:
         if isinstance( filePaths, str ): filePaths = [ filePaths ]
         result: xr.DataArray = None
@@ -89,6 +82,38 @@ class XRio(XExtension):
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
                 result = data_array if result is None else cls.concat([result, data_array])
         return result
+
+    @classmethod
+    def dsload( cls, filePaths: Union[ str, List[str] ], varName: str, **kwargs ) -> Union[ List[xr.DataArray], xr.DataArray ]:
+        if isinstance( filePaths, str ): filePaths = [ filePaths ]
+        result: xr.DataArray = None
+        coords = kwargs.get( "coords", None )
+        for iF, file in enumerate(filePaths):
+            dset = xr.open_dataset( file )
+            data_array: xr.DataArray = cls.apply_mask( iF, dset[ varName ],  **kwargs )
+            if data_array is not None:
+                time_values = np.array([ cls.get_date_from_filepath(file) ], dtype='datetime64[ns]')
+                data_array = data_array.expand_dims( { 'time': time_values }, 0 )
+                result = data_array if result is None else cls.concat([result, data_array])
+                if coords is not None:
+                    result = result.rename( cls.get_cmap( result.dims, coords ) )
+        return result
+
+    @classmethod
+    def get_cmap( cls, old_coords: Tuple[Hashable], new_coords: List[str] )-> Dict[str,str]:
+        coord_map = {}
+        for iC, cname in enumerate(new_coords):
+            if old_coords[iC] != cname:
+                coord_map[old_coords[iC]] = cname
+        return coord_map
+
+    @classmethod
+    def get_date_from_filepath(cls, filepath: str):
+        from datetime import datetime
+        toks = filepath.split("/")
+        sdate = toks[-3]+toks[-2]
+        result = datetime.strptime( sdate, '%Y%j').date()
+        return np.datetime64(result)
 
     @classmethod
     def get_date_from_filename(cls, filename: str):

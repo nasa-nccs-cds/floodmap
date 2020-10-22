@@ -90,6 +90,7 @@ class MWPDataManager(ConfigurableObject):
         location_dir = self.get_location_dir( location )
         hdf2nc = os.path.join( self.BASE_DIR, "bin", "h4tonccf_nc4" )
         self.logger.info( f" %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% hdf2nc: {hdf2nc}  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% " )
+        clear_downloads = kwargs.get("cleanup",False)
         files = []
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
@@ -100,17 +101,18 @@ class MWPDataManager(ConfigurableObject):
                     if download:
                         target_url = "/".join( [self.data_source_url, target_dir, target_file+".hdf"] )
                         try:
-                            download_script = f'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {key}" -P {location_dir}'
-                            self.logger.info(f"Downloading url {target_url} to file '{target_file_path}.hdf'")
-                            stream = os.popen( download_script )
-                            self.logger.info( stream.read() )
+                            if not os.path.exists(target_file_path + ".hdf"):
+                                download_script = f'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {key}" -P {location_dir}'
+                                self.logger.info(f"Downloading url {target_url} to file '{target_file_path}.hdf'")
+                                stream = os.popen( download_script )
+                                self.logger.info( stream.read() )
 
                             self.logger.info(f"Transforming '{target_file_path}.hdf' ---> '{target_file_path}.nc'")
                             transform_script = f"{hdf2nc} '{target_file_path}.hdf' '{target_file_path}.nc'"
                             stream = os.popen( transform_script )
                             self.logger.info( stream.read() )
 
-                            os.remove(f"{target_file_path}.hdf")
+                            if clear_downloads: os.remove(f"{target_file_path}.hdf")
                             files.append( target_file_path+".nc"  )
                         except Exception as err:
                             self.logger.error( f"     ---> Can't access {target_url}: {err}")

@@ -71,9 +71,12 @@ class LakeMaskProcessor:
             nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}")
-            with get_context("spawn").Pool(processes=nproc) as p:
-                self.pool = p
-                results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
+            if nproc > 1:
+                with get_context("spawn").Pool(processes=nproc) as p:
+                    self.pool = p
+                    results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
+            else:
+                results = [ process_lake_mask( lakeMaskSpecs, kwargs, item ) for item in items ]
 
             self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {results}")
         except Exception as err:
