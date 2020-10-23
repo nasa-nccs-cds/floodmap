@@ -97,6 +97,7 @@ class XRio(XExtension):
                 result = data_array if result is None else cls.concat([result, data_array])
                 if coords is not None:
                     result = result.rename( cls.get_cmap( result.dims, coords ) )
+                result.attrs.update( source_doi = dset.attrs.get( 'identifier_product_doi', '' ).strip() )
         return result
 
     @classmethod

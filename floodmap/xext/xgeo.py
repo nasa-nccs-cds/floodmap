@@ -77,7 +77,10 @@ class XGeo(XExtension):
         result =  utmGdalWaterMask.xarray( f"{self._obj.name}-utm", time_axis =self._obj.coords["time"] )
         result.attrs['SpatialReference'] = utm_sref
         result.attrs['resolution'] = resolution
-        return result
+        if result.ndim == 2 and self._obj.ndim == 3:
+            return result.expand_dims( dict(time=self._obj.time), 0 )
+        else:
+            return result
 
     def gdal_reproject( self, **kwargs ) -> xr.DataArray:
         sref = osr.SpatialReference()

@@ -200,7 +200,7 @@ class WaterMapGenerator(ConfigurableObject):
         # for tI in range(water_maps_array.shape[0]):
         #     plot_array( f"get_water_maps-{tI}", water_maps_array[tI] )
         water_maps_array.name = "Water_Maps"
-        return water_maps_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+        return water_maps_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ), source_doi =  data_array.attrs.get( 'source_doi', '' ))
 
     def update_metrics( self, data_array: xr.DataArray, **kwargs ):
         metrics = data_array.attrs.get('metrics', {} )
@@ -423,6 +423,7 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_maps = self.patch_water_maps( self._opspecs, **kwargs )
             patched_water_maps.name = f"Lake {lake_index}"
             result: xr.DataArray = sanitize(patched_water_maps).xgeo.to_utm( [250.0, 250.0] )
+            result.attrs.update( source_doi = patched_water_maps.attrs.get( 'source_doi', "") )
             self.write_water_area_results( result, patched_water_maps_file + ".txt" )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
@@ -430,8 +431,12 @@ class WaterMapGenerator(ConfigurableObject):
             return patched_water_maps.assign_attrs( roi = self.roi_bounds )
 
     def write_water_area_results(self, patched_water_maps: xr.DataArray, outfile_path: str,  **kwargs ):
+        from ..util.configuration import opSpecs
+        source_spec = opSpecs.get('source')
+        composite_type = source_spec.get('composite_type','UNKNOWN')
         interp_water_class = kwargs.get( 'interp_water_class', 4 )
         water_classes = kwargs.get('water_classes', [2,4] )
+        source_doi = patched_water_maps.attrs.get( 'source_doi', 'UNKNOWN' )
         time_axis = patched_water_maps.coords[ patched_water_maps.dims[0] ]
         water_counts, class_proportion = self.get_class_proportion(patched_water_maps, interp_water_class, water_classes)
         # for tI in range(patched_water_maps.shape[0]):
@@ -443,7 +448,7 @@ class WaterMapGenerator(ConfigurableObject):
                 percent_interp = class_proportion.values[iTime]
                 num_water_pixels = water_counts.values[iTime]
                 date = pd.Timestamp( time_axis.values[iTime] ).to_pydatetime()
-                lines.append( f"{str(date).split(' ')[0]} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n")
+                lines.append( f"{str(date).split(' ')[0]} {num_water_pixels/16.0:.2f} {percent_interp:.1f} {source_doi} {composite_type}\n")
             outfile.writelines(lines)
             self.logger.info( f"Wrote results to file {outfile_path}")
 
