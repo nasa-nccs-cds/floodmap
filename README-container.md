@@ -8,7 +8,7 @@ Retrieve the container from NASA NOMAD Large File Transfer Service (forward invi
 
 ### Configure execution
 
-1. Copy the [sample-specs](https://github.com/nasa-nccs-cds/floodmap/tree/master/specs) file to a local location (e.g. ~/specs.yml)
+1. Copy the [sample-specs](https://github.com/nasa-nccs-cds/floodmap/blob/v0/specs/sample_specs-v0.yml) file to a local location (e.g. ~/specs.yml)
 2. Edit the file to reflect your local confioguration.   Explanations of the various parameters can be found in the user guide (see below).
 
 ### Run floodmap
