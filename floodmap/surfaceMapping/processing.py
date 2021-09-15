@@ -60,6 +60,7 @@ class LakeMaskProcessor:
                 _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0], lake_index_range[1] + 1)
                 for lake_index in _lake_indices:
                     file_path = os.path.join(year_dir, files_spec.format( year=year, lake_index=lake_index ) )
+                    print( f"Lake file_path = {file_path}")
                     if year == year_range[0]:
                         if os.path.isfile( file_path ):
                             lake_masks[lake_index] = collections.OrderedDict( )

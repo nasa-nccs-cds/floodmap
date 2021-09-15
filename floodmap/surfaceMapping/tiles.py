@@ -19,6 +19,17 @@ class TileLocator:
         return coord if coord < 180 else coord - 360
 
     @classmethod
+    def hc( cls, coord: float ) -> str:
+        nc = coord if coord > 0 else 360+coord
+        rv = int( nc // 10 )
+        return f"h{rv:02d}"
+
+    @classmethod
+    def vc( cls, coord: float ) -> str:
+        rv = int( (90 + coord) // 10 )
+        return f"v{rv:02d}"
+
+    @classmethod
     def lon_label(cls, lon: float ) -> str:
         ulon = cls.unwrap( lon )
         if ulon < 0: return f"{cls.floor10(ulon):03d}W"
@@ -45,9 +56,16 @@ class TileLocator:
 
 
     @classmethod
-    def get_tiles( cls, xmin, xmax, ymin, ymax ) -> List[str]:
+    def get_tiles_legacy( cls, xmin, xmax, ymin, ymax ) -> List[str]:
         xvals = { cls.lon_label( xmin ), cls.lon_label( xmax ) }
         yvals = { cls.lat_label( ymin ), cls.lat_label( ymax ) }
+        results = [ f"{xval}{yval}" for xval in xvals for yval in yvals ]
+        return results
+
+    @classmethod
+    def get_tiles( cls, xmin, xmax, ymin, ymax ) -> List[str]:
+        xvals = { cls.hc( xmin ), cls.hc( xmax ) }
+        yvals = { cls.vc( ymin ), cls.vc( ymax ) }
         results = [ f"{xval}{yval}" for xval in xvals for yval in yvals ]
         return results
 

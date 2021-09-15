@@ -1,7 +1,7 @@
 defaults:
     results_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Results"
-    year_range: [ 2010, 2020 ]
-    day_range: [ 0, 365 ]
+    year_range: [ 2021, 2021 ]
+    day_range: [ 251, 257 ]
     water_class_thresholds: [ 0.05, 0.93 ]
     log_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Logs"
     ncores: 4
@@ -12,9 +12,8 @@ defaults:
         lake_index_range: [0,1000]
 
     source:
-      type: 'MPW'
-      url:  'https://floodmap.modaps.eosdis.nasa.gov/Products'
-      product:  '2D2OT'
+        type: 'MCDWD'
+        url:  'https://nrt3.modaps.eosdis.nasa.gov/api/v2/content/archives/allData/61/MCDWD_L3_NRT/Recent'
 
     water_maps:
         threshold: 0.5

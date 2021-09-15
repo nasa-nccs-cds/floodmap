@@ -83,18 +83,20 @@ class MWPDataManager(ConfigurableObject):
         end_day =   self.getParameter( "end_day",   **kwargs )
         years =     self.getParameter( "years",   [ self.getParameter("year", **kwargs) ] )
         product =   self.getParameter( "product",   **kwargs )
+        collection= self.getParameter( "collection", **kwargs )
         location_dir = self.get_location_dir( location )
         files = []
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
-                target_file = f"MWP_{iY}{iFile:03}_{location}_{product}.tif"
+                target_file = f"{product}_A{iY}{iFile:03}_{location}.tif"
                 target_file_path = os.path.join( location_dir, target_file )
                 if not os.path.exists( target_file_path ):
                     if download:
-                        target_url = self.data_source_url + f"/{location}/{iY}/{target_file}"
+                        target_url = self.data_source_url + f"/{collection}/{product}/Recent/{target_file}"
+                        print( f"Downloading from: {target_url} " )
                         try:
                             wget.download( target_url, target_file_path )
-                            self.logger.info(f"Downloading url {target_url} to file {target_file_path}")
+                            self.logger.info( f"Downloading url {target_url} to file {target_file_path}" )
                             files.append( target_file_path )
                         except Exception as err:
                             self.logger.error( f"     ---> Can't access {target_url}: {err}")
