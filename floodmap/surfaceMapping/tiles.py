@@ -26,7 +26,7 @@ class TileLocator:
 
     @classmethod
     def vc( cls, coord: float ) -> str:
-        rv = int( (90 + coord) // 10 )
+        rv = int( (90 - coord) // 10 )
         return f"v{rv:02d}"
 
     @classmethod

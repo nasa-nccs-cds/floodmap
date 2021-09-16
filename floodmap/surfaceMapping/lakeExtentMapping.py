@@ -263,6 +263,7 @@ class WaterMapGenerator(ConfigurableObject):
         source_spec = kwargs.get('source')
         data_url = source_spec.get('url')
         product = source_spec.get('product')
+        token = source_spec.get('token')
         collection = source_spec.get('collection')
         locations = source_spec.get( 'location', self.infer_tile_locations() )
         if not locations:
@@ -280,7 +281,7 @@ class WaterMapGenerator(ConfigurableObject):
         for location in locations:
             try:
                 self.logger.info( f"Reading Location {location}" )
-                dataMgr.setDefaults(product=product, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
+                dataMgr.setDefaults(product=product, token=token, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 cropped_tiles[location] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )

@@ -77,6 +77,13 @@ class MWPDataManager(ConfigurableObject):
         pp( files )
         return files
 
+    @classmethod
+    def download(cls, target_url: str, result_dir: str, token: str):
+        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+        stream = os.popen(cmd)
+        output = stream.read()
+        print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+
     def get_tile(self, location: str = "120W050N", **kwargs) -> List[str]:
         download =  self.getParameter( "download",  **kwargs )
         start_day = self.getParameter( "start_day", **kwargs )
@@ -84,22 +91,21 @@ class MWPDataManager(ConfigurableObject):
         years =     self.getParameter( "years",   [ self.getParameter("year", **kwargs) ] )
         product =   self.getParameter( "product",   **kwargs )
         collection= self.getParameter( "collection", **kwargs )
+        token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
         files = []
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
-                target_file = f"{product}_A{iY}{iFile:03}_{location}.tif"
+                target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}.tif"
                 target_file_path = os.path.join( location_dir, target_file )
                 if not os.path.exists( target_file_path ):
                     if download:
                         target_url = self.data_source_url + f"/{collection}/{product}/Recent/{target_file}"
-                        print( f"Downloading from: {target_url} " )
                         try:
-                            wget.download( target_url, target_file_path )
-                            self.logger.info( f"Downloading url {target_url} to file {target_file_path}" )
+                            self.download( target_url, location_dir, token )
                             files.append( target_file_path )
                         except Exception as err:
-                            self.logger.error( f"     ---> Can't access {target_url}: {err}")
+                            print( f"     ---> Can't access {target_url}: {err}" )
                 else:
                     self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
                     files.append( target_file_path )
@@ -109,7 +115,7 @@ class MWPDataManager(ConfigurableObject):
         arrays = XGeo.loadRasterFiles( files, region = self.getParameter("bbox") )
         return self.time_merge(arrays) if merge else arrays
 
-    def get_tile_data(self, location: str = "120W050N", merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
+    def get_tile_data(self, location: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
         files = self.get_tile(location, **kwargs)
         return self.get_array_data( files, merge )
 
