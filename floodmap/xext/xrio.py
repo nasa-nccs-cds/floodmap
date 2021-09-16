@@ -27,6 +27,11 @@ class XRio(XExtension):
         kill_zombies = kwargs.pop( "kill_zombies", False )
         oargs = argfilter( kwargs, parse_coordinates = None, chunks = None, cache = None, lock = None )
         try:
+            if not os.path.exists(filename):
+                msg = f"File {filename} does not exist, skipping..."
+                print( msg )
+                logger.info( msg )
+                return None
             result: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).astype( np.dtype('f4') )
             band = kwargs.pop( 'band', -1 )
             if band >= 0:

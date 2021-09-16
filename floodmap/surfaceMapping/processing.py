@@ -60,14 +60,16 @@ class LakeMaskProcessor:
                 _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0], lake_index_range[1] + 1)
                 for lake_index in _lake_indices:
                     file_path = os.path.join(year_dir, files_spec.format( year=year, lake_index=lake_index ) )
-                    print( f"Lake file_path = {file_path}")
-                    if year == year_range[0]:
-                        if os.path.isfile( file_path ):
+                    if os.path.isfile( file_path ):
+                        if year == year_range[0]:
                             lake_masks[lake_index] = collections.OrderedDict( )
-                            lake_masks[lake_index][year] = self.convert( file_path ) if reproject_inputs else file_path
-                            lake_indices.append( lake_index )
-                    elif os.path.isfile( file_path ):
-                        lake_masks[lake_index][year]= self.convert( file_path ) if reproject_inputs else file_path
+                            lake_indices.append(lake_index)
+                            msg = f"Processing Lake-{lake_index}, file_path = {file_path}"
+                            print(msg); self.logger.info(msg)
+                        lake_masks[lake_index][year] = self.convert( file_path ) if reproject_inputs else file_path
+                    else:
+                        msg = f"Skipping Lake-{lake_index}, NO LAKE FILE"
+                        print( msg ); self.logger.info( msg )
 
             nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())

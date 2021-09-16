@@ -20,8 +20,8 @@ class TileLocator:
 
     @classmethod
     def hc( cls, coord: float ) -> str:
-        nc = coord if coord > 0 else 360+coord
-        rv = int( nc // 10 )
+        nc = coord if coord < 180 else coord - 360
+        rv = int( ( nc + 180 ) // 10 )
         return f"h{rv:02d}"
 
     @classmethod

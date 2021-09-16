@@ -239,17 +239,19 @@ class WaterMapGenerator(ConfigurableObject):
 
     def get_date_from_filename(self, filename: str):
         toks = filename.split("_")
-        result = datetime.strptime(toks[1], '%Y%j').date()
+        dateId = toks[3].split(".")[1]
+        result = datetime.strptime(dateId[1:], '%Y%j').date()
         return np.datetime64(result)
 
     def infer_tile_locations(self) -> List[str]:
         if self.yearly_lake_masks is not None:
             return TileLocator.infer_tiles_xa( self.yearly_lake_masks )
         if self.roi_bounds is not None:
-            if isinstance( self.roi_bounds, list ):
-                return TileLocator.get_tiles( *self.roi_bounds )
-            else:
-                return TileLocator.infer_tiles_gpd( self.roi_bounds )
+            if isinstance( self.roi_bounds, gpd.GeoSeries ):    rbnds = self.roi_bounds.geometry.boundary.bounds.values[0]
+            else:                                               rbnds = self.roi_bounds
+            tiles =  TileLocator.get_tiles( *rbnds )
+            self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
+            return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
 
     def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
@@ -284,7 +286,9 @@ class WaterMapGenerator(ConfigurableObject):
                 dataMgr.setDefaults(product=product, token=token, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
-                cropped_tiles[location] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                tile_raster =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                if tile_raster is not None:
+                    cropped_tiles[location] = tile_raster
             except Exception as err:
                 self.logger.error( f"Error reading mpw data for location {location}, first file paths = {file_paths[0:10]} ")
                 for file in file_paths:
