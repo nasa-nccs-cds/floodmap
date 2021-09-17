@@ -6,7 +6,6 @@ from glob import glob
 import functools, traceback
 from ..xext.xgeo import XGeo
 from ..xext.xrio import XRio
-from ..util.plot import plot_array
 from  xarray.core.groupby import DatasetGroupBy
 from ..util.configuration import sanitize, ConfigurableObject
 from .tiles import TileLocator
@@ -122,9 +121,9 @@ class WaterMapGenerator(ConfigurableObject):
             water_probability_dataset: xr.Dataset = xr.open_dataset(water_probability_file)
             water_probability: xr.DataArray = water_probability_dataset.water_probability
         else:
-            water = self.water_maps.isin([2, 3])
-            land = self.water_maps.isin([1])
-            unmasked = (self.water_maps[0] != self.mask_value).drop_vars(self.water_maps.dims[0])
+            water = self.water_maps.isin([1, 2, 3])
+            land = self.water_maps.isin([0])
+            unmasked = (self.water_maps[0] != self.mask_value).drop_vars( self.water_maps.dims[0] )
 
             if yearly:
                 water_cnts = water.groupby("time.year").sum()
@@ -152,8 +151,8 @@ class WaterMapGenerator(ConfigurableObject):
         threshold = opspec.get('threshold', 0.5 )
         binSize = da.shape[0]
         masked = da[0].isin( [ self.mask_value ] ).drop_vars( inputs.dims[0] )
-        land = da.isin( [1] ).sum( axis=0 )
-        water =  da.isin( [2,3] ).sum( axis=0 )
+        land = da.isin( [0] ).sum( axis=0 )
+        water =  da.isin( [1,2,3] ).sum( axis=0 )
         visible = ( water + land )
         reliability = visible / float(binSize)
         prob_h20 = water / visible
@@ -264,6 +263,7 @@ class WaterMapGenerator(ConfigurableObject):
         from .mwp import MWPDataManager
         source_spec = kwargs.get('source')
         data_url = source_spec.get('url')
+        path = source_spec.get('path')
         product = source_spec.get('product')
         token = source_spec.get('token')
         collection = source_spec.get('collection')
@@ -283,14 +283,14 @@ class WaterMapGenerator(ConfigurableObject):
         for location in locations:
             try:
                 self.logger.info( f"Reading Location {location}" )
-                dataMgr.setDefaults(product=product, token=token, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
+                dataMgr.setDefaults(product=product, token=token, path=path, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 tile_raster =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
                 if tile_raster is not None:
                     cropped_tiles[location] = tile_raster
             except Exception as err:
-                self.logger.error( f"Error reading mpw data for location {location}, first file paths = {file_paths[0:10]} ")
+                self.logger.error( f"Error reading mpw data for location {location} ")
                 for file in file_paths:
                     if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
                 exc = traceback.format_exc()
@@ -395,7 +395,8 @@ class WaterMapGenerator(ConfigurableObject):
         patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
         result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
         if skip_existing and os.path.isfile(result_file):
-            self.logger.info( f" --------------------->> Skipping already processed file: {result_file}")
+            msg = f" Lake[{lake_index}]: Skipping already processed file: {result_file}"
+            self.logger.info( msg ), print( msg )
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
@@ -403,7 +404,8 @@ class WaterMapGenerator(ConfigurableObject):
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             (water_mapping_data, time_values) = self.get_mpw_data( **self._opspecs )
             if water_mapping_data is None:
-                self.logger.warning( "No water mapping data! ABORTING ")
+                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
+                self.logger.warning( msg ); print( msg )
                 return None
             wmd_y_coord, wmd_x_coord = water_mapping_data.coords[ water_mapping_data.dims[-2]].values, water_mapping_data.coords[water_mapping_data.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
@@ -415,11 +417,13 @@ class WaterMapGenerator(ConfigurableObject):
             self.water_maps: xr.DataArray =  self.get_water_maps( water_mapping_data, self._opspecs, time=time_values )
             patched_water_maps = self.patch_water_maps( self._opspecs, **kwargs )
             patched_water_maps.name = f"Lake {lake_index}"
-            result: xr.DataArray = sanitize(patched_water_maps).xgeo.to_utm( [250.0, 250.0] )
+            patched_water_maps: xr.DataArray = sanitize(patched_water_maps)
+            result = patched_water_maps.xgeo.to_utm( [250.0, 250.0] )
             self.write_water_area_results( result, patched_water_maps_file + ".txt" )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
-            self.logger.info( f"Saving results for lake {lake_index} to {patched_water_maps_file}.*")
+            msg = f"Saving results for lake {lake_index} to {result_file}"
+            self.logger.info( msg ); print( msg )
             return patched_water_maps.assign_attrs( roi = self.roi_bounds )
 
     def write_water_area_results(self, patched_water_maps: xr.DataArray, outfile_path: str,  **kwargs ):

@@ -73,7 +73,7 @@ class XGeo(XExtension):
     def to_utm( self, resolution: Tuple[float,float], **kwargs ) -> xr.DataArray:
         utm_sref: osr.SpatialReference = kwargs.get( 'sref', self.getUTMProj() )
         gdalWaterMask: GDALGrid = self.to_gdalGrid()
-        utmGdalWaterMask = gdalWaterMask.reproject( utm_sref, resolution=resolution )
+        utmGdalWaterMask: GDALGrid = gdalWaterMask.reproject( utm_sref, resolution=resolution )
         result =  utmGdalWaterMask.xarray( f"{self._obj.name}-utm", time_axis =self._obj.coords["time"] )
         result.attrs['SpatialReference'] = utm_sref
         result.attrs['resolution'] = resolution

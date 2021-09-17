@@ -171,13 +171,17 @@ class GDALGrid(object):
         """Returns the raster band as a numpy array.  If band < 0,  it will return all of the data as a 3D array. """
         if band < 0:
             grid_data = self.dataset.ReadAsArray()
+            result = np.array(grid_data)
+            if result.ndim == 2: result = result.reshape( [1] + list(result.shape) )
+            return result
         else:
             raster_band = self.dataset.GetRasterBand(band)
             grid_data = raster_band.ReadAsArray()
             nodata_value = raster_band.GetNoDataValue()
             if nodata_value is not None and masked:
                 return np.ma.array(data=grid_data, mask=(grid_data == nodata_value))
-        return np.array(grid_data)
+            else:
+                return np.array(grid_data)
 
     def xarray( self, name: str, band: int = -1, masked: bool = True, time_axis = None ) -> xr.DataArray:
         xy_data = self.np_array( band, masked )
@@ -310,7 +314,7 @@ class GDALGrid(object):
                                      delimiter=" ")
             grid_writer.writerows(self.np_array(band, masked=False))
 
-    def reproject( self, dstSRS: osr.SpatialReference, **kwargs ):
+    def reproject( self, dstSRS: osr.SpatialReference, **kwargs ) -> "GDALGrid":
         resampling = kwargs.get( 'resampling', gdalconst.GRA_NearestNeighbour  )
         nx =  kwargs.get( 'nx',None  )
         ny = kwargs.get( 'ny', None )

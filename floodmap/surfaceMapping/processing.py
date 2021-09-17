@@ -33,8 +33,9 @@ def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_files: Tup
         waterMapGenerator.process_yearly_lake_masks( lake_index, yearly_lake_masks, **runSpecs )
         logger.info(f"Completed processing lake {lake_index}")
         return lake_index
-    except Exception:
-        logger.error(f"Skipping lake {lake_index} due to errors ")
+    except Exception as err:
+        msg = f"Skipping lake {lake_index} due to error: {err} "
+        logger.error(msg); print( msg )
         logger.error( traceback.format_exc() )
         write_result_report(lake_index, traceback.format_exc())
 
@@ -73,7 +74,7 @@ class LakeMaskProcessor:
 
             nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())
-            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}")
+            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
             with get_context("spawn").Pool(processes=nproc) as p:
                 self.pool = p
                 results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )

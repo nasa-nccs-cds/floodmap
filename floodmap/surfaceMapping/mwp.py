@@ -84,23 +84,25 @@ class MWPDataManager(ConfigurableObject):
         output = stream.read()
         print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
-    def get_tile(self, location: str = "120W050N", **kwargs) -> List[str]:
+    def get_tile(self, location, **kwargs) -> List[str]:
         download =  self.getParameter( "download",  **kwargs )
         start_day = self.getParameter( "start_day", **kwargs )
         end_day =   self.getParameter( "end_day",   **kwargs )
         years =     self.getParameter( "years",   [ self.getParameter("year", **kwargs) ] )
         product =   self.getParameter( "product",   **kwargs )
+        path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
         files = []
+        path = path_template.format( collection=collection, product=product )
         for iY in list(years):
             for iFile in range(start_day+1,end_day+1):
                 target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}.tif"
-                target_file_path = os.path.join( location_dir, target_file )
+                target_file_path = os.path.join( location_dir, path, target_file )
                 if not os.path.exists( target_file_path ):
                     if download:
-                        target_url = self.data_source_url + f"/{collection}/{product}/Recent/{target_file}"
+                        target_url = self.data_source_url + f"/{path}/{target_file}"
                         try:
                             self.download( target_url, location_dir, token )
                             files.append( target_file_path )
