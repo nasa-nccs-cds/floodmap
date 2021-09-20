@@ -46,32 +46,40 @@ class LakeMaskProcessor:
         self.pool: Pool = None
         atexit.register( self.shutdown )
 
-    def process_lakes( self, reproject_inputs, **kwargs ):
-        try:
-            year_range = opSpecs.get('year_range')
-            lakeMaskSpecs = opSpecs.get( "lake_masks", None )
-            data_dir = lakeMaskSpecs["basedir"]
-            lake_index_range = lakeMaskSpecs["lake_index_range"]
-            directorys_spec = lakeMaskSpecs["subdir"]
-            files_spec = lakeMaskSpecs["file"]
-            lake_masks = {}
-            lake_indices = []
-            for year in range( int(year_range[0]), int(year_range[1]) + 1 ):
-                year_dir = os.path.join( data_dir, directorys_spec.format( year=year ) )
-                _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0], lake_index_range[1] + 1)
-                for lake_index in _lake_indices:
-                    file_path = os.path.join(year_dir, files_spec.format( year=year, lake_index=lake_index ) )
-                    if os.path.isfile( file_path ):
-                        if year == year_range[0]:
-                            lake_masks[lake_index] = collections.OrderedDict( )
-                            lake_indices.append(lake_index)
-                            msg = f"Processing Lake-{lake_index}, file_path = {file_path}"
-                            print(msg); self.logger.info(msg)
-                        lake_masks[lake_index][year] = self.convert( file_path ) if reproject_inputs else file_path
-                    else:
-                        msg = f"Skipping Lake-{lake_index}, NO LAKE FILE"
-                        print( msg ); self.logger.info( msg )
+    @classmethod
+    def getLakeMasks(cls, opSpecs: Dict ) -> Dict:
+        year_range = opSpecs.get('year_range')
+        reproject_inputs = opSpecs.get( 'reproject', False )
+        lakeMaskSpecs = opSpecs.get("lake_masks", None)
+        data_dir = lakeMaskSpecs["basedir"]
+        lake_index_range = lakeMaskSpecs["lake_index_range"]
+        directorys_spec = lakeMaskSpecs["subdir"]
+        files_spec = lakeMaskSpecs["file"]
+        lake_masks = {}
+        lake_indices = []
+        for year in range(int(year_range[0]), int(year_range[1]) + 1):
+            year_dir = os.path.join(data_dir, directorys_spec.format(year=year))
+            _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0],
+                                                                            lake_index_range[1] + 1)
+            for lake_index in _lake_indices:
+                file_path = os.path.join(year_dir, files_spec.format(year=year, lake_index=lake_index))
+                if os.path.isfile(file_path):
+                    if year == year_range[0]:
+                        lake_masks[lake_index] = collections.OrderedDict()
+                        lake_indices.append(lake_index)
+                        msg = f"Processing Lake-{lake_index}, file_path = {file_path}"
+                        print(msg)
+                    lake_masks[lake_index][year] = cls.convert(file_path) if reproject_inputs else file_path
+                else:
+                    msg = f"Skipping Lake-{lake_index}, NO LAKE FILE"
+                    print(msg)
+        return lake_masks
 
+    def process_lakes( self, **kwargs ):
+        try:
+            opSpecs.set( 'reproject', kwargs.get('reproject_inputs',False) )
+            lake_masks = self.getLakeMasks( opSpecs )
+            lakeMaskSpecs = opSpecs.get("lake_masks", None)
             nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
@@ -84,10 +92,10 @@ class LakeMaskProcessor:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )
 
-    def convert(self, src_file: str, overwrite = True ) -> str:
+    @classmethod
+    def convert(cls, src_file: str, overwrite = True ) -> str:
         dest_file = src_file[:-4] + ".geo.tif"
         if overwrite or not os.path.exists(dest_file):
-            self.logger.info( f"Saving converted input to {dest_file}")
             XRio.convert( src_file, dest_file )
         return dest_file
 

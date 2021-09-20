@@ -1,5 +1,5 @@
 import time, os, wget, sys, pprint, logging
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 import numpy as np
 from multiprocessing import Pool
 from floodmap.xext.xgeo import XGeo
@@ -120,6 +120,14 @@ class MWPDataManager(ConfigurableObject):
     def get_tile_data(self, location: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
         files = self.get_tile(location, **kwargs)
         return self.get_array_data( files, merge )
+
+    @staticmethod
+    def extent( transform: Union[List, Tuple], shape: Union[List, Tuple], origin: str ):
+        (sy,sx) = (shape[1],shape[2]) if len(shape) == 3 else (shape[0],shape[1])
+        ext =  [transform[2], transform[2] + sx * transform[0] + sy * transform[1],
+                transform[5], transform[5] + sx * transform[3] + sy * transform[4]]
+        if origin == "upper": ( ext[2], ext[3] ) = ( ext[3], ext[2] )
+        return ext
 
     def get_global_locations( self ) -> List:
         global_locs = []

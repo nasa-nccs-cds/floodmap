@@ -16,6 +16,13 @@ def sanitize( array: xr.DataArray ):
             array.attrs[key] = value
     return array
 
+class Region:
+
+    def __init__(self, origin: List[int], size: int ):
+        self.origin: List[int] = origin
+        self.size: int = size
+        self.bounds: List[int] = [ origin[0] + size, origin[1] + size ]
+
 class ConfigurableObject:
 
     def __init__(self, **kwargs):
@@ -89,6 +96,9 @@ class OpSpecs:
 
     def get( self, key: str , default = None ):
         return self._defaults.get( key, default )
+
+    def set( self, key: str , value: str ):
+        self._defaults[key] = value
 
 opSpecs = OpSpecs()
 

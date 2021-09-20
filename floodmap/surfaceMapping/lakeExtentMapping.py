@@ -86,6 +86,7 @@ class WaterMapGenerator(ConfigurableObject):
         return yearly_lake_masks
 
     def get_persistent_classes(self, opspec: Dict, **kwargs) -> xr.DataArray:
+        # Computes perm water and perm land using occurrence thresholds over long term (yearly or full) history
         self.logger.info(f"Executing get_persistent_classes")
         t0 = time.time()
         thresholds = opspec.get('water_class_thresholds', [ 0.05, 0.95 ] )
@@ -93,9 +94,7 @@ class WaterMapGenerator(ConfigurableObject):
         boundaries_mask: xr.DataArray = self.water_probability > 1.0
         if self.yearly_lake_masks is None:
             perm_land_mask = self.water_probability < thresholds[0]
-            result = xr.where(boundaries_mask, self.mask_value,
-                            xr.where(perm_water_mask, 2,
-                                     xr.where(perm_land_mask, 1, 0)))
+            result = xr.where(boundaries_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
         else:
             yearly_lake_masks = self.yearly_lake_masks.interp_like(self.water_probability, method='nearest')
             mask_value = yearly_lake_masks.attrs['mask']
@@ -161,11 +160,16 @@ class WaterMapGenerator(ConfigurableObject):
         return xr.Dataset( { "water_maps": result,  "reliability": reliability } )
 
     def get_water_maps( self, data_array: Optional[xr.DataArray], opspec: Dict, **kwargs ) -> xr.DataArray:
+        # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
+        # this method computes land & water pixels over bins of {bin_size} days using thresholds
         self.logger.info("\n Executing get_water_maps ")
         t0 = time.time()
         data_dir = opspec.get('results_dir')
         lake_index = opspec['lake_index']
         water_maps_file = os.path.join(data_dir, f"lake_{lake_index}_water_maps.nc")
+        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
+        data_array.to_netcdf(water_data_file)
+        print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
         cache = kwargs.get( "cache", False )
         if cache==True and os.path.isfile( water_maps_file ):
             water_maps_dset: xr.Dataset = xr.open_dataset(water_maps_file)
@@ -390,6 +394,7 @@ class WaterMapGenerator(ConfigurableObject):
 
     def process_yearly_lake_masks(self, lake_index: int,  yearly_lake_masks: xr.DataArray, **kwargs ) -> Optional[xr.DataArray]:
         skip_existing = kwargs.get('skip_existing', True)
+        save_diagnostics = kwargs.get('save_diagnostics', True)
         format = kwargs.get('format','tif')
         results_dir = self._opspecs.get('results_dir')
         patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
@@ -407,6 +412,10 @@ class WaterMapGenerator(ConfigurableObject):
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
                 self.logger.warning( msg ); print( msg )
                 return None
+            elif save_diagnostics:
+                water_maps_data_file = f"{results_dir}/lake_{lake_index}_water_maps.nc"
+                print( f"Saving water_maps_data[{lake_index}] to {water_maps_data_file}")
+                water_mapping_data.to_netcdf(water_maps_data_file)
             wmd_y_coord, wmd_x_coord = water_mapping_data.coords[ water_mapping_data.dims[-2]].values, water_mapping_data.coords[water_mapping_data.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]

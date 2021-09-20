@@ -3,8 +3,8 @@ from floodmap.surfaceMapping.processing import LakeMaskProcessor
 
 if __name__ == '__main__':
     freeze_support()
-    reproject_inputs = False
     skip_existing = False
+    save_diagnostics = True
     lakeMaskProcessor = LakeMaskProcessor()
-    lakeMaskProcessor.process_lakes( reproject_inputs, format="tif", skip_existing=skip_existing )
+    lakeMaskProcessor.process_lakes( format="tif", save_diagnostics=save_diagnostics, skip_existing=skip_existing )
 
