@@ -1,6 +1,6 @@
-from typing import List, Union, Tuple, Dict, Optional
-from ..xext.xrio import XRio
-from multiprocessing import cpu_count, get_context, Pool, Event
+from typing import Tuple, Dict
+from floodmap.util.xrio import XRio
+from multiprocessing import cpu_count, get_context, Pool
 from functools import partial
 import rioxarray as rio
 from ..util.configuration import opSpecs
@@ -8,7 +8,7 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
-import os, time, collections, traceback, logging, atexit
+import os, traceback, logging, atexit
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')

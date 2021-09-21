@@ -78,6 +78,15 @@ class XGeo(XExtension):
         result.attrs['resolution'] = resolution
         return result
 
+    def extent( self ):
+        gtransform = self._obj.attrs['transform']
+        shape = self._obj.shape
+        (sy, sx) = (shape[1], shape[2]) if len(shape) == 3 else (shape[0], shape[1])
+        ext = [gtransform[0], gtransform[0] + sx * gtransform[1] + sy * gtransform[2],
+               gtransform[3], gtransform[3] + sx * gtransform[4] + sy * gtransform[5]]
+        if gtransform[5] < 0.0: (ext[2], ext[3]) = (ext[3], ext[2])
+        return ext
+
     def gdal_reproject( self, **kwargs ) -> xr.DataArray:
         sref = osr.SpatialReference()
         proj4 = kwargs.get( 'proj4', None )

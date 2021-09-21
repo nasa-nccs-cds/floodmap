@@ -1,15 +1,14 @@
 import numpy as np, os
-from ..util.configuration import  Region
-from ..util.crs import CRS
+from floodmap.util.configuration import  Region
+from floodmap.util.crs import CRS
 from typing import Dict, List, Tuple
 from osgeo import osr, gdalconst, gdal
-from pyproj import Proj, transform
-from .grid import GDALGrid
+from pyproj import transform
+from floodmap.util.grid import GDALGrid
 from shapely.geometry import Polygon
-import xarray as xr, regionmask, utm
-from .xextension import XExtension
+import xarray as xr, regionmask
+from floodmap.util.xext import XExtension
 import rasterio
-from rasterio import Affine as A
 from rasterio.warp import reproject, Resampling, transform, calculate_default_transform
 
 @xr.register_dataarray_accessor('xgeo')

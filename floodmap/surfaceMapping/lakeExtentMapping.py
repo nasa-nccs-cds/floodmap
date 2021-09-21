@@ -1,18 +1,17 @@
 import geopandas as gpd
 import pandas as pd
-from typing import List, Union, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional
 import xarray as xr
 from glob import glob
 import functools, traceback
-from ..xext.xgeo import XGeo
-from ..xext.xrio import XRio
-from  xarray.core.groupby import DatasetGroupBy
+from floodmap.util.xrio import XRio
 from ..util.configuration import sanitize, ConfigurableObject
 from .tiles import TileLocator
 from ..util.logs import getLogger
 import numpy as np
 from datetime import datetime
-import os, time, collections, logging
+import os, time, collections
+from floodmap.util.xgeo import XGeo
 
 class WaterMapGenerator(ConfigurableObject):
 
@@ -86,26 +85,31 @@ class WaterMapGenerator(ConfigurableObject):
         return yearly_lake_masks
 
     def get_persistent_classes(self, opspec: Dict, **kwargs) -> xr.DataArray:
-        # Computes perm water and perm land using occurrence thresholds over long term (yearly or full) history
+        # Computes perm water and perm land using occurrence thresholds over available history
         self.logger.info(f"Executing get_persistent_classes")
+        data_dir = opspec.get('data_dir')
+        lake_index = opspec.get('index')
         t0 = time.time()
+        cache = kwargs.get('cache', "update")
         thresholds = opspec.get('water_class_thresholds', [ 0.05, 0.95 ] )
         perm_water_mask: xr.DataArray = self.water_probability > thresholds[1]
         boundaries_mask: xr.DataArray = self.water_probability > 1.0
-        if self.lake_mask is None:
-            perm_land_mask = self.water_probability < thresholds[0]
-            result = xr.where(boundaries_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
-        else:
-            yearly_lake_masks = self.lake_mask.interp_like(self.water_probability, method='nearest')
-            mask_value = yearly_lake_masks.attrs['mask']
-            water_value = yearly_lake_masks.attrs['water']
-            perm_land_mask: xr.DataArray = self.water_probability < thresholds[0]
-            roi_mask: xr.DataArray = np.logical_or( ( yearly_lake_masks == mask_value ), boundaries_mask )
-            result = xr.where( roi_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
+        mask_value = self.lake_mask.attrs['mask']
+        water_value = self.lake_mask.attrs['water']
+        perm_land_mask: xr.DataArray = self.water_probability < thresholds[0]
+        roi_mask: xr.DataArray =  ( self.lake_mask == mask_value ) | boundaries_mask
+        result = xr.where( roi_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
         result = result.persist()
         result.name = "Persistent_Classes"
         self.logger.info(f"Done get_persistent_classes in time {time.time() - t0}")
-        return result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+        persistent_class_map = result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+        if cache in [ True, "update" ]:
+            persistent_class_map_file = os.path.join(data_dir, f"Lake{lake_index}_persistent_class_map.nc")
+            result = xr.Dataset(dict(persistent_class_map=sanitize(persistent_class_map)))
+            result.to_netcdf(persistent_class_map_file)
+            msg = f"Saved persistent_class_map to {persistent_class_map_file}"
+            self.logger.info(msg)
+        return persistent_class_map
 
     def get_water_probability( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         self.logger.info(f"Executing get_water_probability" )
@@ -132,7 +136,7 @@ class WaterMapGenerator(ConfigurableObject):
                 result = xr.Dataset(dict(water_probability=sanitize(water_probability)))
                 result.to_netcdf(water_probability_file)
                 msg = f"Saved water_probability to {water_probability_file}"
-                self.logger.info(); print( msg )
+                self.logger.info( msg ); print( msg )
         water_probability = water_probability.persist()
         self.logger.info(f"Done get_water_probability in time {time.time() - t0}")
         return water_probability
@@ -387,20 +391,18 @@ class WaterMapGenerator(ConfigurableObject):
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            y_coord, x_coord = lake_mask.coords[ lake_mask.dims[-2]].values, lake_mask.coords[lake_mask.dims[-1]].values
-            self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
+            self.roi_bounds =lake_mask.xgeo.extent()
             (self.floodmap_data, time_values) = self.get_mpw_data( **self._opspecs )
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
                 self.logger.warning( msg ); print( msg )
                 return None
-            wmd_y_coord, wmd_x_coord = self.floodmap_data.coords[ self.floodmap_data.dims[-2]].values, self.floodmap_data.coords[self.floodmap_data.dims[-1]].values
-            self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
-            wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
+            # wmd_y_coord, wmd_x_coord = self.floodmap_data.coords[ self.floodmap_data.dims[-2]].values, self.floodmap_data.coords[self.floodmap_data.dims[-1]].values
+            # self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
+            # wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
             self.lake_mask: xr.DataArray = lake_mask.squeeze()  # .interp_like( water_mapping_data )
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}, lake_mask shape = {lake_mask.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
-            self.logger.info(f"wmd roi bounds = {wmd_roi_bounds}, wmd dims = {self.floodmap_data.dims}")
             self.get_raw_water_map( time=time_values )
             patched_water_map = self.patch_water_map( self._opspecs, **kwargs )
             patched_water_map.name = f"Lake {lake_index}"

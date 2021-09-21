@@ -1,9 +1,9 @@
-import time, os, wget, sys, pprint, logging
-from typing import List, Union, Dict, Tuple
+import os, wget, sys, pprint, logging
+from typing import List, Union, Tuple
 import numpy as np
 from datetime import datetime
 from multiprocessing import Pool
-from floodmap.xext.xgeo import XGeo
+from floodmap.util.xgeo import XGeo
 from ..util.logs import getLogger
 import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint

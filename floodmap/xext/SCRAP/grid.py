@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, Union, Optional
 import numpy as np
 from osgeo import gdal, gdalconst, ogr, osr
 from pyproj import Proj, transform
-from ..util.crs import CRS
+from floodmap.util.crs import CRS
 import xarray as xr
 gdal.UseExceptions()
 
