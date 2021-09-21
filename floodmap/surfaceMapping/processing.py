@@ -2,6 +2,7 @@ from typing import List, Union, Tuple, Dict, Optional
 from ..xext.xrio import XRio
 from multiprocessing import cpu_count, get_context, Pool, Event
 from functools import partial
+import rioxarray as rio
 from ..util.configuration import opSpecs
 from datetime import datetime
 import xarray as xr
@@ -19,18 +20,16 @@ def get_date_from_year( year: int ):
     result = datetime( year, 1, 1 )
     return np.datetime64(result)
 
-def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_files: Tuple[int,Dict] ):
+def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_item: Tuple[int,str] ):
     from .lakeExtentMapping import WaterMapGenerator
-    lake_index, sorted_file_paths = lake_mask_files
     logger = getLogger( False, logging.DEBUG )
+    (lake_index, lake_mask_file) = lake_mask_item
     try:
-        time_values = np.array([ get_date_from_year(year) for year in sorted_file_paths.keys()], dtype='datetime64[ns]')
-        yearly_lake_masks: xr.DataArray = XRio.load(list(sorted_file_paths.values()), band=0, index=time_values)
-        yearly_lake_masks.attrs.update(lakeMaskSpecs)
-        yearly_lake_masks.name = f"Lake {lake_index} Mask"
-        nx, ny = yearly_lake_masks.shape[-1], yearly_lake_masks.shape[-2]
+        lake_mask: xr.DataArray = rio.open_rasterio(lake_mask_file).astype(np.dtype('f4'))
+        lake_mask.attrs.update(lakeMaskSpecs)
+        lake_mask.name = f"Lake {lake_index} Mask"
         waterMapGenerator = WaterMapGenerator( {'lake_index': lake_index,  **opSpecs._defaults} )
-        waterMapGenerator.process_yearly_lake_masks( lake_index, yearly_lake_masks, **runSpecs )
+        waterMapGenerator.generate_lake_water_map(lake_index, lake_mask, **runSpecs)
         logger.info(f"Completed processing lake {lake_index}")
         return lake_index
     except Exception as err:
@@ -48,31 +47,19 @@ class LakeMaskProcessor:
 
     @classmethod
     def getLakeMasks(cls, opSpecs: Dict ) -> Dict:
-        year_range = opSpecs.get('year_range')
         reproject_inputs = opSpecs.get( 'reproject', False )
         lakeMaskSpecs = opSpecs.get("lake_masks", None)
         data_dir = lakeMaskSpecs["basedir"]
-        lake_index_range = lakeMaskSpecs["lake_index_range"]
-        directorys_spec = lakeMaskSpecs["subdir"]
+        lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) )
         files_spec = lakeMaskSpecs["file"]
         lake_masks = {}
-        lake_indices = []
-        for year in range(int(year_range[0]), int(year_range[1]) + 1):
-            year_dir = os.path.join(data_dir, directorys_spec.format(year=year))
-            _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0],
-                                                                            lake_index_range[1] + 1)
-            for lake_index in _lake_indices:
-                file_path = os.path.join(year_dir, files_spec.format(year=year, lake_index=lake_index))
-                if os.path.isfile(file_path):
-                    if year == year_range[0]:
-                        lake_masks[lake_index] = collections.OrderedDict()
-                        lake_indices.append(lake_index)
-                        msg = f"Processing Lake-{lake_index}, file_path = {file_path}"
-                        print(msg)
-                    lake_masks[lake_index][year] = cls.convert(file_path) if reproject_inputs else file_path
-                else:
-                    msg = f"Skipping Lake-{lake_index}, NO LAKE FILE"
-                    print(msg)
+        for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
+            file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
+            if os.path.isfile(file_path):
+                lake_masks[lake_index] = cls.convert(file_path) if reproject_inputs else file_path
+                print(f"  Processing Lake-{lake_index} using lale file: {file_path}")
+            else:
+                print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
         return lake_masks
 
     def process_lakes( self, **kwargs ):

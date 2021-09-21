@@ -89,6 +89,9 @@ class Region:
 class OpSpecs:
 
     def __init__(self):
+        if len(sys.argv) < 2:
+            print( "Must pass config file path as first argument.")
+            sys.exit(1)
         opspec_file = sys.argv[1]
         with open(opspec_file) as f:
             self._specs = yaml.load(f, Loader=yaml.FullLoader)

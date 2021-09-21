@@ -1,6 +1,7 @@
 import time, os, wget, sys, pprint, logging
 from typing import List, Union, Dict, Tuple
 import numpy as np
+from datetime import datetime
 from multiprocessing import Pool
 from floodmap.xext.xgeo import XGeo
 from ..util.logs import getLogger
@@ -19,11 +20,22 @@ def getStreamLogger( level ):
 
 class MWPDataManager(ConfigurableObject):
 
-    def __init__(self, data_dir: str, data_source_url: str, **kwargs ):
+    def __init__(self, data_dir: str, data_source_url: str, **kwargs ) :
         ConfigurableObject.__init__( self, **kwargs )
         self.data_dir = data_dir
         self.data_source_url = data_source_url
         self.logger = getLogger( False )
+
+    def today(self) -> Tuple[int,int]:
+        today = datetime.now()
+        day_of_year = today.timetuple().tm_yday
+        return ( day_of_year, today.year )
+
+    def setDefaults( self, **kwargs ):
+        ConfigurableObject.setDefaults(self, **kwargs)
+        (day, year) = self.today()
+        self.parms['year'] = year
+        self.parms['day'] = day
 
     def get_location_dir( self, location: str ) -> str:
         loc_dir = os.path.join( self.data_dir, location )
@@ -85,32 +97,36 @@ class MWPDataManager(ConfigurableObject):
         print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
     def get_tile(self, location, **kwargs) -> List[str]:
-        download =  self.getParameter( "download",  **kwargs )
-        start_day = self.getParameter( "start_day", **kwargs )
-        end_day =   self.getParameter( "end_day",   **kwargs )
-        years =     self.getParameter( "years",   [ self.getParameter("year", **kwargs) ] )
+        from floodmap.util.configuration import opSpecs
+        water_maps_opspec = opSpecs.get('water_maps', {})
+        history_size = water_maps_opspec.get( 'history_size', 360 )
+        bin_size = water_maps_opspec.get( 'bin_size', 8 )
+        this_day = self.getParameter( "day", **kwargs )
+        this_year = self.getParameter("year", **kwargs)
         product =   self.getParameter( "product",   **kwargs )
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
         files = []
+        days = range( this_day-history_size, this_day+1 )
         path = path_template.format( collection=collection, product=product )
-        for iY in list(years):
-            for iFile in range(start_day+1,end_day+1):
-                target_file = f"{product}.A{iY}{iFile:03}.{location}.{collection:03}.tif"
-                target_file_path = os.path.join( location_dir, path, target_file )
-                if not os.path.exists( target_file_path ):
-                    if download:
-                        target_url = self.data_source_url + f"/{path}/{target_file}"
-                        try:
-                            self.download( target_url, location_dir, token )
-                            files.append( target_file_path )
-                        except Exception as err:
-                            print( f"     ---> Can't access {target_url}: {err}" )
-                else:
-                    self.logger.info(f" Array[{len(files)}] -> Time[{iFile}]: {target_file_path}")
-                    files.append( target_file_path )
+        for day in days:
+            (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
+            target_file = f"{product}.A{iY}{iD:03}.{location}.{collection:03}.tif"
+            target_file_path = os.path.join( location_dir, path, target_file )
+            if not os.path.exists( target_file_path ):
+                if ( this_day - day ) <= bin_size:
+                    target_url = self.data_source_url + f"/{path}/{target_file}"
+                    self.download( target_url, location_dir, token )
+                    if os.path.exists(target_file_path):
+                        print(f" Downloaded NRT file: {target_file_path}")
+                        files.append(target_file_path)
+                    else:
+                        print( f" Can't access NRT file: {target_file_path}")
+            else:
+                self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
+                files.append( target_file_path )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:

@@ -22,7 +22,7 @@ class WaterMapGenerator(ConfigurableObject):
         self.water_maps: xr.DataArray = None
         self.water_probability: xr.DataArray = None
         self.persistent_classes: xr.DataArray = None
-        self.yearly_lake_masks: xr.DataArray = None
+        self.lake_mask: xr.DataArray = None
         self.roi_bounds: gpd.GeoSeries = None
         self.mask_value = 5
         self.logger = getLogger( False )
@@ -92,11 +92,11 @@ class WaterMapGenerator(ConfigurableObject):
         thresholds = opspec.get('water_class_thresholds', [ 0.05, 0.95 ] )
         perm_water_mask: xr.DataArray = self.water_probability > thresholds[1]
         boundaries_mask: xr.DataArray = self.water_probability > 1.0
-        if self.yearly_lake_masks is None:
+        if self.lake_mask is None:
             perm_land_mask = self.water_probability < thresholds[0]
             result = xr.where(boundaries_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
         else:
-            yearly_lake_masks = self.yearly_lake_masks.interp_like(self.water_probability, method='nearest')
+            yearly_lake_masks = self.lake_mask.interp_like(self.water_probability, method='nearest')
             mask_value = yearly_lake_masks.attrs['mask']
             water_value = yearly_lake_masks.attrs['water']
             perm_land_mask: xr.DataArray = self.water_probability < thresholds[0]
@@ -110,8 +110,7 @@ class WaterMapGenerator(ConfigurableObject):
     def get_water_probability( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         self.logger.info(f"Executing get_water_probability" )
         t0 = time.time()
-        cache = kwargs.get( "cache", False )
-        yearly = 'water_masks' in opspec
+        cache = kwargs.get( "cache", "update" )
         data_dir = opspec.get('results_dir')
         lake_index = opspec['lake_index']
         water_probability_file = os.path.join(data_dir, f"lake_{lake_index}_water_probability.nc")
@@ -120,36 +119,32 @@ class WaterMapGenerator(ConfigurableObject):
             water_probability_dataset: xr.Dataset = xr.open_dataset(water_probability_file)
             water_probability: xr.DataArray = water_probability_dataset.water_probability
         else:
-            water = self.water_maps.isin([1, 2, 3])
-            land = self.water_maps.isin([0])
-            unmasked = (self.water_maps[0] != self.mask_value).drop_vars( self.water_maps.dims[0] )
-
-            if yearly:
-                water_cnts = water.groupby("time.year").sum()
-                land_cnts  = land.groupby("time.year").sum()
-            else:
-                water_cnts = water.sum(axis=0)
-                land_cnts = land.sum(axis=0)
+            water = self.floodmap_data.isin([1, 2, 3])
+            land = self.floodmap_data.isin([0])
+            unmasked = ( self.floodmap_data[0] != self.mask_value )
+            water_cnts = water.sum(axis=0)
+            land_cnts = land.sum(axis=0)
             visible_cnts = (water_cnts + land_cnts)
             water_probability: xr.DataArray = water_cnts / visible_cnts
             water_probability = water_probability.where( unmasked, 1.01 )
             water_probability.name = "water_probability"
-            if yearly:
-                time_values = np.array( [ np.datetime64( datetime( year, 7, 1 ) ) for year in water_probability.year.data ], dtype='datetime64[ns]' )
-                water_probability = water_probability.assign_coords( year=time_values ).rename( year='time' )
             if cache in [True,"update"]:
                 result = xr.Dataset(dict(water_probability=sanitize(water_probability)))
                 result.to_netcdf(water_probability_file)
-                self.logger.info(f"Saved water_probability to {water_probability_file}")
+                msg = f"Saved water_probability to {water_probability_file}"
+                self.logger.info(); print( msg )
         water_probability = water_probability.persist()
         self.logger.info(f"Done get_water_probability in time {time.time() - t0}")
         return water_probability
 
-    def get_water_map(self,  opspec: Dict, inputs: xr.DataArray )-> xr.Dataset:
-        da: xr.DataArray = self.time_merge(inputs) if isinstance(inputs, list) else inputs
-        threshold = opspec.get('threshold', 0.5 )
+    def compute_raw_water_map(self)-> xr.Dataset:
+        from floodmap.util.configuration import opSpecs
+        water_maps_opspec = opSpecs.get('water_maps', {})
+        bin_size = water_maps_opspec.get( 'bin_size', 8 )
+        threshold = water_maps_opspec.get('threshold', 0.5 )
+        da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
-        masked = da[0].isin( [ self.mask_value ] ).drop_vars( inputs.dims[0] )
+        masked = da[0].isin( [ self.mask_value ] ).drop_vars( self.floodmap_data.dims[0] )
         land = da.isin( [0] ).sum( axis=0 )
         water =  da.isin( [1,2,3] ).sum( axis=0 )
         visible = ( water + land )
@@ -157,44 +152,34 @@ class WaterMapGenerator(ConfigurableObject):
         prob_h20 = water / visible
         water_mask = prob_h20 >= threshold
         result =  xr.where( masked, self.mask_value, xr.where( water_mask, 2, xr.where( land, 1, 0 ) ) )
-        return xr.Dataset( { "water_maps": result,  "reliability": reliability } )
+        return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
-    def get_water_maps( self, data_array: Optional[xr.DataArray], opspec: Dict, **kwargs ) -> xr.DataArray:
+    def get_raw_water_map(self, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
         # this method computes land & water pixels over bins of {bin_size} days using thresholds
-        self.logger.info("\n Executing get_water_maps ")
+        self.logger.info("\n Executing get_water_map ")
         t0 = time.time()
-        data_dir = opspec.get('results_dir')
-        lake_index = opspec['lake_index']
-        water_maps_file = os.path.join(data_dir, f"lake_{lake_index}_water_maps.nc")
+        data_dir = self._opspecs.get('results_dir')
+        lake_index = self._opspecs['lake_index']
+        water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map.nc")
         water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
-        data_array.to_netcdf(water_data_file)
+        self.floodmap_data.to_netcdf(water_data_file)
         print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
-        cache = kwargs.get( "cache", False )
-        if cache==True and os.path.isfile( water_maps_file ):
-            water_maps_dset: xr.Dataset = xr.open_dataset(water_maps_file)
+        cache = kwargs.get( "cache", "update" )
+        if cache==True and os.path.isfile( water_map_file ):
+            water_map_dset: xr.Dataset = xr.open_dataset(water_map_file)
         else:
-            time_axis = kwargs.get("time", data_array.coords[data_array.dims[0]].values)
-            water_maps_opspec = opspec.get('water_maps',{})
-            binSize = water_maps_opspec.get( 'bin_size', 8 )
-            bin_indices = list(range( 0, time_axis.shape[0], binSize ))
-            centroid_indices = list(range(binSize//2, bin_indices[-1], binSize))
-            time_bins = np.array( [ time_axis[iT] for iT in bin_indices ], dtype='datetime64[ns]' )
-            self.logger.info( f"get_water_maps: data_array.shape={data_array.shape},  data_array.dims={data_array.dims},  time_bins.shape={time_bins.shape}")
-            grouped_data: DatasetGroupBy = data_array.groupby_bins( data_array.dims[0], time_bins, right = False )
-            get_water_map_partial = functools.partial( self.get_water_map, water_maps_opspec )
-            water_maps_dset:  xr.Dataset = grouped_data.map( get_water_map_partial )
-            water_maps_dset = water_maps_dset.assign( time_bins = [ time_axis[i] for i in centroid_indices ]  ).rename( time_bins='time' ).persist()
+            water_map_dset:  xr.Dataset = self.compute_raw_water_map()
             if cache in [True,"update"]:
-                water_maps_dset.to_netcdf(water_maps_file)
-                self.logger.info(f"Cached water_maps to {water_maps_file}")
-        self.logger.info( f" Completed get_water_maps in {time.time()-t0:.3f} seconds" )
-        water_maps_array: xr.DataArray = water_maps_dset.water_maps
+                water_map_dset.to_netcdf(water_map_file)
+                self.logger.info(f"Cached water_maps to {water_map_file}")
+        self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
+        water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
         # for tI in range(water_maps_array.shape[0]):
-        #     plot_array( f"get_water_maps-{tI}", water_maps_array[tI] )
-        water_maps_array.name = "Water_Maps"
-        return water_maps_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+        #     plot_array( f"get_water_map-{tI}", water_maps_array[tI] )
+        water_map_array.name = "Water_Map"
+        self.water_maps: xr.DataArray =  water_map_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
 
     def update_metrics( self, data_array: xr.DataArray, **kwargs ):
         metrics = data_array.attrs.get('metrics', {} )
@@ -204,8 +189,8 @@ class WaterMapGenerator(ConfigurableObject):
     def interpolate( self, **kwargs ) -> xr.DataArray:
         highlight = kwargs.get( "highlight", True )
         ffill =  kwargs.get( "ffill", True )
-        spatially_patched_water_maps: xr.DataArray = self.spatial_interpolate( )
-        result = self.temporal_interpolate( spatially_patched_water_maps, **kwargs ) if ffill else spatially_patched_water_maps
+        spatially_patched_water_map: xr.DataArray = self.spatial_interpolate( )
+        result = self.temporal_interpolate( spatially_patched_water_map, **kwargs ) if ffill else spatially_patched_water_map
         patched_result: xr.DataArray = result if not highlight else result.where( result == self.water_maps, result + 2 )
         return patched_result
 
@@ -247,8 +232,8 @@ class WaterMapGenerator(ConfigurableObject):
         return np.datetime64(result)
 
     def infer_tile_locations(self) -> List[str]:
-        if self.yearly_lake_masks is not None:
-            return TileLocator.infer_tiles_xa( self.yearly_lake_masks )
+        if self.lake_mask is not None:
+            return TileLocator.infer_tiles_xa(self.lake_mask)
         if self.roi_bounds is not None:
             if isinstance( self.roi_bounds, gpd.GeoSeries ):    rbnds = self.roi_bounds.geometry.boundary.bounds.values[0]
             else:                                               rbnds = self.roi_bounds
@@ -276,10 +261,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
-        year_range = kwargs.get('year_range')
-        day_range = kwargs.get('day_range',[0,365])
         dataMgr = MWPDataManager(results_dir, data_url )
-
         cropped_tiles: Dict[str,xr.DataArray] = {}
         file_paths = []
         time_values = None
@@ -287,7 +269,7 @@ class WaterMapGenerator(ConfigurableObject):
         for location in locations:
             try:
                 self.logger.info( f"Reading Location {location}" )
-                dataMgr.setDefaults(product=product, token=token, path=path, collection=collection, download=download, years=range(int(year_range[0]),int(year_range[1])+1), start_day=int(day_range[0]), end_day=int(day_range[1]))
+                dataMgr.setDefaults(product=product, token=token, path=path, collection=collection, download=download )
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 tile_raster =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
@@ -355,36 +337,36 @@ class WaterMapGenerator(ConfigurableObject):
             else:
                 raise Exception( f" Unrecognized roi: {roi}")
         else:
-            assert self.yearly_lake_masks is not None, "Must specify roi to locate lake"
-            self.roi_bounds =  TileLocator.get_bounds( self.yearly_lake_masks[0] )
+            assert self.lake_mask is not None, "Must specify roi to locate lake"
+            self.roi_bounds =  TileLocator.get_bounds(self.lake_mask[0])
 
-    def get_patched_water_maps(self, name: str, **kwargs) -> xr.DataArray:
+    def get_patched_water_map(self, name: str, **kwargs) -> xr.DataArray:
         t0 = time.time()
         opspec = self.get_opspec( name.lower() )
         data_dir = opspec.get('data_dir')
         lake_index = opspec['lake_index']
         lake_id = f"{name}.{lake_index}"
-        patched_water_maps_file = f"{data_dir}/{lake_id}_patched_water_masks.nc"
+        patched_water_map_file = f"{data_dir}/{lake_id}_patched_water_masks.nc"
         cache = kwargs.get("cache", False )
         patch = kwargs.get("patch", True)
 
-        if cache==True and os.path.isfile(patched_water_maps_file):
-            patched_water_maps: xr.DataArray = xr.open_dataset(patched_water_maps_file).Water_Maps
-            patched_water_maps.attrs['cmap'] = dict(colors=self.get_water_map_colors())
+        if cache==True and os.path.isfile(patched_water_map_file):
+            patched_water_map: xr.DataArray = xr.open_dataset(patched_water_map_file).Water_Maps
+            patched_water_map.attrs['cmap'] = dict(colors=self.get_water_map_colors())
         else:
-            self.yearly_lake_masks: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
+            self.lake_mask: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
             self.get_roi_bounds( opspec )
             water_mapping_data = self.get_mpw_data( **opspec, cache="update" )
-            self.water_maps: xr.DataArray =  self.get_water_maps( water_mapping_data, opspec )
-            patched_water_maps = self.patch_water_maps( opspec, **kwargs ) if patch else self.water_maps
+            self.water_maps: xr.DataArray =  self.get_raw_water_map(water_mapping_data, opspec)
+            patched_water_map = self.patch_water_map( opspec, **kwargs ) if patch else self.water_maps
 
-        if ((cache == True) and not os.path.isfile(patched_water_maps_file)) or ( cache == "update" ):
-            sanitize(patched_water_maps).to_netcdf( patched_water_maps_file )
-            self.logger.info( f"Saving patched_water_maps to {patched_water_maps_file}")
+        if ((cache == True) and not os.path.isfile(patched_water_map_file)) or ( cache == "update" ):
+            sanitize(patched_water_map).to_netcdf( patched_water_map_file )
+            self.logger.info( f"Saving patched_water_map to {patched_water_map_file}")
 
-        self.logger.info(f"Completed get_patched_water_maps in time {(time.time() - t0)/60.0} minutes")
-        patched_water_maps.name = lake_id
-        return patched_water_maps.assign_attrs( roi = self.roi_bounds )
+        self.logger.info(f"Completed get_patched_water_map in time {(time.time() - t0)/60.0} minutes")
+        patched_water_map.name = lake_id
+        return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
     def write_result_report( self, lake_index, report: str ):
         results_dir = self._opspecs.get('results_dir')
@@ -392,60 +374,56 @@ class WaterMapGenerator(ConfigurableObject):
         with open( file_path, "w" ) as file:
             file.write( report )
 
-    def process_yearly_lake_masks(self, lake_index: int,  yearly_lake_masks: xr.DataArray, **kwargs ) -> Optional[xr.DataArray]:
+    def generate_lake_water_map(self, lake_index: int, lake_mask: xr.DataArray, **kwargs) -> Optional[xr.DataArray]:
         skip_existing = kwargs.get('skip_existing', True)
         save_diagnostics = kwargs.get('save_diagnostics', True)
         format = kwargs.get('format','tif')
         results_dir = self._opspecs.get('results_dir')
-        patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
-        result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
+        patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
+        result_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
         if skip_existing and os.path.isfile(result_file):
             msg = f" Lake[{lake_index}]: Skipping already processed file: {result_file}"
             self.logger.info( msg ), print( msg )
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            y_coord, x_coord = yearly_lake_masks.coords[ yearly_lake_masks.dims[-2]].values, yearly_lake_masks.coords[yearly_lake_masks.dims[-1]].values
+            y_coord, x_coord = lake_mask.coords[ lake_mask.dims[-2]].values, lake_mask.coords[lake_mask.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
-            (water_mapping_data, time_values) = self.get_mpw_data( **self._opspecs )
-            if water_mapping_data is None:
+            (self.floodmap_data, time_values) = self.get_mpw_data( **self._opspecs )
+            if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
                 self.logger.warning( msg ); print( msg )
                 return None
-            elif save_diagnostics:
-                water_maps_data_file = f"{results_dir}/lake_{lake_index}_water_maps.nc"
-                print( f"Saving water_maps_data[{lake_index}] to {water_maps_data_file}")
-                water_mapping_data.to_netcdf(water_maps_data_file)
-            wmd_y_coord, wmd_x_coord = water_mapping_data.coords[ water_mapping_data.dims[-2]].values, water_mapping_data.coords[water_mapping_data.dims[-1]].values
+            wmd_y_coord, wmd_x_coord = self.floodmap_data.coords[ self.floodmap_data.dims[-2]].values, self.floodmap_data.coords[self.floodmap_data.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
-            self.yearly_lake_masks: xr.DataArray = yearly_lake_masks  # .interp_like( water_mapping_data )
-            self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {water_mapping_data.shape}, yearly_lake_masks shape = {yearly_lake_masks.shape}")
+            self.lake_mask: xr.DataArray = lake_mask.squeeze()  # .interp_like( water_mapping_data )
+            self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}, lake_mask shape = {lake_mask.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
-            self.logger.info(f"wmd roi bounds = {wmd_roi_bounds}, wmd dims = {water_mapping_data.dims}")
-            self.water_maps: xr.DataArray =  self.get_water_maps( water_mapping_data, self._opspecs, time=time_values )
-            patched_water_maps = self.patch_water_maps( self._opspecs, **kwargs )
-            patched_water_maps.name = f"Lake {lake_index}"
-            patched_water_maps: xr.DataArray = sanitize(patched_water_maps)
-            result = patched_water_maps.xgeo.to_utm( [250.0, 250.0] )
-            self.write_water_area_results( result, patched_water_maps_file + ".txt" )
+            self.logger.info(f"wmd roi bounds = {wmd_roi_bounds}, wmd dims = {self.floodmap_data.dims}")
+            self.get_raw_water_map( time=time_values )
+            patched_water_map = self.patch_water_map( self._opspecs, **kwargs )
+            patched_water_map.name = f"Lake {lake_index}"
+            patched_water_map: xr.DataArray = sanitize(patched_water_map)
+            result = patched_water_map.xgeo.to_utm( [250.0, 250.0] )
+            self.write_water_area_results( result, patched_water_map_file + ".txt" )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
             msg = f"Saving results for lake {lake_index} to {result_file}"
             self.logger.info( msg ); print( msg )
-            return patched_water_maps.assign_attrs( roi = self.roi_bounds )
+            return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
-    def write_water_area_results(self, patched_water_maps: xr.DataArray, outfile_path: str,  **kwargs ):
+    def write_water_area_results(self, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
         interp_water_class = kwargs.get( 'interp_water_class', 4 )
         water_classes = kwargs.get('water_classes', [2,4] )
-        time_axis = patched_water_maps.coords[ patched_water_maps.dims[0] ]
-        water_counts, class_proportion = self.get_class_proportion(patched_water_maps, interp_water_class, water_classes)
-        # for tI in range(patched_water_maps.shape[0]):
-        #     plot_array( f"patch_water_maps-{tI}", patched_water_maps[tI] )
+        time_axis = patched_water_map.coords[ patched_water_map.dims[0] ]
+        water_counts, class_proportion = self.get_class_proportion(patched_water_map, interp_water_class, water_classes)
+        # for tI in range(patched_water_map.shape[0]):
+        #     plot_array( f"patch_water_map-{tI}", patched_water_map[tI] )
         with open( outfile_path, "a" ) as outfile:
             lines = ["date water_area_km2 percent_interploated\n"]
-            for iTime in range( patched_water_maps.shape[0] ):
-#                class_counts = self.get_class_counts( patched_water_maps.values[iTime] )
+            for iTime in range( patched_water_map.shape[0] ):
+#                class_counts = self.get_class_counts( patched_water_map.values[iTime] )
                 percent_interp = class_proportion.values[iTime]
                 num_water_pixels = water_counts.values[iTime]
                 date = pd.Timestamp( time_axis.values[iTime] ).to_pydatetime()
@@ -456,39 +434,39 @@ class WaterMapGenerator(ConfigurableObject):
     def get_class_counts( self, array: np.ndarray )-> Dict:
         return { ic: np.count_nonzero( array == ic ) for ic in range(10) }
 
-    def repatch_water_maps(self, lakeId: str, **kwargs) -> xr.DataArray:
+    def repatch_water_map(self, lakeId: str, **kwargs) -> xr.DataArray:
         t0 = time.time()
         opspec = self.get_opspec( lakeId.lower() )
         data_dir = opspec.get('data_dir')
         lake_id = opspec['id']
-        patched_water_maps_file = f"{data_dir}/{lake_id}_patched_water_masks.nc"
+        patched_water_map_file = f"{data_dir}/{lake_id}_patched_water_masks.nc"
         cache = kwargs.get("cache", False )
 
-        self.yearly_lake_masks: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
+        self.lake_mask: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
         self.get_roi_bounds( opspec )
-        self.water_maps: xr.DataArray =  self.get_water_maps( None, opspec, cache=True )
-        patched_water_maps = self.patch_water_maps( opspec, **kwargs )
+        self.water_maps: xr.DataArray =  self.get_raw_water_map(None, opspec, cache=True)
+        patched_water_map = self.patch_water_map( opspec, **kwargs )
 
-        if ((cache == True) and not os.path.isfile(patched_water_maps_file)) or ( cache == "update" ):
-            sanitize(patched_water_maps).to_netcdf( patched_water_maps_file )
-            self.logger.info( f"Saving patched_water_maps to {patched_water_maps_file}")
+        if ((cache == True) and not os.path.isfile(patched_water_map_file)) or ( cache == "update" ):
+            sanitize(patched_water_map).to_netcdf( patched_water_map_file )
+            self.logger.info( f"Saving patched_water_map to {patched_water_map_file}")
 
-        self.logger.info(f"Completed get_patched_water_maps in time {(time.time() - t0)/60.0} minutes")
-        patched_water_maps.name = lake_id
-        return patched_water_maps.assign_attrs( roi = self.roi_bounds )
+        self.logger.info(f"Completed get_patched_water_map in time {(time.time() - t0)/60.0} minutes")
+        patched_water_map.name = lake_id
+        return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
-    def patch_water_maps( self, opspec: Dict, **kwargs ) -> xr.DataArray:
+    def patch_water_map( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         self.water_probability:  xr.DataArray = self.get_water_probability( opspec, **kwargs )
         self.persistent_classes: xr.DataArray = self.get_persistent_classes( opspec, **kwargs )
-        patched_water_maps: xr.DataArray = self.interpolate( **kwargs ).assign_attrs( **self.water_maps.attrs )
-        patched_water_maps.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
-        rv = patched_water_maps.fillna( self.mask_value )
+        patched_water_map: xr.DataArray = self.interpolate( **kwargs ).assign_attrs( **self.water_maps.attrs )
+        patched_water_map.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
+        rv = patched_water_map.fillna( self.mask_value )
 #        class_counts = self.get_class_counts( rv.values[0] )
         return rv
 
-    def get_cached_water_maps( self, lakeId: str ):
+    def get_cached_water_map( self, lakeId: str ):
         opspec = self.get_opspec(lakeId.lower())
-        self.water_maps: xr.DataArray = self.get_water_maps( None, opspec, cache=True )
+        self.water_maps: xr.DataArray = self.get_raw_water_map(None, opspec, cache=True)
         return self.water_maps
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:
