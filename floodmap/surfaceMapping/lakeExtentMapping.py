@@ -150,14 +150,15 @@ class WaterMapGenerator(ConfigurableObject):
         threshold = water_maps_opspec.get('threshold', 0.5 )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
-        masked = da[0].isin( [ self.mask_value ] ).drop_vars( self.floodmap_data.dims[0] )
+        da0 = da[0].drop_vars( self.floodmap_data.dims[0] )
+        masked = da0.isin( [ self.mask_value, self.mask_value+1, self.mask_value+2  ] )
         land = da.isin( [0] ).sum( axis=0 )
         water =  da.isin( [1,2,3] ).sum( axis=0 )
         visible = ( water + land )
         reliability = visible / float(binSize)
         prob_h20 = water / visible
         water_mask = prob_h20 >= threshold
-        result =  xr.where( masked, self.mask_value, xr.where( water_mask, 2, xr.where( land, 1, 0 ) ) )
+        result =  xr.where( masked, da0, xr.where( water_mask, 2, xr.where( land, 1, 0 ) ) )
         return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
     def get_raw_water_map(self, **kwargs):
@@ -248,10 +249,9 @@ class WaterMapGenerator(ConfigurableObject):
             return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
 
-    def get_mpw_data(self, lake_mask: xr.DataArray, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
+    def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
         self.logger.info( "reading mpw data")
-        self.roi_bounds = lake_mask.xgeo.extent()
-        mask_map = lake_mask.squeeze( drop = True )
+        self.roi_bounds = self.lake_mask.xgeo.extent()
         t0 = time.time()
         results_dir = kwargs.get('results_dir')
         lake_id = kwargs.get('lake_index')
@@ -282,11 +282,12 @@ class WaterMapGenerator(ConfigurableObject):
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 tile_raster =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                new_shape = [ min( mask_map.shape[i],tile_raster.shape[i+1] ) for i in (0,1) ]
+                new_shape = [ min( self.lake_mask.shape[i],tile_raster.shape[i] ) for i in (1,2) ]
                 tile_raster = tile_raster[:,:new_shape[0],:new_shape[1]]
-                tile_raster = xarray.where( mask_map==lake_mask_value, self.mask_value, tile_raster )
-                if tile_raster is not None:
-                    cropped_tiles[location] = tile_raster
+                tile_mask = np.broadcast_to( ( self.lake_mask.values == lake_mask_value ), tile_raster.shape ).flatten()
+                tile_raster_data = tile_raster.values.flatten()
+                tile_raster_data[tile_mask] = self.mask_value + 1
+                cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
             except Exception as err:
                 self.logger.error( f"Error reading mpw data for location {location} ")
                 for file in file_paths:
@@ -398,8 +399,9 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( msg ), print( msg )
             return None
         else:
+            self.lake_mask: xr.DataArray = lake_mask
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            (self.floodmap_data, time_values) = self.get_mpw_data( lake_mask, **self._opspecs )
+            (self.floodmap_data, time_values) = self.get_mpw_data( **self._opspecs )
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
                 self.logger.warning( msg ); print( msg )
@@ -407,7 +409,6 @@ class WaterMapGenerator(ConfigurableObject):
             # wmd_y_coord, wmd_x_coord = self.floodmap_data.coords[ self.floodmap_data.dims[-2]].values, self.floodmap_data.coords[self.floodmap_data.dims[-1]].values
             # self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             # wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
-            self.lake_mask: xr.DataArray = lake_mask.squeeze()  # .interp_like( water_mapping_data )
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}, lake_mask shape = {lake_mask.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values )

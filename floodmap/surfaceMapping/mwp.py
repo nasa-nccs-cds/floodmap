@@ -109,7 +109,7 @@ class MWPDataManager(ConfigurableObject):
         token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
         files = []
-        days = range( this_day-history_size, this_day+1 )
+        days = range( this_day-history_size, this_day )
         path = path_template.format( collection=collection, product=product )
         for day in days:
             (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
