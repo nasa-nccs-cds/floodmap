@@ -1,6 +1,8 @@
 import geopandas as gpd
 import pandas as pd
 from typing import List, Tuple, Dict, Optional
+
+import xarray
 import xarray as xr
 from glob import glob
 import functools, traceback
@@ -246,13 +248,15 @@ class WaterMapGenerator(ConfigurableObject):
             return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
 
-    def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
+    def get_mpw_data(self, lake_mask: xr.DataArray, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
         self.logger.info( "reading mpw data")
+        self.roi_bounds = lake_mask.xgeo.extent()
+        mask_map = lake_mask.squeeze( drop = True )
         t0 = time.time()
         results_dir = kwargs.get('results_dir')
         lake_id = kwargs.get('lake_index')
         download = kwargs.get( 'download', True )
-
+        lake_mask_spec = kwargs.get('lake_masks')
         from .mwp import MWPDataManager
         source_spec = kwargs.get('source')
         data_url = source_spec.get('url')
@@ -272,11 +276,15 @@ class WaterMapGenerator(ConfigurableObject):
         cropped_data = None
         for location in locations:
             try:
+                lake_mask_value =  lake_mask_spec['mask']
                 self.logger.info( f"Reading Location {location}" )
                 dataMgr.setDefaults(product=product, token=token, path=path, collection=collection, download=download )
                 file_paths = dataMgr.get_tile(location)
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 tile_raster =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                new_shape = [ min( mask_map.shape[i],tile_raster.shape[i+1] ) for i in (0,1) ]
+                tile_raster = tile_raster[:,:new_shape[0],:new_shape[1]]
+                tile_raster = xarray.where( mask_map==lake_mask_value, self.mask_value, tile_raster )
                 if tile_raster is not None:
                     cropped_tiles[location] = tile_raster
             except Exception as err:
@@ -391,8 +399,7 @@ class WaterMapGenerator(ConfigurableObject):
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            self.roi_bounds =lake_mask.xgeo.extent()
-            (self.floodmap_data, time_values) = self.get_mpw_data( **self._opspecs )
+            (self.floodmap_data, time_values) = self.get_mpw_data( lake_mask, **self._opspecs )
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
                 self.logger.warning( msg ); print( msg )

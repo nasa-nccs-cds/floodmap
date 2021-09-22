@@ -32,21 +32,23 @@ class XRio(XExtension):
                 print( msg )
                 logger.info( msg )
                 return None
-            result: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).astype( np.dtype('f4') )
+            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).astype( np.dtype('f4') )
             band = kwargs.pop( 'band', -1 )
             if band >= 0:
-                result = result.isel( band=band, drop=True )
-            result.encoding = dict( dtype = str(np.dtype('f4')) )
-            if mask is None: return result
+                raster = raster.isel( band=band, drop=True )
+            raster.encoding = dict( dtype = str(np.dtype('f4')) )
+            if mask is None:
+                result = raster
             elif isinstance( mask, list ):
-                tile_bounds = TileLocator.get_bounds(result)
+                tile_bounds = TileLocator.get_bounds(raster)
                 invert_y = (tile_bounds[2] > tile_bounds[3])
                 if iFile == 0: logger.info(f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
-                return result.xrio.subset( mask[:2], mask[2:], invert_y )
+                result = raster.xrio.subset( mask[:2], mask[2:], invert_y )
             elif isinstance( mask, GeoDataFrame ):
-                return result.xrio.clip( mask, **kwargs )
+                result = raster.xrio.clip( mask, **kwargs )
             else:
                 raise Exception( f"Unrecognized mask type: {mask.__class__.__name__}")
+            return result
         except Exception as err:
             logger.error( f"XRio Error opening file {filename}: {err}")
             logger.error( traceback.format_exc() )
@@ -58,7 +60,12 @@ class XRio(XExtension):
     def subset(self, xbounds: List, ybounds: List, invert_y: bool  )-> xr.DataArray:
         xbounds.sort(), ybounds.sort( reverse = invert_y )
         sel_args = { self._obj.dims[-1]: slice(*xbounds), self._obj.dims[-2]: slice(*ybounds) }
-        return self._obj.sel(**sel_args)
+        result = self._obj.sel(**sel_args)
+        base_transform = [ *self._obj.transform ]
+        base_transform[0] = xbounds[0]
+        base_transform[3] = ybounds[0]
+        result.attrs['transform'] = base_transform
+        return result
 
     def clip(self, geodf: GeoDataFrame, **kwargs )-> xr.DataArray:
         cargs = argfilter( kwargs, all_touched = True, drop = True )
@@ -91,7 +98,7 @@ class XRio(XExtension):
             data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
-                data_array = data_array.expand_dims( { 'time': time_values }, 0 )
+                data_array = data_array.squeeze(drop=True).expand_dims( { 'time': time_values }, 0 )
                 result = data_array if result is None else cls.concat([result, data_array])
         return result
 
@@ -151,7 +158,8 @@ class XRio(XExtension):
         result_data = np.concatenate( [ da.values for da in data_arrays ], axis=0 )
         coords = { key:data_arrays[0].coords[key] for key in array0.dims[1:] }
         coords[ dim0 ] = xr.concat( [ da.coords[dim0] for da in data_arrays ], dim=array0.coords[dim0].dims[0] )
-        result: xr.DataArray =  xr.DataArray( result_data, dims=array0.dims, coords=coords )
+        result: xr.DataArray =  xr.DataArray( result_data, dims=array0.dims, coords=coords, attrs=array0.attrs )
+        if hasattr( array0, 'spatial_ref' ): result['spatial_ref'] = array0.spatial_ref
 #        print( f"Concat arrays along dim {array0.dims[0]}, input array dims = {array0.dims}, shape = {array0.shape}, Result array dims = {result.dims}, shape = {result.shape}")
         return result
 
