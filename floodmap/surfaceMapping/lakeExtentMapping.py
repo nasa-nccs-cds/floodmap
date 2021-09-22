@@ -20,7 +20,7 @@ class WaterMapGenerator(ConfigurableObject):
     def __init__( self, opspecs: Dict, **kwargs ):
         self._opspecs = { key.lower(): value for key,value in opspecs.items() }
         ConfigurableObject.__init__( self, **kwargs )
-        self.water_maps: xr.DataArray = None
+        self.water_map: xr.DataArray = None
         self.water_probability: xr.DataArray = None
         self.persistent_classes: xr.DataArray = None
         self.lake_mask: xr.DataArray = None
@@ -89,28 +89,26 @@ class WaterMapGenerator(ConfigurableObject):
     def get_persistent_classes(self, opspec: Dict, **kwargs) -> xr.DataArray:
         # Computes perm water and perm land using occurrence thresholds over available history
         self.logger.info(f"Executing get_persistent_classes")
-        data_dir = opspec.get('data_dir')
-        lake_index = opspec.get('index')
+        data_dir = opspec.get('results_dir')
+        lake_index = opspec.get('lake_index')
         t0 = time.time()
         cache = kwargs.get('cache', "update")
         thresholds = opspec.get('water_class_thresholds', [ 0.05, 0.95 ] )
         perm_water_mask: xr.DataArray = self.water_probability > thresholds[1]
         boundaries_mask: xr.DataArray = self.water_probability > 1.0
-        mask_value = self.lake_mask.attrs['mask']
-        water_value = self.lake_mask.attrs['water']
         perm_land_mask: xr.DataArray = self.water_probability < thresholds[0]
-        roi_mask: xr.DataArray =  ( self.lake_mask == mask_value ) | boundaries_mask
-        result = xr.where( roi_mask, self.mask_value, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
+        roi_mask: xr.DataArray = (self.water_map >= self.mask_value) | boundaries_mask
+        result = xr.where(roi_mask, self.water_map, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
         result = result.persist()
         result.name = "Persistent_Classes"
         self.logger.info(f"Done get_persistent_classes in time {time.time() - t0}")
         persistent_class_map = result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
         if cache in [ True, "update" ]:
-            persistent_class_map_file = os.path.join(data_dir, f"Lake{lake_index}_persistent_class_map.nc")
+            persistent_class_map_file = os.path.join(data_dir, f"lake_{lake_index}_persistent_class_map.nc")
             result = xr.Dataset(dict(persistent_class_map=sanitize(persistent_class_map)))
             result.to_netcdf(persistent_class_map_file)
             msg = f"Saved persistent_class_map to {persistent_class_map_file}"
-            self.logger.info(msg)
+            self.logger.info(msg); print( msg )
         return persistent_class_map
 
     def get_water_probability( self, opspec: Dict, **kwargs ) -> xr.DataArray:
@@ -145,7 +143,7 @@ class WaterMapGenerator(ConfigurableObject):
 
     def compute_raw_water_map(self)-> xr.Dataset:
         from floodmap.util.configuration import opSpecs
-        water_maps_opspec = opSpecs.get('water_maps', {})
+        water_maps_opspec = opSpecs.get('water_map', {})
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         threshold = water_maps_opspec.get('threshold', 0.5 )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
@@ -179,14 +177,14 @@ class WaterMapGenerator(ConfigurableObject):
             water_map_dset:  xr.Dataset = self.compute_raw_water_map()
             if cache in [True,"update"]:
                 water_map_dset.to_netcdf(water_map_file)
-                self.logger.info(f"Cached water_maps to {water_map_file}")
+                self.logger.info(f"Cached water_map to {water_map_file}")
         self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
         water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
         # for tI in range(water_maps_array.shape[0]):
         #     plot_array( f"get_water_map-{tI}", water_maps_array[tI] )
         water_map_array.name = "Water_Map"
-        self.water_maps: xr.DataArray =  water_map_array.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
+        self.water_map: xr.DataArray =  water_map_array.assign_attrs(cmap = dict(colors=self.get_water_map_colors()))
 
     def update_metrics( self, data_array: xr.DataArray, **kwargs ):
         metrics = data_array.attrs.get('metrics', {} )
@@ -198,15 +196,15 @@ class WaterMapGenerator(ConfigurableObject):
         ffill =  kwargs.get( "ffill", True )
         spatially_patched_water_map: xr.DataArray = self.spatial_interpolate( )
         result = self.temporal_interpolate( spatially_patched_water_map, **kwargs ) if ffill else spatially_patched_water_map
-        patched_result: xr.DataArray = result if not highlight else result.where( result == self.water_maps, result + 2 )
+        patched_result: xr.DataArray = result if not highlight else result.where(result == self.water_map, result + 2)
         return patched_result
 
     def spatial_interpolate( self, **kwargs  ) -> xr.DataArray:
         self.logger.info("Spatial Interpolate")
         t0 = time.time()
-        interp_persistent_classes: xr.DataArray = self.persistent_classes.interp_like(self.water_maps[0], method='nearest')
+        interp_persistent_classes: xr.DataArray = self.persistent_classes.interp_like(self.water_map[0], method='nearest')
         spatial_interpolate_partial = functools.partial(self.spatial_interpolate_slice, interp_persistent_classes )
-        result: xr.DataArray = self.water_maps.groupby( "time.year" ).map( spatial_interpolate_partial, **kwargs ).persist()
+        result: xr.DataArray = self.water_map.groupby("time.year").map(spatial_interpolate_partial, **kwargs).persist()
         self.logger.info(f"Done spatial interpolate in time {time.time() - t0}")
         return result
 
@@ -370,8 +368,8 @@ class WaterMapGenerator(ConfigurableObject):
             self.lake_mask: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
             self.get_roi_bounds( opspec )
             water_mapping_data = self.get_mpw_data( **opspec, cache="update" )
-            self.water_maps: xr.DataArray =  self.get_raw_water_map(water_mapping_data, opspec)
-            patched_water_map = self.patch_water_map( opspec, **kwargs ) if patch else self.water_maps
+            self.water_map: xr.DataArray =  self.get_raw_water_map(water_mapping_data, opspec)
+            patched_water_map = self.patch_water_map( opspec, **kwargs ) if patch else self.water_map
 
         if ((cache == True) and not os.path.isfile(patched_water_map_file)) or ( cache == "update" ):
             sanitize(patched_water_map).to_netcdf( patched_water_map_file )
@@ -454,7 +452,7 @@ class WaterMapGenerator(ConfigurableObject):
 
         self.lake_mask: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
         self.get_roi_bounds( opspec )
-        self.water_maps: xr.DataArray =  self.get_raw_water_map(None, opspec, cache=True)
+        self.water_map: xr.DataArray =  self.get_raw_water_map(None, opspec, cache=True)
         patched_water_map = self.patch_water_map( opspec, **kwargs )
 
         if ((cache == True) and not os.path.isfile(patched_water_map_file)) or ( cache == "update" ):
@@ -468,7 +466,7 @@ class WaterMapGenerator(ConfigurableObject):
     def patch_water_map( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         self.water_probability:  xr.DataArray = self.get_water_probability( opspec, **kwargs )
         self.persistent_classes: xr.DataArray = self.get_persistent_classes( opspec, **kwargs )
-        patched_water_map: xr.DataArray = self.interpolate( **kwargs ).assign_attrs( **self.water_maps.attrs )
+        patched_water_map: xr.DataArray = self.interpolate( **kwargs ).assign_attrs(**self.water_map.attrs)
         patched_water_map.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
         rv = patched_water_map.fillna( self.mask_value )
 #        class_counts = self.get_class_counts( rv.values[0] )
@@ -476,8 +474,8 @@ class WaterMapGenerator(ConfigurableObject):
 
     def get_cached_water_map( self, lakeId: str ):
         opspec = self.get_opspec(lakeId.lower())
-        self.water_maps: xr.DataArray = self.get_raw_water_map(None, opspec, cache=True)
-        return self.water_maps
+        self.water_map: xr.DataArray = self.get_raw_water_map(None, opspec, cache=True)
+        return self.water_map
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:
         sdims = [ class_map.dims[-1], class_map.dims[-2] ]

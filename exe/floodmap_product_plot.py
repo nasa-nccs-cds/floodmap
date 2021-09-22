@@ -14,15 +14,14 @@ result_color_map = {
 
 lake_index = 4
 fps =  0.5
-stage = "raw"
-plot_var = "water_map"
+plot_type = "persistent_class"  # "water"
 cmap = result_color_map
 
 specs = opSpecs._defaults
-floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_water_map.nc"
+floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_{plot_type}_map.nc"
 
 floodmap_dset: xa.Dataset = xa.open_dataset( floodmap_result_file )
-floodmap_data: xa.DataArray = floodmap_dset.data_vars[plot_var]
+floodmap_data: xa.DataArray = floodmap_dset.data_vars[ f"{plot_type}_map"]
 
-plot_array( f"Floodmap {stage} result", floodmap_data )
+plot_array( f"Floodmap {plot_type} result", floodmap_data )
 

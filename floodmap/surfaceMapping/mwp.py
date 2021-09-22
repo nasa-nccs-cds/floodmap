@@ -98,7 +98,7 @@ class MWPDataManager(ConfigurableObject):
 
     def get_tile(self, location, **kwargs) -> List[str]:
         from floodmap.util.configuration import opSpecs
-        water_maps_opspec = opSpecs.get('water_maps', {})
+        water_maps_opspec = opSpecs.get('water_map', {})
         history_size = water_maps_opspec.get( 'history_size', 360 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", **kwargs )
