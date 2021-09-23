@@ -1,4 +1,4 @@
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 from floodmap.util.xrio import XRio
 from multiprocessing import cpu_count, get_context, Pool
 from functools import partial
@@ -8,7 +8,17 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
-import os, traceback, logging, atexit
+import os, traceback, logging, atexit, csv
+
+class nasa_dialect(csv.Dialect):
+    delimiter = ','
+    quotechar = '"'
+    doublequote = True
+    skipinitialspace = True
+    lineterminator = '\n'
+    quoting = csv.QUOTE_ALL
+
+csv.register_dialect("nasa", nasa_dialect)
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')
@@ -23,13 +33,17 @@ def get_date_from_year( year: int ):
 def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_item: Tuple[int,str] ):
     from .lakeExtentMapping import WaterMapGenerator
     logger = getLogger( False, logging.DEBUG )
-    (lake_index, lake_mask_file) = lake_mask_item
+    ( lake_index, lake_spec ) = lake_mask_item
+    waterMapGenerator = WaterMapGenerator({'lake_index': lake_index, **opSpecs._defaults})
     try:
-        lake_mask: xr.DataArray = rio.open_rasterio(lake_mask_file).astype(np.dtype('f4'))
-        lake_mask.attrs.update(lakeMaskSpecs)
-        lake_mask.name = f"Lake {lake_index} Mask"
-        waterMapGenerator = WaterMapGenerator( {'lake_index': lake_index,  **opSpecs._defaults} )
-        waterMapGenerator.generate_lake_water_map(lake_index, lake_mask, **runSpecs)
+        if isinstance( lake_spec, str ):
+            lake_mask: xr.DataArray = rio.open_rasterio(lake_spec).astype(np.dtype('f4'))
+            lake_mask.attrs.update(lakeMaskSpecs)
+            lake_mask.name = f"Lake {lake_index} Mask"
+            waterMapGenerator.generate_lake_water_map(lake_index, lake_mask, **runSpecs)
+        else:
+            kwargs = dict( roi=lake_spec, **runSpecs)
+            waterMapGenerator.generate_lake_water_map(lake_index, None, **kwargs )
         logger.info(f"Completed processing lake {lake_index}")
         return lake_index
     except Exception as err:
@@ -45,20 +59,26 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
-    def getLakeMasks(cls, opSpecs: Dict ) -> Dict:
-        reproject_inputs = opSpecs.get( 'reproject', False )
+    def getLakeMasks(cls, opSpecs: Dict ) -> Optional[Dict]:
         lakeMaskSpecs = opSpecs.get("lake_masks", None)
         data_dir = lakeMaskSpecs["basedir"]
-        lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) )
-        files_spec = lakeMaskSpecs["file"]
+        files_spec: str = lakeMaskSpecs["file"]
         lake_masks = {}
-        for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
-            file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
-            if os.path.isfile(file_path):
-                lake_masks[lake_index] = cls.convert(file_path) if reproject_inputs else file_path
-                print(f"  Processing Lake-{lake_index} using lake file: {file_path}")
-            else:
-                print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
+        if files_spec.endswith(".csv"):
+            file_path = os.path.join(data_dir, files_spec )
+            with open( file_path ) as csvfile:
+                reader = csv.DictReader(csvfile, dialect="nasa")
+                for row in reader:
+                    lake_masks[ int(row['index']) ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
+        else:
+            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) )
+            for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
+                file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
+                if os.path.isfile(file_path):
+                    lake_masks[lake_index] = file_path
+                    print(f"  Processing Lake-{lake_index} using lake file: {file_path}")
+                else:
+                    print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
         return lake_masks
 
     def process_lakes( self, **kwargs ):

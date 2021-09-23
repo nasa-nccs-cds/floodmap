@@ -23,6 +23,7 @@ if type=="tif":
     floodmap: xa.DataArray = xa.open_rasterio( floodmap_result_file )
 else:
     floodmap_dset: xa.Dataset = xa.open_dataset(floodmap_result_file)
+#    print( floodmap_dset.attrs )
     floodmap: xa.DataArray = floodmap_dset[ f"Lake-{lake_index}-utm" ]
 
 plot_array( f"Floodmap {plot_type} result", floodmap )
