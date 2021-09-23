@@ -1,5 +1,6 @@
 import os, wget, sys, pprint, logging
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
+from collections import OrderedDict
 import numpy as np
 from datetime import datetime
 from multiprocessing import Pool
@@ -96,7 +97,7 @@ class MWPDataManager(ConfigurableObject):
         output = stream.read()
         print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
-    def get_tile(self, location, **kwargs) -> List[str]:
+    def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
         water_maps_opspec = opSpecs.get('water_map', {})
         history_size = water_maps_opspec.get( 'history_size', 360 )
@@ -108,34 +109,36 @@ class MWPDataManager(ConfigurableObject):
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
-        files = []
+        files = OrderedDict()
         days = range( this_day-history_size, this_day )
         path = path_template.format( collection=collection, product=product )
         for day in days:
             (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
-            target_file = f"{product}.A{iY}{iD:03}.{location}.{collection:03}.tif"
+            timestr = f"{iY}{iD:03}"
+            target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
             target_file_path = os.path.join( location_dir, path, target_file )
+            dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
                     target_url = self.data_source_url + f"/{path}/{target_file}"
                     self.download( target_url, location_dir, token )
                     if os.path.exists(target_file_path):
                         print(f" Downloaded NRT file: {target_file_path}")
-                        files.append(target_file_path)
+                        files[dtime] = target_file_path
                     else:
                         print( f" Can't access NRT file: {target_file_path}")
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
-                files.append( target_file_path )
+                files[dtime] = target_file_path
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:
         arrays = XGeo.loadRasterFiles( files, region = self.getParameter("bbox") )
         return self.time_merge(arrays) if merge else arrays
 
-    def get_tile_data(self, location: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
-        files = self.get_tile(location, **kwargs)
-        return self.get_array_data( files, merge )
+    # def get_tile_data(self, location: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
+    #     files = self.get_tile(location, **kwargs)
+    #     return self.get_array_data( files, merge )
 
     @staticmethod
     def extent( transform: Union[List, Tuple], shape: Union[List, Tuple], origin: str ):
@@ -160,29 +163,11 @@ class MWPDataManager(ConfigurableObject):
                 global_locs.append(f"000E{iy:03d}{yhemi}")
         return global_locs
 
-    def remove_empty_directories(self, nProcesses: int = 8):
-        locations = dataMgr.get_global_locations()
-        with Pool(nProcesses) as p:
-            p.map(dataMgr.delete_if_empty, locations, nProcesses)
-
     def _segment(self, strList: List[str], nSegments ):
         seg_length = int( round( len( strList )/nSegments ) )
         return [strList[x:x + seg_length] for x in range(0, len(strList), seg_length)]
 
-    def download_tiles(self, nProcesses: int = 8 ):
-        location = self.parms.get( 'location' )
-        locations = dataMgr.get_global_locations( ) if location is None else [ location ]
-        with Pool(nProcesses) as p:
-            p.map(dataMgr.get_tile, locations, nProcesses)
 
-if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print( "Usage: >> python -m floodmap.surfaceMapping.mwp <dataDirectory>\n       Downloads all MWP tiles to the data directory")
-    else:
-        dataMgr = MWPDataManager( sys.argv[1], "https://floodmap.modaps.eosdis.nasa.gov/Products" )
-        dataMgr.setDefaults( product = "1D1OS", download = True, year = 2018, start_day = 1, end_day = 365, location='120W050N' )
-        dataMgr.download_tiles( 10 )
-        dataMgr.remove_empty_directories(10)
 
 
 

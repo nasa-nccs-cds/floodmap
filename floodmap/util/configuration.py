@@ -1,20 +1,23 @@
+import osr
 from shapely.geometry import Point
 import xarray as xr
 import string, random, json
 import pandas as pd
-import yaml, sys
+import yaml, sys, os
 from typing import List, Dict
 
 def argfilter( args: Dict, **kwargs ) -> Dict:
     return { key: args.get(key,value) for key,value in kwargs.items() }
 
-def sanitize( array: xr.DataArray ):
+def sanitize( array: xr.DataArray, squeeze=False ):
     for key, value in array.attrs.items():
         if key == "cmap" and not isinstance(value,str):
             array.attrs[key] = json.dumps(value)
+        elif isinstance(value, osr.SpatialReference ):
+            array.attrs[key] = str( value.ExportToPrettyWkt() )
         else:
             array.attrs[key] = value
-    return array
+    return array.squeeze( drop=True ) if squeeze else array
 
 class Region:
 

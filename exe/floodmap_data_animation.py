@@ -3,7 +3,7 @@ from floodmap.util.configuration import opSpecs
 from  floodmap.surfaceMapping.mwp import MWPDataManager
 import xarray as xa
 
-lake_index = 4
+lake_index = 5
 fps =  0.5
 
 color_map = {
@@ -11,7 +11,11 @@ color_map = {
     1: (0, 0, 1),  # , 'water',
     2: (0, 0.5, 1),  # , 'Flood',
     3: (0, 0.3, 1),  # , 'Perm Flood',
-    4: (0, 0, 0)  # 'nodata',
+    4: (0.3, 0, 0.3),    # 'nodata',
+    5: (0.3, 0.3, 0),    # 'nodata',
+    6: (0.3, 0.3, 0.3),    # 'nodata',
+    7: (0, 0.3, 0.3),    # 'nodata',
+    8: (0, 0, 0)       # 'mask',
 }
 
 cmap = color_map

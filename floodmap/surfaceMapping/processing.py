@@ -33,10 +33,9 @@ def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_item: Tupl
         logger.info(f"Completed processing lake {lake_index}")
         return lake_index
     except Exception as err:
-        msg = f"Skipping lake {lake_index} due to error: {err} "
+        msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
         logger.error(msg); print( msg )
-        logger.error( traceback.format_exc() )
-        write_result_report(lake_index, traceback.format_exc())
+        write_result_report(lake_index, msg )
 
 class LakeMaskProcessor:
 
@@ -57,7 +56,7 @@ class LakeMaskProcessor:
             file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
             if os.path.isfile(file_path):
                 lake_masks[lake_index] = cls.convert(file_path) if reproject_inputs else file_path
-                print(f"  Processing Lake-{lake_index} using lale file: {file_path}")
+                print(f"  Processing Lake-{lake_index} using lake file: {file_path}")
             else:
                 print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
         return lake_masks

@@ -12,16 +12,18 @@ result_color_map = {
     5: (1, 1, 0.7)  # 'mask',
 }
 
-lake_index = 4
-fps =  0.5
-plot_type = "persistent_class"  # "water"
+lake_index = 5
+type = "nc"
+plot_type = "patched_water" #  "water" "patched_water" "persistent_class"
 cmap = result_color_map
 
 specs = opSpecs._defaults
-floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_{plot_type}_map.nc"
+floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_{plot_type}_map.{type}"
+if type=="tif":
+    floodmap: xa.DataArray = xa.open_rasterio( floodmap_result_file )
+else:
+    floodmap_dset: xa.Dataset = xa.open_dataset(floodmap_result_file)
+    floodmap: xa.DataArray = floodmap_dset[ f"Lake-{lake_index}-utm" ]
 
-floodmap_dset: xa.Dataset = xa.open_dataset( floodmap_result_file )
-floodmap_data: xa.DataArray = floodmap_dset.data_vars[ f"{plot_type}_map"]
-
-plot_array( f"Floodmap {plot_type} result", floodmap_data )
+plot_array( f"Floodmap {plot_type} result", floodmap )
 

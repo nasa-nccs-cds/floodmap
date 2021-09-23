@@ -42,12 +42,7 @@ class TileLocator:
 
     @classmethod
     def infer_tiles_xa( cls, array: xa.DataArray ) -> List[str]:
-        print( f" --> infer_tiles_xa, attrs = {array.attrs}")
-        x_coord = array.coords[array.dims[-1]].values
-        y_coord = array.coords[array.dims[-2]].values
-        x0, y0 = array.xgeo.project_to_geographic( x_coord[0], y_coord[0] )
-        x1, y1 = array.xgeo.project_to_geographic(x_coord[-1], y_coord[-1])
-        return cls.get_tiles( x0, x1, y0, y1 )
+        return cls.get_tiles( *array.xgeo.extent() )
 
     @classmethod
     def infer_tiles_gpd( cls, series: gpd.GeoSeries ) -> List[str]:
