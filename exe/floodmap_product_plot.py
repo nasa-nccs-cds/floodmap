@@ -12,7 +12,7 @@ result_color_map = {
     5: (1, 1, 0.7)  # 'mask',
 }
 
-lake_index = 5
+lake_index = 4       #  [4, 5, 9, 11, 12, 14, 19, 21, 22, 26, 28, 37, 42, 43, 44, 51, 53, 60, 66, 67, 69, 73, 74, 76, 79, 81, 82, 85, 87, 88, 91, 93, 97, 99]
 type = "nc"
 plot_type = "patched_water" #  "water" "patched_water" "persistent_class"
 cmap = result_color_map

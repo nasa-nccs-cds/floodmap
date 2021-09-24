@@ -282,15 +282,16 @@ class WaterMapGenerator(ConfigurableObject):
                 file_paths = list(tile_filespec.values())
                 time_values = list(tile_filespec.keys())
                 tile_raster: xr.DataArray =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                if self.lake_mask is None:
-                    cropped_tiles[location] = tile_raster
-                else:
-                    lake_mask_interp: xr.DataArray = self.lake_mask.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
-                    tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
-                    tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
-                    tile_raster_data: np.ndarray = tile_raster.values.flatten()
-                    tile_raster_data[ tile_mask_data ] = self.mask_value + 1
-                    cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
+                if tile_raster.size > 0:
+                    if self.lake_mask is None:
+                        cropped_tiles[location] = tile_raster
+                    else:
+                        lake_mask_interp: xr.DataArray = self.lake_mask.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
+                        tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
+                        tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
+                        tile_raster_data: np.ndarray = tile_raster.values.flatten()
+                        tile_raster_data[ tile_mask_data ] = self.mask_value + 1
+                        cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
             except Exception as err:
                 for file in file_paths:
                     if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
@@ -318,8 +319,9 @@ class WaterMapGenerator(ConfigurableObject):
     def merge_along_axis( self, sub_arrays: List[xr.DataArray], axis: int ) -> xr.DataArray:
         if len( sub_arrays ) == 1:  return sub_arrays[0]
         concat_dim = sub_arrays[0].dims[axis]
-        ccoord: xr.DataArray = sub_arrays[0].coords[concat_dim].values
-        sub_arrays.sort( reverse = (ccoord[0] > ccoord[-1]), key = lambda x: x.coords[concat_dim].values[0] )
+        ccoord: np.ndarray = sub_arrays[0].coords[concat_dim].values
+        reverse = (ccoord[0] > ccoord[-1])
+        sub_arrays.sort( reverse =reverse , key = lambda x: x.coords[concat_dim].values[0] )
         result: xr.DataArray = xr.concat( sub_arrays, dim = concat_dim )
         return result
 

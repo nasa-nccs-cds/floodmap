@@ -60,17 +60,21 @@ class LakeMaskProcessor:
 
     @classmethod
     def getLakeMasks(cls, opSpecs: Dict ) -> Optional[Dict]:
-        lakeMaskSpecs = opSpecs.get("lake_masks", None)
-        data_dir = lakeMaskSpecs["basedir"]
-        files_spec: str = lakeMaskSpecs["file"]
+        lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
+        data_dir: str = lakeMaskSpecs.get("basedir", None)
+        data_roi: str = lakeMaskSpecs.get( "roi", None )
+        lake_index: int = int( lakeMaskSpecs.get( "lake_index", 0 ) )
+        files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
         lake_masks = {}
+        if files_spec != "UNDEF":
+            assert data_dir is not None, "Must define 'basedir' with 'file' parameter in 'lake_masks' config"
         if files_spec.endswith(".csv"):
             file_path = os.path.join(data_dir, files_spec )
             with open( file_path ) as csvfile:
                 reader = csv.DictReader(csvfile, dialect="nasa")
                 for row in reader:
                     lake_masks[ int(row['index']) ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
-        else:
+        elif files_spec.endswith(".tif"):
             lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) )
             for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
                 file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
@@ -79,6 +83,12 @@ class LakeMaskProcessor:
                     print(f"  Processing Lake-{lake_index} using lake file: {file_path}")
                 else:
                     print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
+        elif files_spec != "UNDEF":
+            raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
+        elif data_roi is not None:
+            lake_masks[ lake_index ] = [ float(v) for v in data_roi.split(",") ]
+        else:
+            print( "No lakes configured in specs file." )
         return lake_masks
 
     def process_lakes( self, **kwargs ):
