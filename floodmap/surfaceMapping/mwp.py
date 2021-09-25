@@ -3,7 +3,7 @@ import geopandas as gpd
 from typing import List, Union, Tuple, Dict
 from collections import OrderedDict
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
 from ..util.logs import getLogger
@@ -35,12 +35,13 @@ class MWPDataManager(ConfigurableObject):
             results_dir = opSpecs.get('results_dir')
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
-            path = source_spec.get('path')
-            product = source_spec.get('product')
-            token = source_spec.get('token')
-            collection = source_spec.get('collection')
             cls._instance = MWPDataManager(results_dir, data_url)
-            cls._instance.setDefaults( product=product, token=token, path=path, collection=collection )
+            cls._instance.setDefaults()
+            cls._instance.parms['product'] = source_spec.get('product')
+            cls._instance.parms['token'] = source_spec.get('token')
+            cls._instance.parms['path'] = source_spec.get('path')
+            cls._instance.parms['collection'] = source_spec.get('collection')
+            cls._instance.parms['history_length'] = source_spec.get('history_length')
         return cls._instance
 
     def infer_tile_locations(self, **kwargs ) -> List[str]:
@@ -57,19 +58,14 @@ class MWPDataManager(ConfigurableObject):
             return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
 
-    def download_current_mpw_data( self, **kwargs ):
-        from floodmap.util.configuration import opSpecs
-        specs: Dict = dict( **opSpecs.get('defaults'), **kwargs )
+    def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
-        source_spec = specs.get('source')
-        archive_tiles = specs.get('source','all')
-        history_length = int( specs.get('history_length',-1) )
-        if archive_tiles == "all":  locations = self.global_location_list()
-        else:                       locations = source_spec.get( 'location', self.infer_tile_locations( **kwargs ) )
+        archive_tiles = kwargs.get( 'archive_tiles','global' )
+        locations = kwargs.get('locations', [])
+        if archive_tiles == "global":
+            locations = self.global_location_list()
         for location in locations:
             self.get_tile( location )
-        if history_length > 0:
-            self.delete_old_files( history_length )
 
     def today(self) -> Tuple[int,int]:
         today = datetime.now()
@@ -150,22 +146,25 @@ class MWPDataManager(ConfigurableObject):
 
     def get_date_from_filepath(self, filename: str) -> datetime:
         fname = os.path.basename(filename)
-        dateId = fname.split(".")[1][1:]
-        return datetime.strptime(dateId[1:], '%Y%j')
+        dateId = fname.split(".")[1]
+        rv = datetime.strptime(dateId[1:], '%Y%j')
+        return rv
 
-    def delete_old_files(self, history_length: int, **kwargs ):
-        path_template =  self.getParameter( "path", **kwargs)
-        product = self.getParameter("product", **kwargs)
-        collection= self.getParameter( "collection", **kwargs )
-        path = path_template.format(collection=collection, product=product)
-        for location in self.global_location_list():
-            location_dir = self.get_location_dir(location)
-            target_dir = os.path.join(location_dir, path )
-            if os.path.exists( target_dir ):
-                files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
-                for file in files:
-                    dt = datetime.now() - self.get_date_from_filepath( file )
-                    print( ". ")
+    def delete_old_files(self, **kwargs ):
+        history_length = self.getParameter("history_length", **kwargs)
+        if history_length > 0:
+            path_template =  self.getParameter( "path", **kwargs)
+            product = self.getParameter("product", **kwargs)
+            collection= self.getParameter( "collection", **kwargs )
+            path = path_template.format(collection=collection, product=product)
+            for location in self.global_location_list():
+                location_dir = self.get_location_dir(location)
+                target_dir = os.path.join(location_dir, path )
+                if os.path.exists( target_dir ):
+                    files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
+                    for file in files:
+                        dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
+                        if dt.days > history_length: os.remove( file )
 
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs

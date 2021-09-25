@@ -231,6 +231,7 @@ class WaterMapGenerator(ConfigurableObject):
         from .mwp import MWPDataManager
         from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
+        source_specs: Dict = opSpecs.get( 'source' )
         self.logger.info( "reading mpw data")
         lake_id = kwargs.get('index')
         print( f"ROI for lake {lake_id}: {self.roi_bounds}" )
@@ -242,6 +243,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
+        dataMgr.download_mpw_data( locations=locations, **source_specs )
         cropped_tiles: Dict[str,xr.DataArray] = {}
         time_values = None
         file_paths = None

@@ -71,17 +71,19 @@ class LakeMaskProcessor:
             print( "No lakes configured in specs file." )
         return lake_masks
 
-    # def download_floodmap_data(self, **kwargs):
-    #     from .mwp import MWPDataManager
-    #     dataMgr = MWPDataManager.instance()
-    #     dataMgr.download_current_mpw_data( **kwargs )
+    def update_floodmap_archive( self ):
+        from .mwp import MWPDataManager
+        source_specs = opSpecs.get( 'source' )
+        dataMgr = MWPDataManager.instance()
+        dataMgr.download_mpw_data( **source_specs )
+        dataMgr.delete_old_files( )
 
     def process_lakes( self, **kwargs ):
         try:
             lake_masks = self.getLakeMasks()
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())
-#            self.download_floodmap_data( lake_masks )
+            self.update_floodmap_archive()
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
             with get_context("spawn").Pool(processes=nproc) as p:
                 self.pool = p
