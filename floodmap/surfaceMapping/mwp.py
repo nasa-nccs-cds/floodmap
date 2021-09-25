@@ -1,4 +1,4 @@
-import os, wget, sys, pprint, logging
+import os, wget, sys, pprint, logging, glob
 from typing import List, Union, Tuple, Dict
 from collections import OrderedDict
 import numpy as np
@@ -96,6 +96,32 @@ class MWPDataManager(ConfigurableObject):
         stream = os.popen(cmd)
         output = stream.read()
         print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+
+    def global_location_list(self):
+        locs = []
+        for hi in range(0,36):
+            for vi in range(0, 18):
+                locs.append( f"h{hi:02d}v{vi:02d}")
+        return locs
+
+    def get_date_from_filepath(self, filename: str) -> datetime:
+        fname = os.path.basename(filename)
+        dateId = fname.split(".")[1][1:]
+        return datetime.strptime(dateId[1:], '%Y%j')
+
+    def delete_old_files(self, history_length: int, **kwargs ):
+        path_template =  self.getParameter( "path", **kwargs)
+        product = self.getParameter("product", **kwargs)
+        collection= self.getParameter( "collection", **kwargs )
+        path = path_template.format(collection=collection, product=product)
+        for location in self.global_location_list():
+            location_dir = self.get_location_dir(location)
+            target_dir = os.path.join(location_dir, path )
+            if os.path.exists( target_dir ):
+                files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
+                for file in files:
+                    dt = datetime.now() - self.get_date_from_filepath( file )
+                    print( ". ")
 
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs

@@ -229,12 +229,6 @@ class WaterMapGenerator(ConfigurableObject):
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result
 
-    def get_date_from_filename(self, filename: str):
-        toks = filename.split("_")
-        dateId = toks[3].split(".")[1]
-        result = datetime.strptime(dateId[1:], '%Y%j').date()
-        return np.datetime64(result)
-
     def infer_tile_locations(self) -> List[str]:
         if self.lake_mask is not None:
             return TileLocator.infer_tiles_xa(self.lake_mask)
@@ -253,16 +247,21 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info( "downloading mpw data")
         results_dir = specs.get('results_dir')
         source_spec = specs.get('source')
+        archive_tiles = specs.get('source','all')
+        history_length = int( specs.get('history_length',-1) )
         data_url = source_spec.get('url')
         path = source_spec.get('path')
         product = source_spec.get('product')
         token = source_spec.get('token')
         collection = source_spec.get('collection')
-        locations = source_spec.get( 'location', self.infer_tile_locations() )
-        dataMgr = MWPDataManager(results_dir, data_url )
+        dataMgr = MWPDataManager( results_dir, data_url )
+        if archive_tiles == "all":  locations = dataMgr.global_location_list()
+        else:                       locations = source_spec.get( 'location', self.infer_tile_locations() )
         dataMgr.setDefaults(product=product, token=token, path=path, collection=collection)
         for location in locations:
-            dataMgr.get_tile(location)
+            dataMgr.get_tile( location )
+        if history_length > 0:
+            dataMgr.delete_old_files( history_length )
 
     def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
         self.logger.info( "reading mpw data")
