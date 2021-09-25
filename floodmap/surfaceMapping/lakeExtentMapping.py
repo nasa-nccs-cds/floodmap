@@ -246,6 +246,24 @@ class WaterMapGenerator(ConfigurableObject):
             return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
 
+    def download_current_mpw_data( self, **kwargs ):
+        from floodmap.util.configuration import opSpecs
+        from .mwp import MWPDataManager
+        specs: Dict = dict( **opSpecs.get('defaults'), **kwargs )
+        self.logger.info( "downloading mpw data")
+        results_dir = specs.get('results_dir')
+        source_spec = specs.get('source')
+        data_url = source_spec.get('url')
+        path = source_spec.get('path')
+        product = source_spec.get('product')
+        token = source_spec.get('token')
+        collection = source_spec.get('collection')
+        locations = source_spec.get( 'location', self.infer_tile_locations() )
+        dataMgr = MWPDataManager(results_dir, data_url )
+        dataMgr.setDefaults(product=product, token=token, path=path, collection=collection)
+        for location in locations:
+            dataMgr.get_tile(location)
+
     def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
         self.logger.info( "reading mpw data")
         if self.lake_mask is not None:  self.roi_bounds = self.lake_mask.xgeo.extent()
@@ -323,6 +341,7 @@ class WaterMapGenerator(ConfigurableObject):
         reverse = (ccoord[0] > ccoord[-1])
         sub_arrays.sort( reverse =reverse , key = lambda x: x.coords[concat_dim].values[0] )
         result: xr.DataArray = xr.concat( sub_arrays, dim = concat_dim )
+        print(f"Merging tiles with shapes: {[ta.shape for ta in sub_arrays]} along axis {axis}, result shape = {result.shape}")
         return result
 
     def get_opspec(self, lakeId: str ) -> Dict:
