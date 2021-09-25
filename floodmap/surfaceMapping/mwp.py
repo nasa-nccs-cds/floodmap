@@ -1,9 +1,10 @@
 import os, wget, sys, pprint, logging, glob
+import geopandas as gpd
 from typing import List, Union, Tuple, Dict
 from collections import OrderedDict
 import numpy as np
 from datetime import datetime
-from multiprocessing import Pool
+from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
 from ..util.logs import getLogger
 import xarray as xr
@@ -20,12 +21,55 @@ def getStreamLogger( level ):
     return logger
 
 class MWPDataManager(ConfigurableObject):
+    _instance: "MWPDataManager" = None
 
     def __init__(self, data_dir: str, data_source_url: str, **kwargs ) :
         ConfigurableObject.__init__( self, **kwargs )
         self.data_dir = data_dir
         self.data_source_url = data_source_url
         self.logger = getLogger( False )
+
+    @classmethod
+    def instance(cls) -> "MWPDataManager":
+        if cls._instance is None:
+            results_dir = opSpecs.get('results_dir')
+            source_spec = opSpecs.get('source')
+            data_url = source_spec.get('url')
+            path = source_spec.get('path')
+            product = source_spec.get('product')
+            token = source_spec.get('token')
+            collection = source_spec.get('collection')
+            cls._instance = MWPDataManager(results_dir, data_url)
+            cls._instance.setDefaults( product=product, token=token, path=path, collection=collection )
+        return cls._instance
+
+    def infer_tile_locations(self, **kwargs ) -> List[str]:
+        from .tiles import TileLocator
+        lake_mask = kwargs.get( 'lake_mask', None )
+        roi_bounds = kwargs.get('roi', None)
+        if lake_mask is not None:
+            return TileLocator.infer_tiles_xa( lake_mask )
+        if roi_bounds is not None:
+            if isinstance( roi_bounds, gpd.GeoSeries ):    rbnds = roi_bounds.geometry.boundary.bounds.values[0]
+            else:                                          rbnds = roi_bounds
+            tiles =  TileLocator.get_tiles( *rbnds )
+            self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
+            return tiles
+        raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
+
+    def download_current_mpw_data( self, **kwargs ):
+        from floodmap.util.configuration import opSpecs
+        specs: Dict = dict( **opSpecs.get('defaults'), **kwargs )
+        self.logger.info( "downloading mpw data")
+        source_spec = specs.get('source')
+        archive_tiles = specs.get('source','all')
+        history_length = int( specs.get('history_length',-1) )
+        if archive_tiles == "all":  locations = self.global_location_list()
+        else:                       locations = source_spec.get( 'location', self.infer_tile_locations( **kwargs ) )
+        for location in locations:
+            self.get_tile( location )
+        if history_length > 0:
+            self.delete_old_files( history_length )
 
     def today(self) -> Tuple[int,int]:
         today = datetime.now()

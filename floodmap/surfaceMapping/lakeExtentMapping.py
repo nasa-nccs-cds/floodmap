@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
-import xarray
+from floodmap.util.configuration import opSpecs
 import xarray as xr
 from glob import glob
 import functools, traceback
@@ -17,15 +17,14 @@ from floodmap.util.xgeo import XGeo
 
 class WaterMapGenerator(ConfigurableObject):
 
-    def __init__( self, opspecs: Dict, **kwargs ):
-        self._opspecs = { key.lower(): value for key,value in opspecs.items() }
+    def __init__( self, **kwargs ):
         ConfigurableObject.__init__( self, **kwargs )
         self.water_map: xr.DataArray = None
         self.water_probability: xr.DataArray = None
         self.persistent_classes: xr.DataArray = None
         self.lake_mask: xr.DataArray = None
         self.roi_bounds: gpd.GeoSeries = None
-        self.mask_value = 5
+        self.mask_value = kwargs.get( 'mask_value', 5 )
         self.logger = getLogger( False )
 
     def get_water_map_colors(self) -> List[Tuple]:
@@ -143,7 +142,6 @@ class WaterMapGenerator(ConfigurableObject):
         return water_probability
 
     def compute_raw_water_map(self)-> xr.Dataset:
-        from floodmap.util.configuration import opSpecs
         water_maps_opspec = opSpecs.get('water_map', {})
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         threshold = water_maps_opspec.get('threshold', 0.5 )
@@ -165,8 +163,8 @@ class WaterMapGenerator(ConfigurableObject):
         # this method computes land & water pixels over bins of {bin_size} days using thresholds
         self.logger.info("\n Executing get_water_map ")
         t0 = time.time()
-        data_dir = self._opspecs.get('results_dir')
-        lake_index = self._opspecs['lake_index']
+        data_dir = opSpecs.get('results_dir')
+        lake_index = kwargs.get( 'index', 0 )
         water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map.nc")
         water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
         self.floodmap_data.to_netcdf(water_data_file)
@@ -229,72 +227,29 @@ class WaterMapGenerator(ConfigurableObject):
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result
 
-    def infer_tile_locations(self) -> List[str]:
-        if self.lake_mask is not None:
-            return TileLocator.infer_tiles_xa(self.lake_mask)
-        if self.roi_bounds is not None:
-            if isinstance( self.roi_bounds, gpd.GeoSeries ):    rbnds = self.roi_bounds.geometry.boundary.bounds.values[0]
-            else:                                               rbnds = self.roi_bounds
-            tiles =  TileLocator.get_tiles( *rbnds )
-            self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
-            return tiles
-        raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
-
-    def download_current_mpw_data( self, **kwargs ):
-        from floodmap.util.configuration import opSpecs
-        from .mwp import MWPDataManager
-        specs: Dict = dict( **opSpecs.get('defaults'), **kwargs )
-        self.logger.info( "downloading mpw data")
-        results_dir = specs.get('results_dir')
-        source_spec = specs.get('source')
-        archive_tiles = specs.get('source','all')
-        history_length = int( specs.get('history_length',-1) )
-        data_url = source_spec.get('url')
-        path = source_spec.get('path')
-        product = source_spec.get('product')
-        token = source_spec.get('token')
-        collection = source_spec.get('collection')
-        dataMgr = MWPDataManager( results_dir, data_url )
-        if archive_tiles == "all":  locations = dataMgr.global_location_list()
-        else:                       locations = source_spec.get( 'location', self.infer_tile_locations() )
-        dataMgr.setDefaults(product=product, token=token, path=path, collection=collection)
-        for location in locations:
-            dataMgr.get_tile( location )
-        if history_length > 0:
-            dataMgr.delete_old_files( history_length )
-
     def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
+        from .mwp import MWPDataManager
+        from floodmap.util.configuration import opSpecs
+        lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         self.logger.info( "reading mpw data")
-        if self.lake_mask is not None:  self.roi_bounds = self.lake_mask.xgeo.extent()
-        else:                           assert self.roi_bounds is not None, "Error, Must specify either lake mask file or roi"
-        lake_id = kwargs.get('lake_index')
+        lake_id = kwargs.get('index')
         print( f"ROI for lake {lake_id}: {self.roi_bounds}" )
         t0 = time.time()
-        results_dir = kwargs.get('results_dir')
-        download = kwargs.get( 'download', True )
-        lake_mask_spec = kwargs.get('lake_masks')
-        from .mwp import MWPDataManager
-        source_spec = kwargs.get('source')
-        data_url = source_spec.get('url')
-        path = source_spec.get('path')
-        product = source_spec.get('product')
-        token = source_spec.get('token')
-        collection = source_spec.get('collection')
-        locations = source_spec.get( 'location', self.infer_tile_locations() )
+        dataMgr = MWPDataManager.instance()
+        locations = dataMgr.infer_tile_locations( roi=self.roi_bounds, lake_mask = self.lake_mask )
+
         if not locations:
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
-        dataMgr = MWPDataManager(results_dir, data_url )
         cropped_tiles: Dict[str,xr.DataArray] = {}
         time_values = None
         file_paths = None
         cropped_data = None
         for location in locations:
             try:
-                lake_mask_value =  lake_mask_spec.get('mask',0)
+                lake_mask_value =  lakeMaskSpecs.get('mask',0)
                 self.logger.info( f"Reading Location {location}" )
-                dataMgr.setDefaults(product=product, token=token, path=path, collection=collection, download=download )
                 tile_filespec: OrderedDict = dataMgr.get_tile(location)
                 file_paths = list(tile_filespec.values())
                 time_values = list(tile_filespec.keys())
@@ -343,38 +298,26 @@ class WaterMapGenerator(ConfigurableObject):
         print(f"Merging tiles with shapes: {[ta.shape for ta in sub_arrays]} along axis {axis}, result shape = {result.shape}")
         return result
 
-    def get_opspec(self, lakeId: str ) -> Dict:
-        opspec = self._opspecs.get( lakeId.lower() )
-        if opspec is None:
-            self.logger.error( "Can't find {lakeId.lower()} in opspecs, available opspecs: {self._opspecs.keys()}" )
-            return {}
-        merged_opspec: Dict = dict( **self._opspecs.get("defaults",{}) )
-        for key,value in opspec.items():
-            if key in merged_opspec:    merged_opspec[key] = self.merge_opspec_values( merged_opspec[key], value )
-            else:                       merged_opspec[key] = value
-        merged_opspec['id'] = lakeId
-        return merged_opspec
-
     def merge_opspec_values( self, value0, value1 ):
         if isinstance( value0, collections.Mapping ):
             return { **value0, **value1 }
         else: return value1
 
-    def get_roi_bounds(self, opspec: Dict ):
-        data_dir = opspec.get('data_dir')
-        roi = opspec.get('roi', None)
-        if roi is not None:
-            if isinstance(roi, list):
-                self.roi_bounds = [ float(x) for x in roi ]
-            elif isinstance(roi, str) and "," in roi:
-                self.roi_bounds = [ float(x) for x in roi.split(",") ]
-            elif isinstance(roi, str):
-                self.roi_bounds: gpd.GeoSeries = gpd.read_file( roi.replace("{data_dir}", data_dir) )
-            else:
-                raise Exception( f" Unrecognized roi: {roi}")
-        else:
-            assert self.lake_mask is not None, "Must specify roi to locate lake"
-            self.roi_bounds =  TileLocator.get_bounds(self.lake_mask[0])
+    # def get_roi_bounds(self ):
+    #     data_dir = opSpecs.get('data_dir')
+    #     roi = opSpecs.get('roi', None)
+    #     if roi is not None:
+    #         if isinstance(roi, list):
+    #             self.roi_bounds = [ float(x) for x in roi ]
+    #         elif isinstance(roi, str) and "," in roi:
+    #             self.roi_bounds = [ float(x) for x in roi.split(",") ]
+    #         elif isinstance(roi, str):
+    #             self.roi_bounds: gpd.GeoSeries = gpd.read_file( roi.replace("{data_dir}", data_dir) )
+    #         else:
+    #             raise Exception( f" Unrecognized roi: {roi}")
+    #     else:
+    #         assert self.lake_mask is not None, "Must specify roi to locate lake"
+    #         self.roi_bounds =  TileLocator.get_bounds(self.lake_mask[0])
 
     # def get_patched_water_map(self, name: str, **kwargs) -> xr.DataArray:
     #     t0 = time.time()
@@ -405,16 +348,19 @@ class WaterMapGenerator(ConfigurableObject):
     #     return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
     def write_result_report( self, lake_index, report: str ):
-        results_dir = self._opspecs.get('results_dir')
+        results_dir = opSpecs.get('results_dir')
         file_path = f"{results_dir}/lake_{lake_index}_task_report.txt"
         with open( file_path, "w" ) as file:
             file.write( report )
 
-    def generate_lake_water_map(self, lake_index: int, lake_mask: Optional[xr.DataArray], **kwargs) -> Optional[xr.DataArray]:
+    def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
+        lake_index = kwargs.get('index',0)
+        self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
+        self.roi_bounds = kwargs.get('roi', None)
         skip_existing = kwargs.get('skip_existing', True)
         save_diagnostics = kwargs.get('save_diagnostics', True)
         format = kwargs.get('format','tif')
-        results_dir = self._opspecs.get('results_dir')
+        results_dir = opSpecs.get('results_dir')
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map"
         result_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
         if skip_existing and os.path.isfile(result_file):
@@ -422,18 +368,16 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( msg ), print( msg )
             return None
         else:
-            self.roi_bounds = kwargs.get( 'roi', None )
-            self.lake_mask: xr.DataArray = lake_mask
             self.logger.info(f" --------------------->> Generating result file: {result_file}")
-            (self.floodmap_data, time_values) = self.get_mpw_data( **self._opspecs )
+            (self.floodmap_data, time_values) = self.get_mpw_data( **kwargs )
             if self.floodmap_data is None:
-                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {self._opspecs}"
+                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
                 self.logger.warning( msg ); print( msg )
                 return None
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values )
-            patched_water_map = self.patch_water_map( self._opspecs, **kwargs )
+            patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
             result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )
             self.write_water_area_results( result, patched_water_map_file + ".txt" )
@@ -485,17 +429,12 @@ class WaterMapGenerator(ConfigurableObject):
     #     patched_water_map.name = lake_id
     #     return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
-    def patch_water_map( self, opspec: Dict, **kwargs ) -> xr.DataArray:
-        patched_water_map: xr.DataArray = self.interpolate( opspec, **kwargs ).assign_attrs(**self.water_map.attrs)
+    def patch_water_map( self, **kwargs ) -> xr.DataArray:
+        patched_water_map: xr.DataArray = self.interpolate( opSpecs, **kwargs ).assign_attrs(**self.water_map.attrs)
         patched_water_map.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
         rv = patched_water_map.fillna( self.mask_value )
 #        class_counts = self.get_class_counts( rv.values[0] )
         return rv
-
-    def get_cached_water_map( self, lakeId: str ):
-        opspec = self.get_opspec(lakeId.lower())
-        self.water_map: xr.DataArray = self.get_raw_water_map(None, opspec, cache=True)
-        return self.water_map
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:
         sdims = [ class_map.dims[-1], class_map.dims[-2] ]

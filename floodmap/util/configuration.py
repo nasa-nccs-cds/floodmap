@@ -82,13 +82,6 @@ class ConfigurableObject:
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result # .assign_coords( {'frames': frame_names } )
 
-class Region:
-
-    def __init__(self, origin: List[int], size: int ):
-        self.origin: List[int] = origin
-        self.size: int = size
-        self.bounds: List[int] = [ origin[0] + size, origin[1] + size ]
-
 class OpSpecs:
 
     def __init__(self):

@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Union, List
 from floodmap.util.xrio import XRio
 from multiprocessing import cpu_count, get_context, Pool
 from functools import partial
@@ -30,27 +30,6 @@ def get_date_from_year( year: int ):
     result = datetime( year, 1, 1 )
     return np.datetime64(result)
 
-def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_item: Tuple[int,str] ):
-    from .lakeExtentMapping import WaterMapGenerator
-    logger = getLogger( False, logging.DEBUG )
-    ( lake_index, lake_spec ) = lake_mask_item
-    waterMapGenerator = WaterMapGenerator({'lake_index': lake_index, **opSpecs._defaults})
-    try:
-        if isinstance( lake_spec, str ):
-            lake_mask: xr.DataArray = rio.open_rasterio(lake_spec).astype(np.dtype('f4'))
-            lake_mask.attrs.update(lakeMaskSpecs)
-            lake_mask.name = f"Lake {lake_index} Mask"
-            waterMapGenerator.generate_lake_water_map(lake_index, lake_mask, **runSpecs)
-        else:
-            kwargs = dict( roi=lake_spec, **runSpecs)
-            waterMapGenerator.generate_lake_water_map(lake_index, None, **kwargs )
-        logger.info(f"Completed processing lake {lake_index}")
-        return lake_index
-    except Exception as err:
-        msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
-        logger.error(msg); print( msg )
-        write_result_report(lake_index, msg )
-
 class LakeMaskProcessor:
 
     def __init__( self ):
@@ -59,7 +38,8 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
-    def getLakeMasks(cls, opSpecs: Dict ) -> Optional[Dict]:
+    def getLakeMasks( cls ) -> Dict:
+        from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
@@ -91,22 +71,53 @@ class LakeMaskProcessor:
             print( "No lakes configured in specs file." )
         return lake_masks
 
+    # def download_floodmap_data(self, **kwargs):
+    #     from .mwp import MWPDataManager
+    #     dataMgr = MWPDataManager.instance()
+    #     dataMgr.download_current_mpw_data( **kwargs )
+
     def process_lakes( self, **kwargs ):
         try:
-            opSpecs.set( 'reproject', kwargs.get('reproject_inputs',False) )
-            lake_masks = self.getLakeMasks( opSpecs )
-            lakeMaskSpecs = opSpecs.get("lake_masks", None)
+            lake_masks = self.getLakeMasks()
             nproc = opSpecs.get( 'ncores', cpu_count() )
-            items = list(lake_masks.items())
+            lake_specs = list(lake_masks.items())
+#            self.download_floodmap_data( lake_masks )
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
             with get_context("spawn").Pool(processes=nproc) as p:
                 self.pool = p
-                results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
-
-            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {results}")
+                results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
+            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )
+
+    @classmethod
+    def read_lake_mask( cls, lake_index: int, lake_mask: Union[str,Tuple], **kwargs ) -> Dict:
+        rv = dict( mask=None, roi=None, index=lake_index, **kwargs )
+        if isinstance(lake_mask, str):
+            lake_mask: xr.DataArray = rio.open_rasterio(lake_mask).astype(np.dtype('f4'))
+            lake_mask.attrs.update( kwargs )
+            lake_mask.name = f"Lake {lake_index} Mask"
+            rv['mask'] = lake_mask
+            rv['roi'] = lake_mask.xgeo.extent()
+        else:
+            rv['roi'] = lake_mask
+        return rv
+
+    @classmethod
+    def process_lake_mask( cls, runSpecs: Dict, lake_mask_spec: Tuple[int, str]):
+        from .lakeExtentMapping import WaterMapGenerator
+        logger = getLogger(False, logging.DEBUG)
+        ( lake_index, lake_mask ) = lake_mask_spec
+        try:
+            lake_mask = cls.read_lake_mask( lake_index, lake_mask, **runSpecs )
+            waterMapGenerator = WaterMapGenerator()
+            waterMapGenerator.generate_lake_water_map( **lake_mask )
+            return lake_index
+        except Exception as err:
+            msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
+            logger.error(msg); print(msg)
+            write_result_report(lake_index, msg)
 
     @classmethod
     def convert(cls, src_file: str, overwrite = True ) -> str:
