@@ -62,6 +62,7 @@ class MWPDataManager(ConfigurableObject):
         self.logger.info( "downloading mpw data")
         archive_tiles = kwargs.get( 'archive_tiles','global' )
         locations = kwargs.get('locations', [])
+        print( f"Accessing floodmap data for locations: {locations}")
         if archive_tiles == "global":
             locations = self.global_location_list()
         for location in locations:
