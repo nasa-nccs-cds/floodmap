@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     collection = 61
     year = 2021
-    day_range = [252,253]
+    day_range = [251,252]
     archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
     for day in day_range:
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
         with get_context("spawn").Pool(processes=nproc) as p:
             results = p.map( processor, infiles )
-            p.join()
+        p.join()
 
 
 
