@@ -1,4 +1,4 @@
-import glob, os
+import glob, os, time
 from functools import partial
 from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
@@ -12,17 +12,18 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
     product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
     result_path = f"{archive_dir}/{outpath}/{result_file}"
-    command = f"cd {fdir}; gdal_translate {product} {result_path} -ot Byte -co 'COMPRESS=JPEG'"
+    command = f"cd {fdir}; gdal_translate {product} {result_path} -q -ot Byte -co 'COMPRESS=JPEG'"
     rv = os.system(command)
     print(f"\n *** [{rv}]->      {outpath}:  {result_file}")
     return rv
 
 if __name__ == '__main__':
     freeze_support()
+    t0 = time.time()
 
     collection = 61
     year = 2021
-    day_range = [251,252]
+    day_range = [248,251]
     archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
     for day in day_range:
@@ -37,6 +38,8 @@ if __name__ == '__main__':
         with get_context("spawn").Pool(processes=nproc) as p:
             results = p.map( processor, infiles )
         p.join()
+
+    print( f"Completed processing {day_range[1]-day_range[0]} days in {(time.time()-t0)/60.0:.2f} min.")
 
 
 
