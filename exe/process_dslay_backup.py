@@ -16,7 +16,7 @@ for day in day_range:
     for filepath in infiles:
         fName = os.path.basename(filepath)
         fdir = os.path.dirname(filepath)
-        tile = fName.split()[2]
+        tile = fName.split('.')[2]
         outpath = f"{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Recent"
         result_file = f"{outpath}/MCDWD_L3_F2_NRT.A{dstr}.{tile}.{collection:03}.tif"
         product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
