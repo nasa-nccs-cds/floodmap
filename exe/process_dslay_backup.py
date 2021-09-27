@@ -11,6 +11,7 @@ for day in day_range:
     archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
     gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
     infiles = glob.glob( gfstr )
+    print( f"Processing HDF files: '{gfstr}'" )
     print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
 
     for filepath in infiles:
