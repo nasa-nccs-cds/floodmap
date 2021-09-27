@@ -3,6 +3,11 @@ from functools import partial
 from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
 
+collection = 61
+year = 2021
+day_range = [248, 250]
+archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
+
 def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str ) -> int:
     fName = os.path.basename(hdfFilepath)
     fdir = os.path.dirname(hdfFilepath)
@@ -20,13 +25,9 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
 if __name__ == '__main__':
     freeze_support()
     t0 = time.time()
-
-    collection = 61
-    year = 2021
-    day_range = [248,251]
-    archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
-
-    for day in day_range:
+    days = list(range(day_range[1],day_range[0]-1,-1))
+    print( f"Processing days {days} in {year}")
+    for day in days:
         dstr = f"{year}{day:03}"
         source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
         gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
