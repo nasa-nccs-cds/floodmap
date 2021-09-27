@@ -1,6 +1,6 @@
 import glob, os
 from functools import partial
-from multiprocessing import cpu_count, get_context, Pool
+from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
 
 def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str ) -> int:
@@ -17,23 +17,26 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
     print(f" [{rv}]-> {outpath}:  {result_file}")
     return rv
 
-collection = 61
-year = 2021
-day_range = [252,253]
-archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
+if __name__ == '__main__':
+    freeze_support()
 
-for day in day_range:
-    dstr = f"{year}{day:03}"
-    source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
-    gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
-    infiles = glob.glob( gfstr )
-    print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )
-    print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
-    processor = partial( process_file, archive_dir, collection, dstr )
+    collection = 61
+    year = 2021
+    day_range = [252,253]
+    archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
-    with get_context("spawn").Pool(processes=nproc) as p:
-        results = p.map( processor, infiles )
-        p.join()
+    for day in day_range:
+        dstr = f"{year}{day:03}"
+        source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
+        gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
+        infiles = glob.glob( gfstr )
+        print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )
+        print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
+        processor = partial( process_file, archive_dir, collection, dstr )
+
+        with get_context("spawn").Pool(processes=nproc) as p:
+            results = p.map( processor, infiles )
+            p.join()
 
 
 
