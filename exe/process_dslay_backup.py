@@ -10,9 +10,10 @@ for day in day_range:
     source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
     archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
     gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
-    print( f"Saving tif files to location: {archive_dir}:")
+    infiles = glob.glob( gfstr )
+    print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
 
-    for filepath in glob.glob( gfstr ):
+    for filepath in infiles:
         fName = os.path.basename(filepath)
         fdir = os.path.dirname(filepath)
         tile = fName.split()[2]
