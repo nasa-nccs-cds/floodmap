@@ -14,7 +14,7 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
     result_path = f"{archive_dir}/{outpath}/{result_file}"
     command = f"cd {fdir}; gdal_translate {product} {result_path} -ot Byte -co 'COMPRESS=JPEG'"
     rv = os.system(command)
-    print(f" [{rv}]-> {outpath}:  {result_file}")
+    print(f"\n *** [{rv}]->      {outpath}:  {result_file}")
     return rv
 
 if __name__ == '__main__':
