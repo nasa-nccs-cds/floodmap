@@ -2,11 +2,10 @@ import glob, os
 
 collection = 61
 year = 2021
-month = 10
-day_range = [0,5]
+day_range = [10,11]
 
 for day in day_range:
-    dstr = f"{year}{month:02}{day:02}"
+    dstr = f"{year}{day:03}"
     source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
     archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
     gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
