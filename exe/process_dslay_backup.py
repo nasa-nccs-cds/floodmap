@@ -5,7 +5,7 @@ nproc = cpu_count()
 
 collection = 61
 year = 2021
-day_range = [248, 250]
+day_range = [240, 247]
 archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
 def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str ) -> int:
@@ -19,7 +19,7 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
     result_path = f"{archive_dir}/{outpath}/{result_file}"
     command = f"cd {fdir}; gdal_translate {product} {result_path} -q -ot Byte -co 'COMPRESS=JPEG'"
     rv = os.system(command)
-    print(f"\n *** [{rv}]->      {outpath}:  {result_file}")
+    print(f" *** [{rv}]->      {outpath}:  {result_file}")
     return rv
 
 if __name__ == '__main__':
