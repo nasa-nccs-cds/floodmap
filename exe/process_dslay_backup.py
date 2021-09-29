@@ -24,7 +24,7 @@ def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
 if __name__ == '__main__':
     freeze_support()
     t0 = time.time()
-    dstr = f"202124*"
+    dstr = f"20212*"
     tile = "h20v09" # "h*v*"
     source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
     gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf"
