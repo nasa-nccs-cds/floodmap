@@ -5,7 +5,7 @@ nproc = cpu_count()
 
 collection = 61
 year = 2021
-day_range = [240, 247]
+day_range = [249, 250]
 archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
 def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str ) -> int:
