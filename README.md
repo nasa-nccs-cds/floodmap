@@ -26,6 +26,7 @@ Download script for archived files for tile h20v09:
 ```
 >> cd {results_dir}/h20v09/allData/61/MCDWD_L3_F2_NRT/Recent
 >> scp "adaptlogin.nccs.nasa.gov:/att/nobackup/tpmaxwel/data/MCDWD_NRT/h20v09/allData/61/MCDWD_L3_F2_NRT/Recent/MCDWD_L3_F2_NRT.A*.h20v09.061.tif" .
+>> scp "adaptlogin.nccs.nasa.gov:/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_2021250/MCDWD_L3_NRT.A202124*.h20v09.061.hdf" . 
 ```
 
 #### Configure execution

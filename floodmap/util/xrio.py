@@ -32,7 +32,7 @@ class XRio(XExtension):
                 print( msg )
                 logger.info( msg )
                 return None
-            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).astype( np.dtype('f4') )
+            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs )
             band = kwargs.pop( 'band', -1 )
             if band >= 0:
                 raster = raster.isel( band=band, drop=True )

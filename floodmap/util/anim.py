@@ -1,8 +1,9 @@
 import matplotlib.animation as animation
+from matplotlib.backend_bases import TimerBase
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from .configuration import ConfigurableObject, Region
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+from matplotlib.widgets import Button
 from PIL import Image
 from typing import List, Tuple, Union
 import os, time
@@ -46,6 +47,9 @@ class ArrayAnimation(ConfigurableObject):
 
     def __init__( self, **kwargs ):
         ConfigurableObject.__init__( self, **kwargs )
+        self.animator: animation.ArtistAnimation = None
+        self._running = False
+        self.fps = kwargs.get('fps',1)
 
     def create_file_animation( self,  files: List[str], savePath: str = None, **kwargs ) -> animation.TimedAnimation:
         from floodmap.util.xgeo import XGeo
@@ -76,6 +80,13 @@ class ArrayAnimation(ConfigurableObject):
         data_arrays: List[xr.DataArray] = [  data_array[iT] for iT in range(data_array.shape[0]) ]
         return self.create_animation( data_arrays, savePath, **kwargs )
 
+    def toggle_animation(self, arg ):
+        print( f'toggle_animation: {arg}' )
+        source: TimerBase = self.animator.event_source
+        if self._running: source.stop()
+        else: source.start( interval=1000.0/self.fps )
+        self._running = not self._running
+
     def create_animation( self, data_arrays: List[xr.DataArray], savePath: str = None, **kwargs ) -> animation.TimedAnimation:
         images = []
         overwrite = kwargs.get('overwrite', False )
@@ -91,7 +102,7 @@ class ArrayAnimation(ConfigurableObject):
             color_map = kwargs.get('cmap',"jet")
             drange = kwargs.get( 'range' )
             norm = Normalize(*drange) if drange else None
-        fps = self.getParameter( "fps", 1 )
+        self.fps = self.getParameter( "fps", self.fps )
         roi = self.getParameter("roi")
         print(f"\n Executing create_array_animation, input shape = {data_arrays[0].shape}, dims = {data_arrays[0].dims} ")
         figure, axes = plt.subplots()
@@ -105,27 +116,33 @@ class ArrayAnimation(ConfigurableObject):
                 im: Image = axes.imshow( da.values, animated=True, cmap=color_map, norm=norm )
                 for color, overlay in overlays.items():
                     overlay.plot(ax=axes, color=color, linewidth=2)
-                t = axes.annotate( f"{da.name}[{iF}]", (0,0) )
+                ts = str(da.time.values).split('T')[0]
+                t = axes.annotate( f"{da.name}[{iF}/{len(data_arrays)}]: {ts}", (0,0) )
                 images.append([im,t])
         else:
             for iF, da in enumerate(data_arrays):
                 im0: Image = axes.imshow( da.values, animated=True, cmap=color_map, norm=norm  )
                 for color, overlay in overlays.items():
                     overlay.plot(ax=axes, color=color, linewidth=2)
-                t = axes.annotate( f"Lake-[{iF}]", ( 0,0) )
+                ts = str(da.time.values).split('T')[0]
+                t = axes.annotate( f"Lake[{iF}/{len(data_arrays)}]: {ts}", ( 0,0) )
                 images.append( [im0,t] )
 
-        anim = animation.ArtistAnimation( figure, images, interval=1000.0/fps )
+        self.animator = animation.ArtistAnimation( figure, images, interval=1000.0/self.fps )
+        axstop = plt.axes([0.8, 0.01, 0.15, 0.05])
+        bstop = Button(axstop, 'Start/Stop')
+        bstop.on_clicked( self.toggle_animation )
+        self._running = True
 
         if savePath is not None:
             if ( overwrite or not os.path.exists( savePath )):
-                anim.save( savePath, fps=fps )
+                self.animator.save( savePath, fps=fps )
                 print( f" Animation saved to {savePath}" )
             else:
                 print( f" Animation file already exists at '{savePath}'', set 'overwrite = True'' if you wish to overwrite it." )
         print(f" Completed create_array_animation in {time.time()-t0:.3f} seconds" )
         if display: plt.show()
-        return anim
+        return self.animator
 
     def getDataSubset( self, data_arrays: List[xr.DataArray], frameIndex: int, bin_size: 8, roi: Region ):
         results = []

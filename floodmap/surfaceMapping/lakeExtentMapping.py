@@ -282,12 +282,13 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
         return cropped_data, time_values
 
-    def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray] ) -> xr.DataArray:
+    def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray], name="mpw" ) -> xr.DataArray:
         lat_bins = {}
         for (key, cropped_tile) in cropped_tiles.items():
             lat_bins.setdefault( key[0:4], [] ).append( cropped_tile )
         concat_tiles = [ self.merge_along_axis( sub_arrays, -2 ) for sub_arrays in lat_bins.values() ]
         result =  self.merge_along_axis( concat_tiles, -1 )
+        result.name = name
         return result
 
     def merge_along_axis( self, sub_arrays: List[xr.DataArray], axis: int ) -> xr.DataArray:
@@ -378,7 +379,7 @@ class WaterMapGenerator(ConfigurableObject):
                 return None
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
-            self.get_raw_water_map( time=time_values )
+            self.get_raw_water_map( time=time_values, **kwargs )
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
             result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )

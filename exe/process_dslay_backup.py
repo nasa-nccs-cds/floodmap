@@ -17,7 +17,7 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
     product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
     result_path = f"{archive_dir}/{outpath}/{result_file}"
-    command = f"cd {fdir}; gdal_translate {product} {result_path} -q -ot Byte -co 'COMPRESS=JPEG'"
+    command = f"cd {fdir}; gdal_translate {product} {result_path} -q -co 'COMPRESS=DEFLATE'"
     rv = os.system(command)
     print(f" *** [{rv}]->      {outpath}:  {result_file}")
     return rv

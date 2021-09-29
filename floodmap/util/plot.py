@@ -1,6 +1,9 @@
 import xarray as xr
+import numpy as np
 from ..util.logs import getLogger
 from typing import List, Union, Tuple, Dict, Optional
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
 result_colors = [   ( 0, 'nodata', (0, 0, 0)),
                     ( 1, 'land',   (0, 1, 0)),
@@ -15,7 +18,7 @@ floodmap_colors = [ ( 0, 'land',         (0, 1, 0)),
                     ( 1, 'perm water',   (0, 0, 1)),
                     ( 2, 'flood water',  (0, 0, 0.5)),
                     ( 3, 'flood water',  (0, 0, 0.7)),
-                    ( 255, 'nodata',     (0, 0, 0)) ]
+                    ( 4, 'nodata',       (0, 0, 0)) ]
 
 def get_color_bounds( color_values: List[float] ) -> List[float]:
     color_bounds = []
@@ -37,13 +40,45 @@ def create_cmap( colors ):
     cbar_args = dict(cmap=cmap, norm=norm, boundaries=color_bounds, ticks=color_values, spacing='proportional', orientation='horizontal')
     return tick_labels, dict( cmap=cmap, norm=norm, cbar_kwargs=cbar_args )
 
-def plot_array( title: str, array: xr.DataArray):
+def plot_array( title: str, array: xr.DataArray, colors = None ):
     try:
         import matplotlib.pyplot as plt
+        if not colors: colors = result_colors
         figure, axes = plt.subplots(1, 1)
         figure.suptitle(title, fontsize=12)
-        tick_labels, cmap_specs = create_cmap( result_colors )
+        tick_labels, cmap_specs = create_cmap( colors )
         array.plot.imshow( ax=axes, **cmap_specs )
+        plt.show()
+    except Exception as err:
+        logger = getLogger( True )
+        logger.warning( f"Can't plot array due to error: {err}" )
+
+def plot_arrays( title: str, arrays: Dict[int,xr.DataArray], colors = None ):
+    try:
+        if not colors: colors = result_colors
+        figure, axes = plt.subplots(1, 1)
+        figure.suptitle(title, fontsize=12)
+        tvals = list(arrays.keys())
+        t0, t1, a0 = tvals[0], tvals[-1], arrays[tvals[0]]
+        tick_labels, cmap_specs = create_cmap( colors )
+        image = a0.plot.imshow( ax=axes, **cmap_specs )
+        sax = plt.axes([0.2, 0.01, 0.6, 0.03])   # [left, bottom, width, height]
+        def callback(event):
+            xc, yc = a0.x.values, a0.y.values
+            if (event.xdata is not None) and (event.ydata is not None):
+                ix =  np.abs( xc - event.xdata ).argmin()
+                iy =  np.abs( yc - event.ydata ).argmin()
+                print( f"ix, iy = [ {ix}, {iy} ]" )
+        figure.canvas.callbacks.connect('button_press_event', callback)
+        slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
+
+        def update(val):
+            ind = int(slider.val)
+            im = arrays[ind].squeeze()
+            image.set_data(im)
+            figure.canvas.draw()
+
+        slider.on_changed(update)
         plt.show()
     except Exception as err:
         logger = getLogger( True )
@@ -57,15 +92,15 @@ def plot_floodmap_arrays( title: str, array: xr.DataArray ):
         fig.suptitle(title, fontsize=12)
         tick_labels, cmap_specs = create_cmap( floodmap_colors )
         image = array[2].plot.imshow( ax=axes, **cmap_specs )
+        slider = Slider( axes, 'Time index', 0, array.shape[0] - 1, valinit=0, valfmt='%i')
 
-        # def update(val):
-        #     ind = int(slider.val)
-        #     im = array[ind].squeeze()
-        #     image.set_data(im)
-        #     fig.canvas.draw()
-        #
-        # slider = Slider( axes, 'Time index', 0, array.shape[0] - 1, valinit=0, valfmt='%i')
-        # slider.on_changed(update)
+        def update(val):
+            ind = int(slider.val)
+            im = array[ind].squeeze()
+            image.set_data(im)
+            fig.canvas.draw()
+
+        slider.on_changed(update)
         plt.show()
 
     except Exception as err:
