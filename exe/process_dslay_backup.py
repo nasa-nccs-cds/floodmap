@@ -4,8 +4,6 @@ from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
 
 collection = 61
-year = 2021
-day_range = [249, 250]
 archive_dir = "/att/nobackup/tpmaxwel/data/MCDWD_NRT"
 
 def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str ) -> int:
@@ -25,22 +23,20 @@ def process_file( archive_dir: str, collection: str, dstr: str, hdfFilepath: str
 if __name__ == '__main__':
     freeze_support()
     t0 = time.time()
-    days = list(range(day_range[1],day_range[0]-1,-1))
-    print( f"Processing days {days} in {year}")
-    for day in days:
-        dstr = f"{year}{day:03}"
-        source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
-        gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.h*v*.{collection:03}.hdf"
-        infiles = glob.glob( gfstr )
-        print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )
-        print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
-        processor = partial( process_file, archive_dir, collection, dstr )
+    dstr = f"202149*"
+    tile = "h20v09" # "h*v*"
+    source_dir = f"/att/nobackup/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
+    gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf"
+    infiles = glob.glob( gfstr )
+    print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )
+    print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
+    processor = partial( process_file, archive_dir, collection, dstr )
 
-        with get_context("spawn").Pool(processes=nproc) as p:
-            results = p.map( processor, infiles )
-        p.join()
+    with get_context("spawn").Pool(processes=nproc) as p:
+        results = p.map( processor, infiles )
+    p.join()
 
-    print( f"Completed processing {day_range[1]-day_range[0]} days in {(time.time()-t0)/60.0:.2f} min.")
+    print( f"Completed processing files {dstr}:{tile} in {(time.time()-t0)/60.0:.2f} min.")
 
 
 
