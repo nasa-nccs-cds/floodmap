@@ -74,9 +74,10 @@ def plot_arrays( title: str, arrays: Dict[int,xr.DataArray], colors = None ):
 
         def update(val):
             ind = int(slider.val)
-            im = arrays[ind].squeeze()
-            image.set_data(im)
-            figure.canvas.draw()
+            if ind in arrays:
+                im = arrays[ind].squeeze()
+                image.set_data(im)
+                figure.canvas.draw()
 
         slider.on_changed(update)
         plt.show()

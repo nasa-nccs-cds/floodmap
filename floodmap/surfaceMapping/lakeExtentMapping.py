@@ -98,7 +98,7 @@ class WaterMapGenerator(ConfigurableObject):
         boundaries_mask: xr.DataArray = water_probability > 1.0
         perm_land_mask: xr.DataArray = water_probability < thresholds[0]
         roi_mask: xr.DataArray = (self.water_map >= self.mask_value) | boundaries_mask
-        result = xr.where(roi_mask, self.water_map, xr.where(perm_water_mask, 2, xr.where(perm_land_mask, 1, 0)))
+        result = xr.where(roi_mask, self.water_map, xr.where(perm_water_mask, np.uint8(2), xr.where(perm_land_mask, np.uint8(1), np.uint8(0))))
         result = result.persist()
         result.name = "Persistent_Classes"
         self.logger.info(f"Done get_persistent_classes in time {time.time() - t0}")
@@ -123,9 +123,9 @@ class WaterMapGenerator(ConfigurableObject):
             water_probability_dataset: xr.Dataset = xr.open_dataset(water_probability_file)
             water_probability: xr.DataArray = water_probability_dataset.water_probability
         else:
-            water = self.floodmap_data.isin([1, 2, 3])
-            land = self.floodmap_data.isin([0])
-            unmasked = ( self.floodmap_data[0] != self.mask_value )
+            water = ( self.floodmap_data == 2 )
+            land = ( self.floodmap_data == 1 )
+            unmasked = ( self.floodmap_data < 5 )
             water_cnts = water.sum(axis=0)
             land_cnts = land.sum(axis=0)
             visible_cnts = (water_cnts + land_cnts)
@@ -147,15 +147,18 @@ class WaterMapGenerator(ConfigurableObject):
         threshold = water_maps_opspec.get('threshold', 0.5 )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
+        masks = [ self.mask_value, self.mask_value+1, self.mask_value+2  ]
         da0 = da[0].drop_vars( self.floodmap_data.dims[0] )
-        masked = da0.isin( [ self.mask_value, self.mask_value+1, self.mask_value+2  ] )
-        land = da.isin( [0] ).sum( axis=0 )
-        water =  da.isin( [1,2,3] ).sum( axis=0 )
+        masked = da0.isin( masks )
+        land = ( da == 1 ).sum( axis=0 )
+        water =  ( da == 2 ).sum( axis=0 )
         visible = ( water + land )
         reliability = visible / float(binSize)
         prob_h20 = water / visible
         water_mask = prob_h20 >= threshold
-        result =  xr.where( masked, da0, xr.where( water_mask, 2, xr.where( land, 1, 0 ) ) )
+        result =  xr.where( masked, da0, xr.where( water_mask, np.uint8(2) , xr.where( land, np.uint8(1), np.uint8(0) ) ) )
+        result.attrs['nodata'] = 0
+        result.attrs['masks'] = masks
         return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
     def get_raw_water_map(self, **kwargs):
@@ -212,13 +215,12 @@ class WaterMapGenerator(ConfigurableObject):
 
     def temporal_ffill(self, water_map: xr.DataArray, **kwargs) -> xr.DataArray:
         t0 = time.time()
-        nodata_val = self.floodmap_data.attrs['_FillValue']
-        water_history_data = self.floodmap_data.where( self.floodmap_data != nodata_val, np.nan )
-        interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] )
+        water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != 0, np.nan )
+        interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] ).bfill( water_history_data.dims[0] ).astype( np.uint8 )
         interp_water_map: xr.DataArray = interp_water_history[-1,:,:].squeeze( drop = True )
         self.logger.info( f"Done temporal interpolate in time {time.time() - t0}" )
         result =  water_map.where( (water_map > 0), interp_water_map )
-        return result.fillna( water_map )
+        return result
 
     def time_merge( cls, data_arrays: List[xr.DataArray], **kwargs ) -> xr.DataArray:
         time_axis = kwargs.get('time',None)
@@ -280,7 +282,13 @@ class WaterMapGenerator(ConfigurableObject):
             cropped_data.attrs.update( roi = self.roi_bounds )
             cropped_data = cropped_data.persist()
         self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
-        return cropped_data, time_values
+        return self.update_classes( cropped_data ), time_values
+
+    def update_classes(self, mpw_data: xr.DataArray ) -> xr.DataArray:
+        water = mpw_data.isin([1, 2, 3])
+        land = ( mpw_data == 0 )
+        nodata = ( mpw_data > 200 )
+        return xr.where( nodata, np.uint8(0), xr.where( water, np.uint8(2), xr.where(land, np.uint8(1), mpw_data ) ) )
 
     def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray], name="mpw" ) -> xr.DataArray:
         lat_bins = {}

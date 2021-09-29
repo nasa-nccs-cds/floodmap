@@ -11,7 +11,7 @@ rasters = {}
 
 for day in range( *day_range ):
     fname = f"MCDWD_L3_NRT.A2021{day}.{tile}"
-    fpath = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/{tile}/allData/61/MCDWD_L3_F2_NRT/Recent/update/{fname}.061.hdf"
+    fpath = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/{tile}/allData/61/MCDWD_L3_F2_NRT/Recent/{fname}.061.hdf"
     print( f"plotting: '{fpath}'")
     file: SD = SD( fpath, SDC.READ )
     datasets = file.datasets()

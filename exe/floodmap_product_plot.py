@@ -19,6 +19,7 @@ cmap = result_color_map
 
 specs = opSpecs._defaults
 floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_{plot_type}_map.{type}"
+
 if type=="tif":
     floodmap: xa.DataArray = xa.open_rasterio( floodmap_result_file )
 else:
@@ -27,4 +28,6 @@ else:
     floodmap: xa.DataArray = floodmap_dset[ f"Lake-{lake_index}-utm" ]
 
 plot_array( f"Floodmap {plot_type} result", floodmap )
+
+
 

@@ -14,6 +14,9 @@ from rasterio.warp import reproject, Resampling, transform, calculate_default_tr
 @xr.register_dataarray_accessor('xgeo')
 class XGeo(XExtension):
     """  This is an extension for xarray to provide an interface to GDAL capabilities """
+    type_trans = {'B': gdalconst.GDT_Byte, 'i4': gdalconst.GDT_Int32, 'u4': gdalconst.GDT_UInt32,
+                  'u1': gdalconst.GDT_Byte, 'i2': gdalconst.GDT_Int16, 'u2': gdalconst.GDT_UInt16,
+                  'f4': gdalconst.GDT_Float32, 'f8': gdalconst.GDT_Float64, '?': gdalconst.GDT_Byte }
 
     def __init__(self, xarray_obj: xr.DataArray):
         XExtension.__init__( self, xarray_obj )
@@ -155,11 +158,16 @@ class XGeo(XExtension):
         dim_args = { dim0: target[dim1] for dim0,dim1 in dims_map.items() }
         return self._obj.interp(**dim_args)
 
+    def get_gtype(self,  array: np.ndarray ):
+        for (dt,gt) in self.type_trans.items():
+            if array.dtype == np.dtype( dt ): return gt
+        return gdalconst.GDT_Float32
+
     def to_gdal(self) -> gdal.Dataset:
         in_array: np.ndarray = self._obj.values
         num_bands = 1
         nodata_value = self._obj.attrs.get('nodatavals',[None])[0]
-        gdal_dtype = gdalconst.GDT_Float32
+        gdal_dtype = self.get_gtype( in_array )
         proj = self._crs.ExportToWkt()
 
         if in_array.ndim == 3:  num_bands, y_size, x_size = in_array.shape
