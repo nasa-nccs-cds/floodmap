@@ -2,6 +2,9 @@ import geopandas as gpd
 import pandas as pd
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
+
+import xarray
+
 from floodmap.util.configuration import opSpecs
 import xarray as xr
 from glob import glob
@@ -245,7 +248,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
-        dataMgr.download_mpw_data( locations=locations, **source_specs )
+        dataMgr.download_mpw_data( locations=locations, download_only=True, **source_specs )
         cropped_tiles: Dict[str,xr.DataArray] = {}
         time_values = None
         file_paths = None
@@ -284,7 +287,16 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
         return self.update_classes( cropped_data ), time_values
 
-    def update_classes(self, mpw_data: xr.DataArray ) -> xr.DataArray:
+    @classmethod
+    def get_class_count_layers(cls, class_layers: Dict[int,xr.DataArray] ) -> Tuple[xr.DataArray,xr.DataArray]:
+        time = xr.DataArray( list(class_layers.keys()), name = "time" )
+        class_data = xr.concat( list(class_layers.values()), dim=time )
+        land = ( class_data == 1 ).sum( axis=0 )
+        water =  ( class_data == 2 ).sum( axis=0 )
+        return (water,land)
+
+    @classmethod
+    def update_classes(cls, mpw_data: xr.DataArray ) -> xr.DataArray:
         water = mpw_data.isin([1, 2, 3])
         land = ( mpw_data == 0 )
         nodata = ( mpw_data > 200 )
@@ -365,14 +377,15 @@ class WaterMapGenerator(ConfigurableObject):
             file.write( report )
 
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
+        from  floodmap.surfaceMapping.mwp import MWPDataManager
+        dstr = MWPDataManager.instance().get_dstr( **kwargs )
         lake_index = kwargs.get('index',0)
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
         skip_existing = kwargs.get('skip_existing', True)
-        save_diagnostics = kwargs.get('save_diagnostics', True)
         format = kwargs.get('format','tif')
         results_dir = opSpecs.get('results_dir')
-        patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map"
+        patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
         result_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
         if skip_existing and os.path.isfile(result_file):
             msg = f" Lake[{lake_index}]: Skipping already processed file: {result_file}"
@@ -390,10 +403,14 @@ class WaterMapGenerator(ConfigurableObject):
             self.get_raw_water_map( time=time_values, **kwargs )
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
-            result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )
-            self.write_water_area_results( result, patched_water_map_file + ".txt" )
-            if format ==  'tif':    result.xgeo.to_tif( result_file )
-            else:                   result.to_netcdf( result_file )
+            utm_result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )
+            latlon_result = sanitize( patched_water_map ).rename( dict( x="lat", y="lon" ) )
+            self.write_water_area_results( utm_result, patched_water_map_file + ".txt" )
+            if format ==  'tif':
+                utm_result.xgeo.to_tif( result_file )
+            else:
+                dataset = xarray.Dataset( { latlon_result.name: latlon_result, utm_result.name: utm_result } )
+                dataset.to_netcdf( result_file )
             msg = f"Saving results for lake {lake_index} to {result_file}"
             self.logger.info( msg ); print( msg )
             return patched_water_map.assign_attrs( roi = self.roi_bounds )

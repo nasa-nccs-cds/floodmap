@@ -79,7 +79,9 @@ class LakeMaskProcessor:
         dataMgr.delete_old_files( )
 
     def process_lakes( self, **kwargs ):
+        from .mwp import MWPDataManager
         try:
+            MWPDataManager.instance().set_target_date(**kwargs)
             lake_masks = self.getLakeMasks()
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())
@@ -107,14 +109,14 @@ class LakeMaskProcessor:
         return rv
 
     @classmethod
-    def process_lake_mask( cls, runSpecs: Dict, lake_mask_spec: Tuple[int, str]):
+    def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int, str]):
         from .lakeExtentMapping import WaterMapGenerator
         logger = getLogger(False, logging.DEBUG)
-        ( lake_index, lake_mask ) = lake_mask_spec
+        ( lake_index, lake_mask_bounds ) = lake_info
         try:
-            lake_mask = cls.read_lake_mask( lake_index, lake_mask, **runSpecs )
+            lake_mask_specs = cls.read_lake_mask( lake_index, lake_mask_bounds, **runSpecs )
             waterMapGenerator = WaterMapGenerator()
-            waterMapGenerator.generate_lake_water_map( **lake_mask )
+            waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
             return lake_index
         except Exception as err:
             msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "

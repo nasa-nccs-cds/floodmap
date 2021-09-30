@@ -66,18 +66,25 @@ class MWPDataManager(ConfigurableObject):
         if archive_tiles == "global":
             locations = self.global_location_list()
         for location in locations:
-            self.get_tile( location )
+            self.get_tile( location, **kwargs )
 
     def today(self) -> Tuple[int,int]:
         today = datetime.now()
         day_of_year = today.timetuple().tm_yday
         return ( day_of_year, today.year )
 
-    def setDefaults( self, **kwargs ):
-        ConfigurableObject.setDefaults(self, **kwargs)
-        (day, year) = self.today()
+    def set_target_date(self, **kwargs ):
+        ( day0, year0 ) = self.today()
+        day = kwargs.get( 'day', day0 )
+        year = kwargs.get('year', year0 )
         self.parms['year'] = year
         self.parms['day'] = day
+
+    def get_dstr(self, **kargs ) -> str:
+        (day0, year0) = self.today()
+        if 'year' not in self.parms: self.parms.setdefault( 'year', kargs.get( 'year', year0 ) )
+        if 'day' not in self.parms:  self.parms.setdefault( 'day', kargs.get( 'day', day0 ) )
+        return f"{self.parms['year']}{self.parms['day']:03}"
 
     def get_location_dir( self, location: str ) -> str:
         loc_dir = os.path.join( self.data_dir, location )
@@ -170,6 +177,7 @@ class MWPDataManager(ConfigurableObject):
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
         water_maps_opspec = opSpecs.get('water_map', {})
+        download_only = kwargs.get('download_only',False)
         history_size = water_maps_opspec.get( 'history_size', 360 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", **kwargs )
@@ -182,6 +190,7 @@ class MWPDataManager(ConfigurableObject):
         files = OrderedDict()
         days = range( this_day-history_size, this_day )
         path = path_template.format( collection=collection, product=product )
+        dstrs, tstrs = [], []
         for day in days:
             (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
             timestr = f"{iY}{iD:03}"
@@ -195,11 +204,15 @@ class MWPDataManager(ConfigurableObject):
                     if os.path.exists(target_file_path):
                         print(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
+                        dstrs.append(timestr)
                     else:
                         print( f" Can't access NRT file: {target_file_path}")
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
                 files[dtime] = target_file_path
+                tstrs.append(timestr)
+        if len(dstrs): print( f"Downloading MWP data for dates: {dstrs}" )
+        if len(tstrs) and not download_only: print( f"Reading MWP data for dates: {tstrs}" )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:

@@ -3,7 +3,7 @@ import numpy as np
 from ..util.logs import getLogger
 from typing import List, Union, Tuple, Dict, Optional
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, MultiCursor
 
 result_colors = [   ( 0, 'nodata', (0, 0, 0)),
                     ( 1, 'land',   (0, 1, 0)),
@@ -37,53 +37,73 @@ def create_cmap( colors ):
     color_values = [float(cval[0]) for cval in colors]
     color_bounds = get_color_bounds(color_values)
     norm = mpl.colors.BoundaryNorm(color_bounds, len(colors))
-    cbar_args = dict(cmap=cmap, norm=norm, boundaries=color_bounds, ticks=color_values, spacing='proportional', orientation='horizontal')
+    cbar_args = dict( boundaries=color_bounds, ticks=color_values, spacing='proportional', orientation='vertical' )
     return tick_labels, dict( cmap=cmap, norm=norm, cbar_kwargs=cbar_args )
 
-def plot_array( title: str, array: xr.DataArray, colors = None ):
+def plot_array( ax, array: xr.DataArray, **kwargs ):
     try:
         import matplotlib.pyplot as plt
-        if not colors: colors = result_colors
-        figure, axes = plt.subplots(1, 1)
-        figure.suptitle(title, fontsize=12)
+        colors = kwargs.get( 'colors', result_colors )
         tick_labels, cmap_specs = create_cmap( colors )
-        array.plot.imshow( ax=axes, **cmap_specs )
-        plt.show()
+        image = array.plot.imshow( ax=ax, **cmap_specs )
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
 
-def plot_arrays( title: str, arrays: Dict[int,xr.DataArray], colors = None ):
+def update_cursor( cursor: MultiCursor ):
+    if cursor is not None:
+        for line in cursor.vlines:
+            line.set_visible(cursor.visible)
+        for line in cursor.hlines:
+            line.set_visible(cursor.visible)
+        cursor._update()
+
+def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
     try:
-        if not colors: colors = result_colors
-        figure, axes = plt.subplots(1, 1)
-        figure.suptitle(title, fontsize=12)
+        colors = kwargs.get( 'colors', result_colors )
+        cursor = kwargs.get( 'cursor', None )
         tvals = list(arrays.keys())
         t0, t1, a0 = tvals[0], tvals[-1], arrays[tvals[0]]
         tick_labels, cmap_specs = create_cmap( colors )
-        image = a0.plot.imshow( ax=axes, **cmap_specs )
+        image = a0.plot.imshow( ax=ax, **cmap_specs )
         sax = plt.axes([0.2, 0.01, 0.6, 0.03])   # [left, bottom, width, height]
-        def callback(event):
-            xc, yc = a0.x.values, a0.y.values
+        slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
+
+        def on_button(event):
+            xc, yc = a0.lon.values, a0.lat.values
             if (event.xdata is not None) and (event.ydata is not None):
                 ix =  np.abs( xc - event.xdata ).argmin()
                 iy =  np.abs( yc - event.ydata ).argmin()
                 print( f"ix, iy = [ {ix}, {iy} ]" )
-        figure.canvas.callbacks.connect('button_press_event', callback)
-        slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
+
+        def on_key(event):
+            ind, new_ind = int(slider.val), -1
+            if event.key == 'f':
+                new_ind = ind + slider.valstep
+                if new_ind > slider.valmax: new_ind = slider.valmin
+            if event.key == 'b':
+                new_ind = ind - slider.valstep
+                if new_ind < slider.valmin: new_ind = slider.valmax
+            if new_ind >= 0: slider.set_val( new_ind )
+
+        def on_draw(event):
+            update_cursor(cursor)
+
+        ax.figure.canvas.callbacks.connect('button_press_event', on_button )
+        ax.figure.canvas.callbacks.connect('key_press_event', on_key )
+        ax.figure.canvas.callbacks.connect('draw_event', on_draw )
 
         def update(val):
             ind = int(slider.val)
             if ind in arrays:
                 im = arrays[ind].squeeze()
                 image.set_data(im)
-                figure.canvas.draw()
 
         slider.on_changed(update)
-        plt.show()
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
+
 
 def plot_floodmap_arrays( title: str, array: xr.DataArray ):
     from matplotlib.widgets import Slider
