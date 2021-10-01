@@ -181,7 +181,7 @@ class MWPDataManager(ConfigurableObject):
         history_size = water_maps_opspec.get( 'history_size', 360 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", **kwargs )
-        this_year = self.getParameter("year", **kwargs)
+        this_year = self.getParameter("year", **kwargs )
         product =   self.getParameter( "product",   **kwargs )
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )

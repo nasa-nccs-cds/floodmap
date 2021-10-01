@@ -382,8 +382,8 @@ class WaterMapGenerator(ConfigurableObject):
         lake_index = kwargs.get('index',0)
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
-        skip_existing = kwargs.get('skip_existing', True)
-        format = kwargs.get('format','tif')
+        skip_existing = opSpecs.get( 'skip_existing', True )
+        format = opSpecs.get('format','tif')
         results_dir = opSpecs.get('results_dir')
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
         result_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"

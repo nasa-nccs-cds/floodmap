@@ -3,6 +3,8 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Logs"
     ncores: 1
+    skip_existing: True
+    format: 'tif'
     lake_masks:
         basedir: "/Users/tpmaxwel/Development/Data/WaterMapping/LakeMasks"
         file: "lake_{lake_index}.tif"

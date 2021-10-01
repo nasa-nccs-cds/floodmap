@@ -39,12 +39,6 @@ Download script for archived files for tile h20v09:
 ```
 (floodmap)>> python ./exe/production.py ~/specs.yml
 ```
-There are a number of parameters that can be set in the production.py script:
-* *format*: Output map format- can be either "nc" (netcdf) or "tif" (geotif)
-* *day*:  Target day- will process the previous eight days. Will use today if not specified. 
-* *year*: Target year- will use this year if not specified.
-* *skip_existing*: If true, will not reprocess any results that already exist.
-
 
 #### Documentation
 The floodmap user guide is found at `./docs/floodmap.pdf`

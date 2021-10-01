@@ -3,9 +3,6 @@ from floodmap.surfaceMapping.processing import LakeMaskProcessor
 
 if __name__ == '__main__':
     freeze_support()
-    skip_existing = False
-    day = 256
-    format="nc"
     lakeMaskProcessor = LakeMaskProcessor()
-    lakeMaskProcessor.process_lakes( skip_existing=skip_existing, format=format, day=day )
+    lakeMaskProcessor.process_lakes()
 
