@@ -47,6 +47,10 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['history_length'] = source_spec.get('history_length')
         return cls._instance
 
+    @classmethod
+    def target_date(cls) -> List[int]:
+        return [ cls.instance().parms[pid] for pid in ('year','day') ]
+
     def infer_tile_locations(self, **kwargs ) -> List[str]:
         from .tiles import TileLocator
         lake_mask = kwargs.get( 'lake_mask', None )

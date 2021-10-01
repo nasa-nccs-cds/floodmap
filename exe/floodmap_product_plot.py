@@ -1,6 +1,7 @@
 from floodmap.util.plot import plot_array
-from floodmap.util.configuration import opSpecs
 import xarray as xa
+from floodmap.util.configuration import opSpecs
+results_dir = opSpecs.get('results_dir')
 
 result_color_map = {
     0: (0, 0, 0),  # , 'nodata',
@@ -17,7 +18,7 @@ plot_type = "patched_water" #  "water" "patched_water" "persistent_class"
 cmap = result_color_map
 
 specs = opSpecs._defaults
-floodmap_result_file = f"/Users/tpmaxwel/Development/Data/WaterMapping/Results/lake_{lake_index}_{plot_type}_map.{type}"
+floodmap_result_file = f"{results_dir}/lake_{lake_index}_{plot_type}_map.{type}"
 
 if type=="tif":
     floodmap: xa.DataArray = xa.open_rasterio( floodmap_result_file )

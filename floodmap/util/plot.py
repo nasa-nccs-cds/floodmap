@@ -46,6 +46,7 @@ def plot_array( ax, array: xr.DataArray, **kwargs ):
         colors = kwargs.get( 'colors', result_colors )
         tick_labels, cmap_specs = create_cmap( colors )
         image = array.plot.imshow( ax=ax, **cmap_specs )
+        ax.title.set_text(kwargs.get('title',""))
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
@@ -68,6 +69,8 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
         image = a0.plot.imshow( ax=ax, **cmap_specs )
         sax = plt.axes([0.2, 0.01, 0.6, 0.03])   # [left, bottom, width, height]
         slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
+        title = kwargs.get('title', "")
+        ax.title.set_text( title )
 
         def on_button(event):
             xc, yc = a0.lon.values, a0.lat.values
@@ -98,6 +101,7 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
             if ind in arrays:
                 im = arrays[ind].squeeze()
                 image.set_data(im)
+                ax.figure.canvas.draw()
 
         slider.on_changed(update)
     except Exception as err:

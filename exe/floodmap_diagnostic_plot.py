@@ -1,10 +1,9 @@
 from floodmap.util.plot import plot_array
 from floodmap.util.configuration import opSpecs
-from  floodmap.surfaceMapping.mwp import MWPDataManager
 import xarray as xa
 import matplotlib.pyplot as plt
+results_dir = opSpecs.get('results_dir')
 
-results_dir = "/Users/tpmaxwel/Development/Data/WaterMapping/Results"
 lake_index = 4
 diag_type = "probability"
 cmap = "jet"
