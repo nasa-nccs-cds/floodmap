@@ -79,9 +79,7 @@ class LakeMaskProcessor:
         dataMgr.delete_old_files( )
 
     def process_lakes( self, **kwargs ):
-        from .mwp import MWPDataManager
         try:
-            MWPDataManager.instance().set_target_date(**kwargs)
             lake_masks = self.getLakeMasks()
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())

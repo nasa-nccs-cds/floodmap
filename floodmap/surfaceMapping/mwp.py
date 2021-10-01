@@ -35,10 +35,13 @@ class MWPDataManager(ConfigurableObject):
             results_dir = opSpecs.get('results_dir')
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
+            day0, year0 = cls.today()
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
+            cls._instance.parms['day'] = source_spec.get('day',day0)
+            cls._instance.parms['year'] = source_spec.get('year',year0)
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['history_length'] = source_spec.get('history_length')
@@ -68,22 +71,13 @@ class MWPDataManager(ConfigurableObject):
         for location in locations:
             self.get_tile( location, **kwargs )
 
-    def today(self) -> Tuple[int,int]:
+    @classmethod
+    def today(cls) -> Tuple[int,int]:
         today = datetime.now()
         day_of_year = today.timetuple().tm_yday
         return ( day_of_year, today.year )
 
-    def set_target_date(self, **kwargs ):
-        ( day0, year0 ) = self.today()
-        day = kwargs.get( 'day', day0 )
-        year = kwargs.get('year', year0 )
-        self.parms['year'] = year
-        self.parms['day'] = day
-
     def get_dstr(self, **kargs ) -> str:
-        (day0, year0) = self.today()
-        if 'year' not in self.parms: self.parms.setdefault( 'year', kargs.get( 'year', year0 ) )
-        if 'day' not in self.parms:  self.parms.setdefault( 'day', kargs.get( 'day', day0 ) )
         return f"{self.parms['year']}{self.parms['day']:03}"
 
     def get_location_dir( self, location: str ) -> str:
