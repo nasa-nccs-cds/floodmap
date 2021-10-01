@@ -43,7 +43,7 @@ class LakeMaskProcessor:
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
-        lake_index: int = int( lakeMaskSpecs.get( "lake_index", 0 ) )
+        lake_index: int = int( lakeMaskSpecs.get( "lake_index", None ) )
         files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
         lake_masks = {}
         if files_spec != "UNDEF":
@@ -53,9 +53,11 @@ class LakeMaskProcessor:
             with open( file_path ) as csvfile:
                 reader = csv.DictReader(csvfile, dialect="nasa")
                 for row in reader:
-                    lake_masks[ int(row['index']) ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
+                    index = int(row['index'])
+                    if (lake_index is None) or (lake_index == index):
+                        lake_masks[ index ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
         elif files_spec.endswith(".tif"):
-            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) )
+            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) ) if (lake_index is None) else (lake_index, lake_index)
             for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
                 file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
                 if os.path.isfile(file_path):
@@ -66,7 +68,8 @@ class LakeMaskProcessor:
         elif files_spec != "UNDEF":
             raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:
-            lake_masks[ lake_index ] = [ float(v) for v in data_roi.split(",") ]
+            index = 0 if lake_index is None else lake_index
+            lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
         else:
             print( "No lakes configured in specs file." )
         return lake_masks
@@ -81,13 +84,17 @@ class LakeMaskProcessor:
     def process_lakes( self, **kwargs ):
         try:
             lake_masks = self.getLakeMasks()
+            multiproc = kwargs.get( 'multiproc', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())
             self.update_floodmap_archive()
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
-            with get_context("spawn").Pool(processes=nproc) as p:
-                self.pool = p
-                results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
+            if multiproc:
+                with get_context("spawn").Pool(processes=nproc) as p:
+                    self.pool = p
+                    results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
+            else:
+                results = [ LakeMaskProcessor.process_lake_mask( kwargs, lake_spec ) for lake_spec in lake_specs ]
             self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")

@@ -1,3 +1,4 @@
+import xarray
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
@@ -44,8 +45,9 @@ def plot_array( ax, array: xr.DataArray, **kwargs ):
     try:
         import matplotlib.pyplot as plt
         colors = kwargs.get( 'colors', result_colors )
+        plot_coords = kwargs.get('plot_coords', {})
         tick_labels, cmap_specs = create_cmap( colors )
-        image = array.plot.imshow( ax=ax, **cmap_specs )
+        image = array.plot.imshow( ax=ax, **plot_coords, **cmap_specs )
         ax.title.set_text(kwargs.get('title',""))
     except Exception as err:
         logger = getLogger( True )
@@ -63,13 +65,15 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
     try:
         colors = kwargs.get( 'colors', result_colors )
         cursor = kwargs.get( 'cursor', None )
+        plot_coords = kwargs.get('plot_coords',{})
         tvals = list(arrays.keys())
         t0, t1, a0 = tvals[0], tvals[-1], arrays[tvals[0]]
         tick_labels, cmap_specs = create_cmap( colors )
-        image = a0.plot.imshow( ax=ax, **cmap_specs )
+        image = a0.plot.imshow( ax=ax, **plot_coords, **cmap_specs )
         sax = plt.axes([0.2, 0.01, 0.6, 0.03])   # [left, bottom, width, height]
         slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
         title = kwargs.get('title', "")
+        probe_arrays: Dict[str,xr.DataArray] = kwargs.get( 'probe_arrays', {})
         ax.title.set_text( title )
 
         def on_button(event):
@@ -78,6 +82,8 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
                 ix =  np.abs( xc - event.xdata ).argmin()
                 iy =  np.abs( yc - event.ydata ).argmin()
                 print( f"ix, iy = [ {ix}, {iy} ]" )
+                for (label,array) in probe_arrays.items():
+                    print( f"{label}: {array.values[iy,ix]}" )
 
         def on_key(event):
             ind, new_ind = int(slider.val), -1

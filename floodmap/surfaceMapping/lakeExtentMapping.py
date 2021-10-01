@@ -404,7 +404,7 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
             utm_result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )
-            latlon_result = sanitize( patched_water_map ).rename( dict( x="lat", y="lon" ) )
+            latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             self.write_water_area_results( utm_result, patched_water_map_file + ".txt" )
             if format ==  'tif':
                 utm_result.xgeo.to_tif( result_file )
