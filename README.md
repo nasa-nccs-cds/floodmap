@@ -39,6 +39,25 @@ Download script for archived files for tile h20v09:
 ```
 (floodmap)>> python ./exe/production.py ~/specs.yml
 ```
+#### Evaluate results
+```
+(floodmap)>> python ./exe/visually_evaluate_workflow.py ~/specs.yml
+```
+   This script starts up an application to evaluate the results of the workflow.  In the script
+are two parameters, *lake_index*, and *day*, which set the lake and date thate are being examined.
+In the gui there are four windows:
+* MWP Data:  This window shows the *nbin* floodmap data layers that are used to compute the 
+              water mapping product for the selected day, covering the range [day-nbin, day]
+* Water Map:   The water mapping product for the selected day.
+* Water Counts:  The count of water observations in each cell over the floodmap data layers.
+* Land Counts:   The count of land observations in each cell over the floodmap data layers.
+
+     There are several interactive tools available:
+* Synchronized pan/zoom: Use the toolbar to activate these modes.
+* Synchronised Cursor: Note that the cursor will not appear in pan or zoom modes.  Use the 
+                toolbar to toggle out of these modes in order to show the cursor.
+* Key maps: 'f'/'b': Step forward/backward in mpw data series.
+* Mouse click callback:  Prints land/water counts for selected cell in shell.
 
 #### Documentation
 The floodmap user guide is found at `./docs/floodmap.pdf`
