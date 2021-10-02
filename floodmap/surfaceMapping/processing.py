@@ -43,7 +43,7 @@ class LakeMaskProcessor:
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
-        lake_index: int = int( lakeMaskSpecs.get( "lake_index", None ) )
+        lake_index: int = int( lakeMaskSpecs.get( "lake_index", -1 ) )
         files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
         lake_masks = {}
         if files_spec != "UNDEF":
@@ -54,17 +54,17 @@ class LakeMaskProcessor:
                 reader = csv.DictReader(csvfile, dialect="nasa")
                 for row in reader:
                     index = int(row['index'])
-                    if (lake_index is None) or (lake_index == index):
+                    if lake_index in [-1,index]:
                         lake_masks[ index ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
         elif files_spec.endswith(".tif"):
-            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) ) if (lake_index is None) else (lake_index, lake_index)
-            for lake_index in range(lake_index_range[0], lake_index_range[1] + 1):
-                file_path = os.path.join( data_dir, files_spec.format(lake_index=lake_index) )
+            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) ) if (lake_index == -1) else (lake_index, lake_index)
+            for iLake in range(lake_index_range[0], lake_index_range[1] + 1):
+                file_path = os.path.join( data_dir, files_spec.format(lake_index=iLake) )
                 if os.path.isfile(file_path):
-                    lake_masks[lake_index] = file_path
-                    print(f"  Processing Lake-{lake_index} using lake file: {file_path}")
+                    lake_masks[iLake] = file_path
+                    print(f"  Processing Lake-{iLake} using lake file: {file_path}")
                 else:
-                    print(f"Skipping Lake-{lake_index}, NO LAKE FILE")
+                    print(f"Skipping Lake-{iLake}, NO LAKE FILE")
         elif files_spec != "UNDEF":
             raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:

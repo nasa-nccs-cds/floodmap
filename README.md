@@ -56,7 +56,7 @@ In the gui there are four windows:
 * Synchronized pan/zoom: Use the toolbar to activate these modes.
 * Synchronised Cursor: Note that the cursor will not appear in pan or zoom modes.  Use the 
                 toolbar to toggle out of these modes in order to show the cursor.
-* Key maps: 'f'/'b': Step forward/backward in mpw data series.
+* Key maps: 'f'/'b' or arrow keys: Step forward/backward in mpw data series.
 * Mouse click callback:  Prints land/water counts for selected cell in shell.
 
 #### Documentation

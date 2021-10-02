@@ -87,10 +87,12 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
 
         def on_key(event):
             ind, new_ind = int(slider.val), -1
-            if event.key == 'f':
+            if event.key in ['f', 'right', 'up' ]:
+                if (event.key == 'up') and (ind == slider.valmax): return
                 new_ind = ind + slider.valstep
                 if new_ind > slider.valmax: new_ind = slider.valmin
-            if event.key == 'b':
+            if event.key in ['b', 'left', 'down' ]:
+                if (event.key == 'down') and (ind == slider.valmin): return
                 new_ind = ind - slider.valstep
                 if new_ind < slider.valmin: new_ind = slider.valmax
             if new_ind >= 0: slider.set_val( new_ind )
