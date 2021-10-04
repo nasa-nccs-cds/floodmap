@@ -23,6 +23,7 @@ def process_lake_mask( lakeMaskSpecs: Dict, runSpecs: Dict, lake_mask_files: Tup
     from .lakeExtentMapping import WaterMapGenerator
     lake_index, sorted_file_paths = lake_mask_files
     logger = getLogger( False, logging.DEBUG )
+    print( lake_index )
     try:
         time_values = np.array([ get_date_from_year(year) for year in sorted_file_paths.keys()], dtype='datetime64[ns]')
         yearly_lake_masks: xr.DataArray = XRio.load(list(sorted_file_paths.values()), band=0, index=time_values)

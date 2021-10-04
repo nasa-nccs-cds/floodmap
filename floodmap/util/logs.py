@@ -8,7 +8,9 @@ def getLogger( master: bool, level = logging.DEBUG ):
     logger.setLevel(level)
     if not len(logger.handlers):
         log_dir = opSpecs.get("log_dir", "/tmp")
-        handler = logging.FileHandler(f"{log_dir}/floodmap.{lname}.log")
+        log_file = f"{log_dir}/floodmap.{lname}.log"
+        print(f" Creating log file: {log_file}")
+        handler = logging.FileHandler(log_file,mode="w")
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
