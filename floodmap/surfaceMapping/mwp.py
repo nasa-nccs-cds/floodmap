@@ -54,6 +54,9 @@ class MWPDataManager(ConfigurableObject):
                     specs[ks[1]] = v
         return cls._instance
 
+    def set_day(self, day: int ):
+        self.parms['day'] = day
+
     @classmethod
     def target_date(cls) -> List[int]:
         return [ cls.instance().parms[pid] for pid in ('year','day') ]

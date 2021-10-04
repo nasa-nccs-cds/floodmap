@@ -84,12 +84,12 @@ class LakeMaskProcessor:
     def process_lakes( self, **kwargs ):
         try:
             lake_masks = self.getLakeMasks()
-            multiproc = kwargs.get( 'multiproc', True )
+            parallel = kwargs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())
             self.update_floodmap_archive()
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
-            if multiproc:
+            if parallel:
                 with get_context("spawn").Pool(processes=nproc) as p:
                     self.pool = p
                     results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
