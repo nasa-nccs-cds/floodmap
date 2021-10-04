@@ -31,14 +31,12 @@ def create_cmap():
     cbar_args = dict(cmap=cmap, norm=norm, boundaries=color_bounds, ticks=color_values, spacing='proportional', orientation='horizontal')
     return tick_labels, dict( cmap=cmap, norm=norm, cbar_kwargs=cbar_args )
 
-def plot_array( title: str, array: xr.DataArray):
+def plot_array( axes, array: xr.DataArray, title: str):
     try:
         import matplotlib.pyplot as plt
-        figure, axes = plt.subplots(1, 1)
-        figure.suptitle(title, fontsize=12)
+        axes.figure.suptitle(title, fontsize=12)
         tick_labels, cmap_specs = create_cmap()
         array.plot.imshow( ax=axes, **cmap_specs )
-        plt.show()
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
