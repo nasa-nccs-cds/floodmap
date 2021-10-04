@@ -46,8 +46,9 @@ class LakeMaskProcessor:
         self.pool: Pool = None
         atexit.register( self.shutdown )
 
-    def process_lakes( self, reproject_inputs, **kwargs ):
+    def process_lakes( self, **kwargs ):
         try:
+            reproject_inputs = False
             year_range = opSpecs.get('year_range')
             lakeMaskSpecs = opSpecs.get( "lake_masks", None )
             data_dir = lakeMaskSpecs["basedir"]

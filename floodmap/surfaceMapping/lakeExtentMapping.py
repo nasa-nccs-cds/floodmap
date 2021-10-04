@@ -167,9 +167,10 @@ class WaterMapGenerator(ConfigurableObject):
         data_dir = opspec.get('results_dir')
         lake_index = opspec['lake_index']
         water_maps_file = os.path.join(data_dir, f"lake_{lake_index}_water_maps.nc")
-        cache = kwargs.get( "cache", False )
+        cache = kwargs.get( "cache", 'update' )
         if cache==True and os.path.isfile( water_maps_file ):
             water_maps_dset: xr.Dataset = xr.open_dataset(water_maps_file)
+            self.logger.info(f"Reading cached water_maps from {water_maps_file}")
         else:
             time_axis = kwargs.get("time", data_array.coords[data_array.dims[0]].values)
             water_maps_opspec = opspec.get('water_maps',{})
@@ -185,6 +186,7 @@ class WaterMapGenerator(ConfigurableObject):
             if cache in [True,"update"]:
                 water_maps_dset.to_netcdf(water_maps_file)
                 self.logger.info(f"Cached water_maps to {water_maps_file}")
+                print(f"Cached water_maps to {water_maps_file}")
         self.logger.info( f" Completed get_water_maps in {time.time()-t0:.3f} seconds" )
         water_maps_array: xr.DataArray = water_maps_dset.water_maps
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
@@ -291,12 +293,17 @@ class WaterMapGenerator(ConfigurableObject):
                 self.logger.error( f"Error: {err}: \n{exc}" )
                 XRio.print_array_dims( file_paths )
         nTiles = len( cropped_tiles.keys() )
-        if nTiles > 0:
+        if nTiles < 2:
+            cropped_data = list(cropped_tiles.values())[0]
+        else:
             self.logger.info( f"Merging {nTiles} Tiles ")
             cropped_data = self.merge_tiles( cropped_tiles)
-            cropped_data.attrs.update( roi = self.roi_bounds )
-            cropped_data = cropped_data.persist()
+        cropped_data.attrs.update( roi = self.roi_bounds )
+        cropped_data = cropped_data.persist()
         self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
+        mwp_maps_file = os.path.join(results_dir, f"lake_{lake_id}_mwp_data.nc")
+        cropped_data.to_netcdf(mwp_maps_file)
+        print(f"Writing cropped mwp data to {mwp_maps_file}")
         return cropped_data, time_values
 
     def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray] ) -> xr.DataArray:
@@ -423,7 +430,7 @@ class WaterMapGenerator(ConfigurableObject):
         water_counts, class_proportion = self.get_class_proportion(patched_water_maps, interp_water_class, water_classes)
         # for tI in range(patched_water_maps.shape[0]):
         #     plot_array( f"patch_water_maps-{tI}", patched_water_maps[tI] )
-        with open( outfile_path, "a" ) as outfile:
+        with open( outfile_path, "w" ) as outfile:
             lines = ["date water_area_km2 percent_interploated\n"]
             for iTime in range( patched_water_maps.shape[0] ):
 #                class_counts = self.get_class_counts( patched_water_maps.values[iTime] )
@@ -443,16 +450,17 @@ class WaterMapGenerator(ConfigurableObject):
         data_dir = opspec.get('data_dir')
         lake_id = opspec['id']
         patched_water_maps_file = f"{data_dir}/{lake_id}_patched_water_masks.nc"
-        cache = kwargs.get("cache", False )
+        cache = kwargs.get("cache", "update" )
 
         self.yearly_lake_masks: xr.DataArray = self.get_yearly_lake_area_masks(opspec, **kwargs)
         self.get_roi_bounds( opspec )
-        self.water_maps: xr.DataArray =  self.get_water_maps( None, opspec, cache=True )
+        self.water_maps: xr.DataArray =  self.get_water_maps( None, opspec )
         patched_water_maps = self.patch_water_maps( opspec, **kwargs )
 
         if ((cache == True) and not os.path.isfile(patched_water_maps_file)) or ( cache == "update" ):
             sanitize(patched_water_maps).to_netcdf( patched_water_maps_file )
             self.logger.info( f"Saving patched_water_maps to {patched_water_maps_file}")
+            print(  f"Saving patched_water_maps to {patched_water_maps_file}" )
 
         self.logger.info(f"Completed get_patched_water_maps in time {(time.time() - t0)/60.0} minutes")
         patched_water_maps.name = lake_id
@@ -469,7 +477,7 @@ class WaterMapGenerator(ConfigurableObject):
 
     def get_cached_water_maps( self, lakeId: str ):
         opspec = self.get_opspec(lakeId.lower())
-        self.water_maps: xr.DataArray = self.get_water_maps( None, opspec, cache=True )
+        self.water_maps: xr.DataArray = self.get_water_maps( None, opspec )
         return self.water_maps
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:

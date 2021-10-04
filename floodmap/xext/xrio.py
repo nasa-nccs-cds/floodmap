@@ -82,12 +82,13 @@ class XRio(XExtension):
     def load( cls, filePaths: Union[ str, List[str] ], **kwargs ) -> Union[ List[xr.DataArray], xr.DataArray ]:
         if isinstance( filePaths, str ): filePaths = [ filePaths ]
         result: xr.DataArray = None
+        time_values = kwargs.get('index', None)
         for iF, file in enumerate(filePaths):
             data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:
-                time_values = kwargs.get( 'index', None )
-                if time_values is None: time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
-                data_array = data_array.expand_dims( { 'time': time_values }, 0 )
+                if time_values is None: tval = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
+                else: tval = time_values[iF:iF+1]
+                data_array = data_array.expand_dims( { 'time': tval }, 0 )
                 result = data_array if result is None else cls.concat([result, data_array])
         return result
 
