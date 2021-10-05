@@ -430,7 +430,7 @@ class WaterMapGenerator(ConfigurableObject):
         water_counts, class_proportion = self.get_class_proportion(patched_water_maps, interp_water_class, water_classes)
         # for tI in range(patched_water_maps.shape[0]):
         #     plot_array( f"patch_water_maps-{tI}", patched_water_maps[tI] )
-        with open( outfile_path, "w" ) as outfile:
+        with open( outfile_path, "a" ) as outfile:
             lines = ["date water_area_km2 percent_interploated\n"]
             for iTime in range( patched_water_maps.shape[0] ):
 #                class_counts = self.get_class_counts( patched_water_maps.values[iTime] )
