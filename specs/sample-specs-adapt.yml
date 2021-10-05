@@ -1,15 +1,15 @@
 defaults:
     results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
     year_range: [ 2021, 2021 ]
-    day_range: [ 0, 270 ]
+    day_range: [ 9, 277 ]
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 2
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
-        subdir: "{year}"
-        file: "{lake_index}_{year}.tif"
-        lake_index_range: [0,10]
+        subdir: ""
+        file: "{lake_index}_2019.tif"
+        lake_index_range: [0,4035]
         mask: 3
         water: 1
 
