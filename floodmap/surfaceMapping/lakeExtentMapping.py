@@ -395,11 +395,12 @@ class WaterMapGenerator(ConfigurableObject):
         results_dir = self._opspecs.get('results_dir')
         patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
         result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
-        if skip_existing and os.path.isfile(result_file):
-            self.logger.info( f" --------------------->> Skipping already processed file: {result_file}")
+        specs_file = f"{results_dir}/lake_{lake_index}_stats_legacy.txt"
+        if skip_existing and os.path.isfile(specs_file):
+            self.logger.info( f" --------------------->> Skipping already processed file: {specs_file}")
             return None
         else:
-            self.logger.info(f" --------------------->> Generating result file: {result_file}")
+            self.logger.info(f" --------------------->> Generating result file: {specs_file}")
             y_coord, x_coord = yearly_lake_masks.coords[ yearly_lake_masks.dims[-2]].values, yearly_lake_masks.coords[yearly_lake_masks.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             (water_mapping_data, time_values) = self.get_mpw_data( **self._opspecs )
@@ -417,7 +418,6 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_maps = self.patch_water_maps( self._opspecs, **kwargs )
             patched_water_maps.name = f"Lake {lake_index}"
             result: xr.DataArray = sanitize(patched_water_maps).xgeo.to_utm( [250.0, 250.0] )
-            specs_file = f"{results_dir}/lake_{lake_index}_stats_legacy.txt"
             self.write_water_area_results( result, specs_file )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )
