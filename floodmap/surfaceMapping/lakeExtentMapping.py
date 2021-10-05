@@ -386,13 +386,13 @@ class WaterMapGenerator(ConfigurableObject):
         format = opSpecs.get('format','tif')
         results_dir = opSpecs.get('results_dir')
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
-        result_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
-        if skip_existing and os.path.isfile(result_file):
-            msg = f" Lake[{lake_index}]: Skipping already processed file: {result_file}"
+        result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
+        if skip_existing and os.path.isfile(result_water_map_file):
+            msg = f" Lake[{lake_index}]: Skipping already processed file: {result_water_map_file}"
             self.logger.info( msg ), print( msg )
             return None
         else:
-            self.logger.info(f" --------------------->> Generating result file: {result_file}")
+            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             (self.floodmap_data, time_values) = self.get_mpw_data( **kwargs )
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
@@ -405,13 +405,14 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_map.name = f"Lake-{lake_index}"
             utm_result = sanitize( patched_water_map.xgeo.to_utm( [250.0, 250.0] ) )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
-            self.write_water_area_results( utm_result, patched_water_map_file + ".txt" )
+            stats_file = f"{results_dir}/lake_{lake_index}_stats.txt"
+            self.write_water_area_results( utm_result, stats_file )
             if format ==  'tif':
-                utm_result.xgeo.to_tif( result_file )
+                utm_result.xgeo.to_tif( result_water_map_file )
             else:
                 dataset = xarray.Dataset( { latlon_result.name: latlon_result, utm_result.name: utm_result } )
-                dataset.to_netcdf( result_file )
-            msg = f"Saving results for lake {lake_index} to {result_file}"
+                dataset.to_netcdf( result_water_map_file )
+            msg = f"Saving results for lake {lake_index} to {stats_file} and {result_water_map_file}"
             self.logger.info( msg ); print( msg )
             return patched_water_map.assign_attrs( roi = self.roi_bounds )
 
@@ -421,6 +422,8 @@ class WaterMapGenerator(ConfigurableObject):
         return f"{day_of_year}:{today.year}"
 
     def write_water_area_results(self, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
+        from floodmap.surfaceMapping.mwp import MWPDataManager
+        sdate = MWPDataManager.instance().get_target_date()
         interp_water_class = kwargs.get( 'interp_water_class', 4 )
         water_classes = kwargs.get('water_classes', [2,4] )
         water_counts, class_proportion = self.get_class_proportion(patched_water_map, interp_water_class, water_classes)
@@ -430,7 +433,7 @@ class WaterMapGenerator(ConfigurableObject):
                 outfile.write( "date water_area_km2 percent_interploated\n")
             percent_interp = class_proportion.values
             num_water_pixels = water_counts.values
-            outfile.write( f"{self.today()} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
+            outfile.write( f"{sdate} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
             self.logger.info( f"Wrote results to file {outfile_path}")
 
     def get_class_counts( self, array: np.ndarray )-> Dict:

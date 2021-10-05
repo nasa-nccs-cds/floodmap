@@ -61,6 +61,10 @@ class MWPDataManager(ConfigurableObject):
     def target_date(cls) -> List[int]:
         return [ cls.instance().parms[pid] for pid in ('year','day') ]
 
+    def get_target_date(self) -> str:
+        daystr = f"{self.parms['year']}-{self.parms['day']}"
+        return datetime.strptime( daystr, "%Y-%j").strftime("%m-%d-%Y")
+
     def infer_tile_locations(self, **kwargs ) -> List[str]:
         from .tiles import TileLocator
         lake_mask = kwargs.get( 'lake_mask', None )
