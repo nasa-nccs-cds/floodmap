@@ -1,5 +1,5 @@
 defaults:
-    results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
+    results_dir: "/att/pubrepo/ILAB/data/MCDWD_NRT"
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 4
