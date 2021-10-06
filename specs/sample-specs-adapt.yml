@@ -1,0 +1,27 @@
+defaults:
+    results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
+    water_class_thresholds: [ 0.02, 0.93 ]
+    log_dir: "/att/pubrepo/ILAB/logs"
+    ncores: 4
+    skip_existing: False
+    format: 'nc'
+    lake_masks:
+        basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
+        file: "lake_{lake_index}.tif"
+        lake_index_range: [ 0, 3000 ]
+        mask: 3
+        water: 1
+
+    source:
+      url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
+      path: 'allData/{collection}/{product}/Recent'
+      product:  'MCDWD_L3_F2_NRT'
+      collection: 61
+      token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
+      archive_tiles: 'current'
+      history_length: 360
+
+    water_maps:
+        threshold: 0.5
+        bin_size: 8
+
