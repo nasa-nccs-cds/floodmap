@@ -6,7 +6,7 @@ from osgeo import osr, gdalconst, gdal
 from pyproj import Proj, transform
 from .grid import GDALGrid
 from shapely.geometry import Polygon
-import xarray as xr, regionmask, utm
+import xarray as xr
 from .xextension import XExtension
 import rasterio
 from rasterio import Affine as A
@@ -40,9 +40,6 @@ class XGeo(XExtension):
     def countInstances(self, values: List[int] ) -> xr.DataArray:
         counts = ( [( self._obj == cval ).sum(dim=[self.x_coord,self.y_coord],keep_attrs=True) for cval in values] )
         return xr.concat( counts, 'counts' ).transpose()
-
-    def regionmask( self, name: str, poly: Polygon ) -> regionmask.Region_cls:
-        return regionmask.Region_cls( 0, name, name, poly )
 
     def crop_to_poly(self, poly: Polygon, buffer: float = 0 ) -> xr.DataArray:
         return self.crop( *poly.envelope.bounds, buffer )

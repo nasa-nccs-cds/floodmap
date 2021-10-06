@@ -4,7 +4,7 @@ defaults:
     day_range: [ 9, 277 ]
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
-    ncores: 2
+    ncores: 4
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
         subdir: ""
