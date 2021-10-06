@@ -397,7 +397,9 @@ class WaterMapGenerator(ConfigurableObject):
         result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
         specs_file = f"{results_dir}/lake_{lake_index}_stats_legacy.txt"
         if skip_existing and os.path.isfile(specs_file):
-            self.logger.info( f" --------------------->> Skipping already processed file: {specs_file}")
+            msg = f" --------------------->> Skipping already processed file: {specs_file}"
+            print( msg )
+            self.logger.info( msg )
             return None
         else:
             print( f"Processing lake {lake_index}")
