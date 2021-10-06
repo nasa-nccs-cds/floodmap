@@ -204,6 +204,7 @@ class MWPDataManager(ConfigurableObject):
             target_file_path = os.path.join( location_dir, path, target_file )
             dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
             if not os.path.exists( target_file_path ):
+                print(f" Local NRT file does not exist: {target_file_path}")
                 if ( this_day - day ) <= bin_size:
                     target_url = self.data_source_url + f"/{path}/{target_file}"
                     self.download( target_url, location_dir, token )
