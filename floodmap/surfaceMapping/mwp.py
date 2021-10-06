@@ -45,13 +45,7 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['history_length'] = source_spec.get('history_length')
-            for (k,v) in kwargs.items():
-                ks = k.split(":")
-                if len(ks) == 1: cls._instance.parms[k] = v
-                else:
-                    specs: Dict = opSpecs.get(ks[0], None)
-                    assert specs is not None, f"Unrecognized configuration partition: {ks[0]}"
-                    specs[ks[1]] = v
+            cls._instance.parms.update( kwargs )
         return cls._instance
 
     def set_day(self, day: int ):

@@ -7,8 +7,6 @@ import xarray as xa
 from floodmap.util.plot import plot_array, floodmap_colors, plot_arrays, result_colors
 from floodmap.util.configuration import opSpecs
 from floodmap.surfaceMapping.processing import LakeMaskProcessor
-from  floodmap.surfaceMapping.mwp import MWPDataManager
-from matplotlib.widgets import MultiCursor
 from floodmap.util.configuration import opSpecs
 from multiprocessing import freeze_support
 results_dir = opSpecs.get( 'results_dir' )
@@ -26,7 +24,6 @@ if __name__ == '__main__':
 
     for day in range( day_range[0]+bin_size, day_range[1], bin_size ):
         print( f"\nProcessing day = {day}")
-        opSpecs.get('source')['day'] = day
         lakeMaskProcessor = LakeMaskProcessor()
-        lakeMaskProcessor.process_lakes( )  # parallel=False )
+        lakeMaskProcessor.process_lakes( day=day)  # parallel=False )
 
