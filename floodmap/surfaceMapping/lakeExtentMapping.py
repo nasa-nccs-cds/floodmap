@@ -400,6 +400,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f" --------------------->> Skipping already processed file: {specs_file}")
             return None
         else:
+            print( f"Processing lake {lake_index}")
             self.logger.info(f" --------------------->> Generating result file: {specs_file}")
             y_coord, x_coord = yearly_lake_masks.coords[ yearly_lake_masks.dims[-2]].values, yearly_lake_masks.coords[yearly_lake_masks.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
