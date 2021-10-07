@@ -17,7 +17,7 @@ lake_index = 4                  #  [4, 5, 9, 11, 12, 14, 19, 21, 22, 26, 28, 37,
 opSpecs.get('lake_masks')['lake_index'] = lake_index
 # run_cfg = {}
 
-day_range = [ 200, 276 ]
+day_range = [ 5, 263 ]
 
 if __name__ == '__main__':
     freeze_support()
@@ -25,5 +25,5 @@ if __name__ == '__main__':
     for day in range( day_range[0]+bin_size, day_range[1], bin_size ):
         print( f"\nProcessing day = {day}")
         lakeMaskProcessor = LakeMaskProcessor()
-        lakeMaskProcessor.process_lakes( day=day)  # parallel=False )
+        lakeMaskProcessor.process_lakes( day=day )  # parallel=False )
 
