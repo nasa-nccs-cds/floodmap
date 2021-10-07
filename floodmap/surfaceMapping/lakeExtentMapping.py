@@ -172,9 +172,9 @@ class WaterMapGenerator(ConfigurableObject):
         data_dir = opSpecs.get('results_dir')
         lake_index = kwargs.get( 'index', 0 )
         water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map.nc")
-        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
-        self.floodmap_data.to_netcdf(water_data_file)
-        print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
+#        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
+#        self.floodmap_data.to_netcdf(water_data_file)
+#        print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
         cache = kwargs.get( "cache", "update" )
         if cache==True and os.path.isfile( water_map_file ):
             water_map_dset: xr.Dataset = xr.open_dataset(water_map_file)
