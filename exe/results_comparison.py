@@ -17,7 +17,7 @@ lake_index = 4                  #  [4, 5, 9, 11, 12, 14, 19, 21, 22, 26, 28, 37,
 opSpecs.get('lake_masks')['lake_index'] = lake_index
 # run_cfg = {}
 
-day_range = [ 5, 263 ]
+day_range = [ 6, 275 ]
 
 if __name__ == '__main__':
     freeze_support()
