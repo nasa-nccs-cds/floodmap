@@ -44,7 +44,7 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['year'] = source_spec.get('year',year0)
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['collection'] = source_spec.get('collection')
-            cls._instance.parms['history_length'] = source_spec.get('history_length')
+            cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
         return cls._instance
 
@@ -165,8 +165,8 @@ class MWPDataManager(ConfigurableObject):
         return rv
 
     def delete_old_files(self, **kwargs ):
-        history_length = self.getParameter("history_length", **kwargs)
-        if history_length > 0:
+        max_history_length = self.getParameter("max_history_length", **kwargs)
+        if max_history_length > 0:
             path_template =  self.getParameter( "path", **kwargs)
             product = self.getParameter("product", **kwargs)
             collection= self.getParameter( "collection", **kwargs )
@@ -178,13 +178,13 @@ class MWPDataManager(ConfigurableObject):
                     files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
                     for file in files:
                         dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
-                        if dt.days > history_length: os.remove( file )
+                        if dt.days > max_history_length: os.remove( file )
 
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
         water_maps_opspec = opSpecs.get('water_map', {})
         download_only = kwargs.get('download_only',False)
-        history_size = water_maps_opspec.get( 'history_size', 360 )
+        history_length = water_maps_opspec.get( 'history_length', 30 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", **kwargs )
         this_year = self.getParameter("year", **kwargs )
@@ -194,7 +194,7 @@ class MWPDataManager(ConfigurableObject):
         token=        self.getParameter( "token", **kwargs )
         location_dir = self.get_location_dir( location )
         files = OrderedDict()
-        days = range( this_day-history_size, this_day )
+        days = range( this_day-history_length, this_day )
         path = path_template.format( collection=collection, product=product )
         dstrs, tstrs = [], []
         for day in days:
