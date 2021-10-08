@@ -284,8 +284,11 @@ class WaterMapGenerator(ConfigurableObject):
             cropped_data = self.merge_tiles( cropped_tiles)
             cropped_data.attrs.update( roi = self.roi_bounds )
             cropped_data = cropped_data.persist()
-        self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
-        return self.update_classes( cropped_data ), time_values
+            self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
+            return self.update_classes( cropped_data ), time_values
+        else:
+            self.logger.error( "NO TILES AVAILABLE.  ABORTING")
+            return None, None
 
     @classmethod
     def get_class_count_layers(cls, class_layers: Dict[int,xr.DataArray] ) -> Tuple[xr.DataArray,xr.DataArray]:
