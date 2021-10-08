@@ -3,7 +3,7 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 4
-    skip_existing: False
+    skip_existing: True
     format: 'nc'
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
