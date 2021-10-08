@@ -91,9 +91,9 @@ class XRio(XExtension):
         return result
 
     @classmethod
-    def load( cls, filePaths: Union[ str, List[str] ], **kwargs ) -> Union[ List[xr.DataArray], xr.DataArray ]:
+    def load( cls, filePaths: Union[ str, List[str] ], **kwargs ) -> Optional[ xr.DataArray ]:
         if isinstance( filePaths, str ): filePaths = [ filePaths ]
-        result: xr.DataArray = None
+        result: Optional[ xr.DataArray ] = None
         for iF, file in enumerate(filePaths):
             data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:

@@ -260,8 +260,8 @@ class WaterMapGenerator(ConfigurableObject):
                 tile_filespec: OrderedDict = dataMgr.get_tile(location)
                 file_paths = list(tile_filespec.values())
                 time_values = list(tile_filespec.keys())
-                tile_raster: xr.DataArray =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                if tile_raster.size > 0:
+                tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                if (tile_raster is not None) and tile_raster.size > 0:
                     if self.lake_mask is None:
                         cropped_tiles[location] = tile_raster
                     else:
