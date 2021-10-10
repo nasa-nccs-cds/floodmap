@@ -272,12 +272,14 @@ class WaterMapGenerator(ConfigurableObject):
                         tile_raster_data[ tile_mask_data ] = self.mask_value + 1
                         cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
             except Exception as err:
-                for file in file_paths:
-                    if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
-                exc = traceback.format_exc()
-                msg = f"Error reading mpw data for location {location} \n  Error: {err}: \n{exc}"
-                self.logger.error( msg ); print( msg )
-                XRio.print_array_dims( file_paths )
+                try:
+                    for file in file_paths:
+                        if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
+                    exc = traceback.format_exc()
+                    msg = f"Error reading mpw data for location {location} \n  Error: {err}: \n{exc}"
+                    self.logger.error( msg ); print( msg )
+                    XRio.print_array_dims( file_paths )
+                except OSError: pass
         nTiles = len( cropped_tiles.keys() )
         if nTiles > 0:
             self.logger.info( f"Merging {nTiles} Tiles ")
