@@ -34,7 +34,7 @@ for fmversion in [ "legacy", "nrt" ]:
             lake_spec = lake_data.setdefault( lake_index, {} )
             for row in csvreader:
                 if "-" in row[0]:
-                    ts = get_timestamp( row[0] )
+                    ts = get_timestamp( row[0], fmversion )
                     time_vals.add(ts)
                     water_area = float( row[1] )
                     pct_interp = float( row[2] )
