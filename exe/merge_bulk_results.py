@@ -11,8 +11,10 @@ import netCDF4 as nc
 calendar = 'standard'
 units = 'days since 1970-01-01 00:00'
 
-def get_timestamp( tstr: str ) -> datetime:
-    (m, d, y) = tstr.split("-")
+def get_timestamp( tstr: str, fmversion: str ) -> datetime:
+    if fmversion == "nrt": (m, d, y) = tstr.split("-")
+    elif fmversion == "legacy": (y, m, d) = tstr.split("-")
+    else: raise Exception( f"Unrecognized fmversion: {fmversion}")
     return datetime(int(y), int(m), int(d))
 
 for fmversion in [ "legacy", "nrt" ]:
