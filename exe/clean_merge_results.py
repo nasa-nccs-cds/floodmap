@@ -21,6 +21,7 @@ lakeindex = []
 timeindex = []
 file_list = glob( f"{results_dir}/{stats_file_glob}")
 invalid_list = []
+valid_list = []
 
 for filepath in file_list:
     with open(filepath, newline='') as csvfile:
@@ -37,9 +38,15 @@ for filepath in file_list:
                     print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
                     invalid_list.append( filepath )
                     break
+                os.rename(filepath, filepath[:-8])
+                valid_list.append( filepath[:-8] )
+
+for filepath in valid_list:
+    print( f"Valid file {filepath}")
 
 for filepath in invalid_list:
     print( f"Invalid file {filepath}")
+
 #    os.rename( filepath, filepath + ".invalid" )
 
 
