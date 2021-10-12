@@ -10,7 +10,7 @@ import netCDF4 as nc
 
 calendar = 'standard'
 units = 'days since 1970-01-01 00:00'
-nts = 33
+nts = 31
 
 def get_timestamp( tstr: str, fmversion: str ) -> int:
     if fmversion == "nrt": (m, d, y) = tstr.split("-")
