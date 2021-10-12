@@ -27,7 +27,6 @@ lake_data = {}
 timeindex = []
 dset = nc.Dataset(result_file, 'w', format='NETCDF4')
 file_list = glob( f"{results_dir}/{stats_file_glob}")
-first_run = True
 
 for filepath in file_list:
     with open(filepath, newline='') as csvfile:
@@ -37,7 +36,7 @@ for filepath in file_list:
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp( row[0], fmversion )
-                if first_run: timeindex.append(ts)
+                if len(lake_spec) == 1: timeindex.append(ts)
                 else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
                 water_area = float( row[1] )
                 pct_interp = float( row[2] )
