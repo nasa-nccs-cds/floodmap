@@ -44,6 +44,7 @@ for filepath in file_list:
             invalid_list.append( filepath )
 
 for filepath in invalid_list:
+    print( f"Renaming invalid file {filepath}")
     os.rename( filepath, filepath + ".invalid" )
 
 
