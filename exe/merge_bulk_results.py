@@ -56,9 +56,12 @@ for fmversion in [ "legacy", "nrt" ]:
     for li, lake_id in enumerate(lakeindex):
         lake_spec = lake_data[lake_id]
         for ti, ts in enumerate(timeindex):
-            (water_area, pct_interp) = lake_spec[ ts ]
-            water_area_var[ti, li] = water_area
-            pct_interp_var[ti, li] = pct_interp
+            try:
+                (water_area, pct_interp) = lake_spec[ ts ]
+                water_area_var[ti, li] = water_area
+                pct_interp_var[ti, li] = pct_interp
+            except KeyError:
+                print( f"Time index {ti} ({ts}) missing from lake {lake_id}")
 
     print( f"Saving floodmap data to {result_file}, dims={dset.dims}, shape={dset.shape}")
     dset.close()
