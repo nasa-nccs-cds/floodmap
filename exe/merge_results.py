@@ -37,7 +37,7 @@ for filepath in file_list:
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp(row[0], fmversion)
-                if len(lake_data) == 1:
+                if len(lake_data) == 0:
                     timeindex.append(ts)
                 elif (ts != timeindex[iR-1]):
                     print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
@@ -46,8 +46,12 @@ for filepath in file_list:
                 pct_interp = float( row[2] )
                 lake_spec[0].append( water_area )
                 lake_spec[1].append( pct_interp )
-        if len( lake_spec[0] ) == len( timeindex ):   lake_data[lake_index] = lake_spec
-        else:                                         print( f"Skipping lake {lake_index} due to faulty data")
+
+        if len( lake_spec[0] ) == len( timeindex ):
+            lake_data[lake_index] = lake_spec
+        else:
+            print( f"Skipping lake {lake_index} due to faulty data")
+            if len(lake_data) == 0: timeindex = []
 
 
 lakeindex = sorted(lake_data.keys())
