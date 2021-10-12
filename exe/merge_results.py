@@ -35,6 +35,7 @@ for filepath in file_list:
         lake_spec = lake_data.setdefault( lake_index, ([],[]) )
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
+                print( f"{lake_index} -> {iR}")
                 ts: int = get_timestamp( row[0], fmversion )
                 if len(lake_spec) == 1: timeindex.append(ts)
                 else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
