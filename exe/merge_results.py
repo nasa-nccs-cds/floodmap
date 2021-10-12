@@ -36,7 +36,7 @@ for filepath in file_list:
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp(row[0], fmversion)
-#                print( f"Lake-{lake_index} -> iR = {iR}, ts = {ts} ")
+                print( f"Lake-{lake_index} -> iR = {iR}, ts = {ts} ")
                 if len(lake_data) == 1: timeindex.append(ts)
                 else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
                 water_area = float( row[1] )
