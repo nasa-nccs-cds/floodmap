@@ -28,6 +28,7 @@ for filepath in file_list:
         csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         lake_index = int( filepath.split('_')[1] )
         lakeindex.append( lake_index )
+        valid = True
         print(f"Processing file {filepath} for lake {lake_index}")
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
@@ -36,10 +37,14 @@ for filepath in file_list:
                 if len(lakeindex) == 1: timeindex.append(ts)
                 elif ts != timeindex[iR-1]:
                     print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
-                    invalid_list.append( filepath )
+                    valid = False
                     break
-                os.rename(filepath, filepath[:-8])
-                valid_list.append( filepath[:-8] )
+
+        if valid:
+            os.rename(filepath, filepath[:-8])
+            valid_list.append(filepath[:-8])
+        else:
+            invalid_list.append( filepath )
 
 for filepath in valid_list:
     print( f"Valid file {filepath}")
