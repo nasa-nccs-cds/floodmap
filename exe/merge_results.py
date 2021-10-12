@@ -35,9 +35,9 @@ for filepath in file_list:
         lake_spec = lake_data.setdefault( lake_index, ([],[]) )
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
-                print( f"Lake-{lake_index} -> iR = {iR}, len(lake_spec) = {len(lake_spec)} ")
+                print( f"Lake-{lake_index} -> iR = {iR}, len(lake_data) = {len(lake_data)} ")
                 ts: int = get_timestamp( row[0], fmversion )
-                if len(lake_spec) == 1: timeindex.append(ts)
+                if len(lake_data) == 1: timeindex.append(ts)
                 else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
                 water_area = float( row[1] )
                 pct_interp = float( row[2] )
