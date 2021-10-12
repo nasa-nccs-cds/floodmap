@@ -11,11 +11,11 @@ import netCDF4 as nc
 calendar = 'standard'
 units = 'days since 1970-01-01 00:00'
 
-def get_timestamp( tstr: str, fmversion: str ) -> datetime:
+def get_timestamp( tstr: str, fmversion: str ) -> float:
     if fmversion == "nrt": (m, d, y) = tstr.split("-")
     elif fmversion == "legacy": (y, m, d) = tstr.split("-")
     else: raise Exception( f"Unrecognized fmversion: {fmversion}")
-    return datetime(int(y), int(m), int(d))
+    return nc.date2num( datetime(int(y), int(m), int(d)), units=units, calendar=calendar )
 
 for fmversion in [ "legacy", "nrt" ]:
     print(f"\n **** Processing fmversion = {fmversion} ****\n ")
@@ -28,38 +28,37 @@ for fmversion in [ "legacy", "nrt" ]:
 
     for filepath in glob( f"{results_dir}/{stats_file_glob}"):
         with open(filepath, newline='') as csvfile:
-            print( f"Processing file {filepath}")
             csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
             lake_index = int( filepath.split('_')[1] )
             lake_spec = lake_data.setdefault( lake_index, {} )
             for row in csvreader:
                 if "-" in row[0]:
-                    ts = get_timestamp( row[0], fmversion )
+                    ts: float = get_timestamp( row[0], fmversion )
                     time_vals.add(ts)
                     water_area = float( row[1] )
                     pct_interp = float( row[2] )
-                    lake_spec[ts] = ( water_area, pct_interp )
+                    lake_spec[ ts ] = ( water_area, pct_interp )
+            print(f"Processing file {filepath} for lake {lake_index} with {len(lake_spec.keys())} entries")
 
     timeindex = sorted(time_vals)
     lakeindex = sorted(lake_data.keys())
-    time = dset.createDimension( 'time', len(timeindex) )
+    time = dset.createDimension( 'time', len( timeindex ) )
     lake = dset.createDimension( 'lake', len( lakeindex ) )
 
     times = dset.createVariable( 'time', 'f4', ('time',) )
-    times[:] = nc.date2num( timeindex, units=units, calendar=calendar )
+    times[:] = np.array( timeindex )
     lakes = dset.createVariable('lake', 'i4', ('lake',))
     lakes[:] = np.array( lakeindex )
 
     water_area_var = dset.createVariable( 'water_area', 'f4', ('time', 'lake'), fill_value=float('nan') )
     pct_interp_var = dset.createVariable( 'pct_interp', 'f4', ('time', 'lake'), fill_value=float('nan') )
 
-    for lindex, lake_id in enumerate(lakeindex):
+    for li, lake_id in enumerate(lakeindex):
         lake_spec = lake_data[lake_id]
-        for tindex, ts in enumerate(timeindex):
-            if ts in lake_spec.keys():
-                (water_area, pct_interp) = lake_spec[ts]
-                water_area_var[tindex, lindex] = water_area
-                pct_interp_var[tindex, lindex] = pct_interp
+        for ti, ts in enumerate(timeindex):
+            (water_area, pct_interp) = lake_spec[ ts ]
+            water_area_var[ti, li] = water_area
+            pct_interp_var[ti, li] = pct_interp
 
-    print( f"Saving floodmap data to {result_file}")
+    print( f"Saving floodmap data to {result_file}, dims={dset.dims}, shape={dset.shape}")
     dset.close()
