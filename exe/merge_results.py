@@ -26,9 +26,10 @@ result_file = f"{results_dir}/{result_name}.nc"
 lake_data = {}
 timeindex = []
 dset = nc.Dataset(result_file, 'w', format='NETCDF4')
+file_list = glob( f"{results_dir}/{stats_file_glob}")
 first_run = True
 
-for filepath in glob( f"{results_dir}/{stats_file_glob}"):
+for filepath in file_list:
     with open(filepath, newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         lake_index = int( filepath.split('_')[1] )
@@ -37,7 +38,7 @@ for filepath in glob( f"{results_dir}/{stats_file_glob}"):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp( row[0], fmversion )
                 if first_run: timeindex.append(ts)
-                else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {time_vals[iR-1]})"
+                else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
                 water_area = float( row[1] )
                 pct_interp = float( row[2] )
                 lake_spec[0].append( water_area )
@@ -45,7 +46,9 @@ for filepath in glob( f"{results_dir}/{stats_file_glob}"):
         print(f"Processing file {filepath} for lake {lake_index}")
 
 lakeindex = sorted(lake_data.keys())
+print( f"Created dimension time, len = {len( timeindex )} ")
 time = dset.createDimension( 'time', len( timeindex ) )
+print( f"Created lake time, len = {len( lakeindex )} ")
 lake = dset.createDimension( 'lake', len( lakeindex ) )
 
 times = dset.createVariable( 'time', 'f4', ('time',) )
@@ -61,5 +64,5 @@ for li, lake_id in enumerate(lakeindex):
     water_area_var[:,li] = np.array( water_area )
     pct_interp_var[:,li] = np.array( pct_interp )
 
-print( f"Saving floodmap data to {result_file}, dims={dset.dims}, shape={dset.shape}")
+print( f"Saving floodmap data to {result_file}")
 dset.close()
