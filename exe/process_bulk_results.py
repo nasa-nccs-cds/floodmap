@@ -23,6 +23,9 @@ for fmversion in [ "legacy", "nrt" ]:
     result_file = f"{results_dir}/{result_name}.nc"
     dset = xa.open_dataset(result_file)
     water_area = dset.data_vars['water_area']
-    print(water_area.dims)
-    print( water_area.data[0] )
+
+    for ilake in range(4):
+        lake_index = dset.lake[ilake]
+        print(f"Lake {lake_index}:")
+        print( water_area.data[:,ilake] )
 
