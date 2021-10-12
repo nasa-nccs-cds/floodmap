@@ -32,18 +32,22 @@ for filepath in file_list:
     with open(filepath, newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         lake_index = int( filepath.split('_')[1] )
-        lake_spec = lake_data.setdefault( lake_index, ([],[]) )
+        lake_spec = ([],[])
         print(f"Processing file {filepath} for lake {lake_index}")
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp(row[0], fmversion)
-                print( f"Lake-{lake_index} -> iR = {iR}, ts = {ts} ({row[0]})")
-                if len(lake_data) == 1: timeindex.append(ts)
-                else: assert ts == timeindex[iR-1], f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})"
+                if len(lake_data) == 1:
+                    timeindex.append(ts)
+                elif (ts != timeindex[iR-1]):
+                    print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
+                    break
                 water_area = float( row[1] )
                 pct_interp = float( row[2] )
                 lake_spec[0].append( water_area )
                 lake_spec[1].append( pct_interp )
+        if len( lake_spec[0] ) == len( timeindex ):   lake_data[lake_index] = lake_spec
+        else:                                         print( f"Skipping lake {lake_index} due to faulty data")
 
 
 lakeindex = sorted(lake_data.keys())
