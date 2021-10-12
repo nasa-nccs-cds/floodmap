@@ -17,7 +17,7 @@ def get_timestamp( tstr: str ) -> int:
     return int( nc.date2num( datetime(int(y), int(m), int(d)), units=units, calendar=calendar ) )
 
 stats_file_glob = "lake_*_stats_legacy.txt.invalid"
-lake_data = {}
+lakeindex = []
 timeindex = []
 file_list = glob( f"{results_dir}/{stats_file_glob}")
 invalid_list = []
@@ -26,12 +26,13 @@ for filepath in file_list:
     with open(filepath, newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         lake_index = int( filepath.split('_')[1] )
+        lakeindex.append( lake_index )
         print(f"Processing file {filepath} for lake {lake_index}")
         for iR, row in enumerate(csvreader):
             if (iR > 0) and (iR <= nts):
                 ts: int = get_timestamp(row[0])
                 print( f"Lake-{lake_index} -> iR = {iR}, ts = {ts} ({row[0]})")
-                if len(lake_data) == 1: timeindex.append(ts)
+                if len(lakeindex) == 1: timeindex.append(ts)
                 elif ts != timeindex[iR-1]:
                     print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
                     invalid_list.append( filepath )
