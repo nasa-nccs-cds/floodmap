@@ -25,6 +25,7 @@ for fmversion in [ "legacy", "nrt" ]:
     lake_data = {}
     time_vals = set()
     dset = nc.Dataset(result_file, 'w', format='NETCDF4')
+    first_run = True
 
     for filepath in glob( f"{results_dir}/{stats_file_glob}"):
         with open(filepath, newline='') as csvfile:
@@ -45,7 +46,7 @@ for fmversion in [ "legacy", "nrt" ]:
     time = dset.createDimension( 'time', len( timeindex ) )
     lake = dset.createDimension( 'lake', len( lakeindex ) )
 
-    times = dset.createVariable( 'time', 'i4', ('time',) )
+    times = dset.createVariable( 'time', 'f4', ('time',) )
     times[:] = np.array( timeindex )
     lakes = dset.createVariable('lake', 'i4', ('lake',))
     lakes[:] = np.array( lakeindex )
