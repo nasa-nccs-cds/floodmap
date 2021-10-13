@@ -27,16 +27,22 @@ def open_dset( fmversion ) -> xa.Dataset:
 
 dset_legacy = open_dset( "legacy" )
 dset_nrt = open_dset( "nrt" )
+result_paths = { version: f"{results_dir}/floodmap_comparison_{version}.nc" for version in ['nrt','legacy'] }
 
-# dset_harmonized = get_dset( "nrt_harmonized", "w" )
-
+filtered_nrt_vars = {}
+filtered_legacy_vars = {}
 for vname in ['water_area', 'pct_interp']:
     nrt_var: xa.DataArray = dset_nrt.data_vars[vname]
     legacy_var: xa.DataArray = dset_legacy.data_vars[vname]
-    nrt_lake_filter: xa.DataArray = nrt_var.lake.isin( legacy_var.lake.values )
-    legacy_lake_filter: xa.DataArray = legacy_var.lake.isin(nrt_var.lake.values)
-    filtered_nrt_var = nrt_var.where( nrt_lake_filter )
-    legacy_nrt_var = legacy_var.where( legacy_lake_filter )
-    print(".")
+    filtered_nrt_vars[vname] = nrt_var.where( nrt_var.lake.isin( legacy_var.lake.values ), drop=True )
+    filtered_legacy_vars[vname] = legacy_var.where( legacy_var.lake.isin(nrt_var.lake.values), drop=True )
+    assert (filtered_nrt_vars[vname].lake.values.tolist() == filtered_legacy_vars[vname].lake.values.tolist() ), "Lake values mismatch"
 
+filtered_nrt_dset = xa.Dataset( filtered_nrt_vars )
+filtered_nrt_dset.to_netcdf( result_paths['nrt'] )
+print( f"saving nrt results to {result_paths['nrt']}")
+
+filtered_legacy_dset = xa.Dataset( filtered_legacy_vars )
+filtered_legacy_dset.to_netcdf( result_paths['legacy'] )
+print( f"saving legacy results to {result_paths['legacy']}")
 

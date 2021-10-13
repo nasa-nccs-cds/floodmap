@@ -18,14 +18,16 @@ def get_timestamp( tstr: str, fmversion: str ) -> datetime:
     else: raise Exception( f"Unrecognized fmversion: {fmversion}")
     return datetime(int(y), int(m), int(d))
 
-fmversion = "legacy"
-result_name = f"floodmap_results_{fmversion}"
-result_file = f"{results_dir}/{result_name}.nc"
-dset = xa.open_dataset(result_file)
-water_area = dset.data_vars['water_area']
+for fmversion in [ "legacy", 'nrt' ]:
+    print( f"\n **** Processing {fmversion} data ****")
+    result_name = f"floodmap_comparison_{fmversion}"
+    result_file = f"{results_dir}/{result_name}.nc"
+    dset = xa.open_dataset(result_file)
+    water_area = dset.data_vars['water_area']
 
-for ilake in range(4):
-    lake_index = dset.lake[ilake]
-    print(f"Lake {lake_index}:")
-    print( water_area.data[:,ilake] )
+    for ilake in range(4):
+        lake_index = dset.lake.values[ilake]
+        print(f"> lake {lake_index}, water_area shape = {water_area.shape}:")
+        strdata = " ".join( [ f"{v:.1f}" for v in water_area.data[:,ilake].tolist() ] )
+        print( "   " + strdata )
 
