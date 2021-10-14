@@ -311,6 +311,7 @@ class WaterMapGenerator(ConfigurableObject):
             tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
             if (tile_raster is not None) and tile_raster.size > 0:
                 print( location )
+                print( tile_raster )
 
 
     @classmethod
