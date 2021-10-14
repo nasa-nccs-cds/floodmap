@@ -72,11 +72,23 @@ class XGeo(XExtension):
             return gbnds0 + gbnds1
         return bnds
 
+    def centroid(self, geographic = False, sref= None ):
+        min_x, x_step, _, max_y, _, y_step = self.getTransform()
+        center = [ min_x + x_step*(self._obj.shape[-1]//2), max_y + y_step*(self._obj.shape[-2]//2) ]
+        if geographic or sref:
+            if geographic: sref = self.geographic_sref
+            return self.project_coords( center[0], center[1], sref )
+        else:
+            return center
+
     def to_utm( self, resolution: Tuple[float,float], **kwargs ) -> xr.DataArray:
         utm_sref: osr.SpatialReference = kwargs.get( 'sref', self.getUTMProj() )
         gdalWaterMask: GDALGrid = self.to_gdalGrid()
         utmGdalWaterMask = gdalWaterMask.reproject( utm_sref, resolution=resolution )
-        result =  utmGdalWaterMask.xarray( f"{self._obj.name}-utm", time_axis =self._obj.coords["time"] )
+        args = {}
+        if "time" in self._obj.coords:
+            args['time_axis'] = self._obj.coords["time"]
+        result =  utmGdalWaterMask.xarray( f"{self._obj.name}-utm", **args )
         result.attrs['SpatialReference'] = utm_sref
         result.attrs['resolution'] = resolution
         return result

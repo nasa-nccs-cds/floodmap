@@ -38,7 +38,7 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
-    def getLakeMasks( cls ) -> Dict:
+    def getLakeMasks( cls ) -> Dict[int,str]:
         from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)

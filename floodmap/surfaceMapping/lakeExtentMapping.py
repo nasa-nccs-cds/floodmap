@@ -292,6 +292,27 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO TILES AVAILABLE.  ABORTING")
             return None, None
 
+    def get_pct_nodata(self, rbnds, **kwargs ):
+        from .mwp import MWPDataManager
+        from floodmap.util.configuration import opSpecs
+        source_specs: Dict = opSpecs.get( 'source' )
+        self.logger.info( "reading mpw data")
+        dataMgr = MWPDataManager.instance( **kwargs )
+        locations = TileLocator.get_tiles(*rbnds)
+        if not locations:
+            self.logger.error( "NO LOCATION DATA.  ABORTING")
+            return None, None
+        dataMgr.download_mpw_data( locations=locations, download_only=True, **source_specs )
+        print( "processing locations")
+        for location in locations:
+            tile_filespec: OrderedDict = dataMgr.get_tile(location)
+            file_paths = list(tile_filespec.values())
+            time_values = list(tile_filespec.keys())
+            tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+            if (tile_raster is not None) and tile_raster.size > 0:
+                print( location )
+
+
     @classmethod
     def get_class_count_layers(cls, class_layers: Dict[int,xr.DataArray] ) -> Tuple[xr.DataArray,xr.DataArray]:
         time = xr.DataArray( list(class_layers.keys()), name = "time" )
