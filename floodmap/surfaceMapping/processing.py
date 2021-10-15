@@ -81,6 +81,25 @@ class LakeMaskProcessor:
         dataMgr.download_mpw_data( **source_specs )
         dataMgr.delete_old_files( )
 
+    def get_pct_nodata( self, **kwargs ):
+        try:
+            lake_masks = self.getLakeMasks()
+            parallel = kwargs.get( 'parallel', True )
+            nproc = opSpecs.get( 'ncores', cpu_count() )
+            lake_specs = list(lake_masks.items())
+            self.update_floodmap_archive()
+            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
+            if parallel:
+                with get_context("spawn").Pool(processes=nproc) as p:
+                    self.pool = p
+                    results = p.map( partial( LakeMaskProcessor.compute_pct_nodata, kwargs ), lake_specs )
+            else:
+                results = [ LakeMaskProcessor.compute_pct_nodata( kwargs, lake_spec ) for lake_spec in lake_specs ]
+            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
+        except Exception as err:
+            self.logger.error(f"Exception: {err}")
+            self.logger.error( traceback.format_exc() )
+
     def process_lakes( self, **kwargs ):
         try:
             lake_masks = self.getLakeMasks()
@@ -112,6 +131,24 @@ class LakeMaskProcessor:
         else:
             rv['roi'] = lake_mask
         return rv
+
+    @classmethod
+    def compute_pct_nodata(cls, runSpecs: Dict, lake_info: Tuple[int, str]):
+        from .lakeExtentMapping import WaterMapGenerator
+        from floodmap.surfaceMapping.mwp import MWPDataManager
+        dataMgr = MWPDataManager.instance(**runSpecs)
+        logger = getLogger(False, logging.DEBUG)
+        (lake_index, lake_mask_bounds) = lake_info
+        try:
+            lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
+            waterMapGenerator = WaterMapGenerator()
+            waterMapGenerator.compute_pct_nodata(**lake_mask_specs)
+            return lake_index
+        except Exception as err:
+            msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
+            logger.error(msg);
+            print(msg)
+            write_result_report(lake_index, msg)
 
     @classmethod
     def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int, str]):

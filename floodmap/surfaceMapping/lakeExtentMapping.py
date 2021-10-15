@@ -292,28 +292,6 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO TILES AVAILABLE.  ABORTING")
             return None, None
 
-    def get_pct_nodata(self, rbnds, **kwargs ):
-        from .mwp import MWPDataManager
-        from floodmap.util.configuration import opSpecs
-        source_specs: Dict = opSpecs.get( 'source' )
-        self.logger.info( "reading mpw data")
-        dataMgr = MWPDataManager.instance( **kwargs )
-        locations = TileLocator.get_tiles(*rbnds)
-        if not locations:
-            self.logger.error( "NO LOCATION DATA.  ABORTING")
-            return None, None
-        dataMgr.download_mpw_data( locations=locations, download_only=True, **source_specs )
-        print( "processing locations")
-        for location in locations:
-            tile_filespec: OrderedDict = dataMgr.get_tile(location)
-            file_paths = list(tile_filespec.values())
-            time_values = list(tile_filespec.keys())
-            tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-            if (tile_raster is not None) and tile_raster.size > 0:
-                print( location )
-                print( tile_raster )
-
-
     @classmethod
     def get_class_count_layers(cls, class_layers: Dict[int,xr.DataArray] ) -> Tuple[xr.DataArray,xr.DataArray]:
         time = xr.DataArray( list(class_layers.keys()), name = "time" )
@@ -403,6 +381,37 @@ class WaterMapGenerator(ConfigurableObject):
         with open( file_path, "w" ) as file:
             file.write( report )
 
+    def compute_pct_nodata(self, **kwargs) -> Optional[xr.DataArray]:
+        from floodmap.surfaceMapping.mwp import MWPDataManager
+        dstr = MWPDataManager.instance().get_dstr(**kwargs)
+        lake_index = kwargs.get('index', 0)
+        self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask', None)
+        self.roi_bounds = kwargs.get('roi', None)
+        skip_existing = opSpecs.get('skip_existing', True)
+        format = opSpecs.get('format', 'tif')
+        results_dir = opSpecs.get('results_dir')
+        patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
+        result_water_map_file = patched_water_map_file + ".tif" if format == 'tif' else patched_water_map_file + ".nc"
+        if skip_existing and os.path.isfile(result_water_map_file):
+            msg = f" Lake[{lake_index}]: Skipping already processed file: {result_water_map_file}"
+            self.logger.info(msg), print(msg)
+            return None
+        else:
+            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
+            (self.floodmap_data, time_values) = self.get_mpw_data(**kwargs)
+            if self.floodmap_data is None:
+                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
+                self.logger.warning(msg)
+                print(msg)
+                return None
+            self.logger.info(f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
+            self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
+            stats_file = f"{results_dir}/lake_{lake_index}_stats.txt"
+            self.write_nodata_pct_results( stats_file )
+            msg = f"Saving results for lake {lake_index} to {stats_file} and {result_water_map_file}"
+            self.logger.info(msg)
+            print(msg)
+
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
         from  floodmap.surfaceMapping.mwp import MWPDataManager
         dstr = MWPDataManager.instance().get_dstr( **kwargs )
@@ -447,6 +456,23 @@ class WaterMapGenerator(ConfigurableObject):
         today = datetime.now()
         day_of_year = today.timetuple().tm_yday
         return f"{day_of_year}:{today.year}"
+
+    def write_nodata_pct_results(self, outfile_path: str,  **kwargs ):
+        from floodmap.surfaceMapping.mwp import MWPDataManager
+        da: xr.DataArray = self.floodmap_data
+        roi = self.roi_bounds
+        sdate = MWPDataManager.instance().get_target_date()
+        interp_water_class = kwargs.get( 'interp_water_class', 4 )
+        water_classes = kwargs.get('water_classes', [2,4] )
+        water_counts, class_proportion = self.get_class_proportion( da, interp_water_class, water_classes )
+        file_exists = os.path.isfile(outfile_path)
+        with open( outfile_path, "a" ) as outfile:
+            if not file_exists:
+                outfile.write( "date water_area_km2 percent_interploated\n")
+            percent_interp = class_proportion.values
+            num_water_pixels = water_counts.values
+            outfile.write( f"{sdate} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
+            self.logger.info( f"Wrote results to file {outfile_path}")
 
     def write_water_area_results(self, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
         from floodmap.surfaceMapping.mwp import MWPDataManager
