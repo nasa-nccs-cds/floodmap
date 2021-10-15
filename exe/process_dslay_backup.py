@@ -11,7 +11,7 @@ def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     fdir = os.path.dirname(hdfFilepath)
     ftoks = fName.split('.')
     tile, dstr = ftoks[2], ftoks[1][1:]
-    outpath = f"{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Recent"
+    outpath = f"{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Legacy"
     result_file = f"MCDWD_L3_F2_NRT.A{dstr}.{tile}.{collection:03}.tif"
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
     product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
