@@ -9,7 +9,7 @@ if __name__ == '__main__':
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
     scale = 0.00001
     year = 2021
-    days = [10,20]
+    days = [10,260]
     (xmin, xmax, ymin, ymax) = (-86.9, -86.8, 47.6, 47.7)
     legacy_nodata, legacy_size = [], []
     nrt_nodata, nrt_size = [], []
