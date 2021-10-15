@@ -1,6 +1,7 @@
 from floodmap.surfaceMapping.tiles import TileLocator
 import os
 import xarray as xa
+import numpy  as np
 from floodmap.util.configuration import opSpecs
 
 if __name__ == '__main__':
@@ -21,8 +22,13 @@ if __name__ == '__main__':
         elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
         else:
             print( f" -------------- Day: {day} -------------------------- " )
-            print(f"Legacy-> {legacy_data_file}")
-            print(f"NRT->    {nrt_data_file}")
+            legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
+            nz0 = np.count_nonzero( (legacy_data == 0).values )
+            print(f"Legacy-> {legacy_data_file}: {nz0}")
+
+            nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
+            nz1 = np.count_nonzero( (nrt_data == 255).values )
+            print(f"NRT->    {nrt_data_file}: {nz1}")
             # legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
             # print( f"Legacy-> Dims: {legacy_data.dims}, Shape: {legacy_data.shape}, attrs: {legacy_data.attrs}" )
             #
