@@ -21,9 +21,11 @@ if __name__ == '__main__':
         elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
         else:
             print( f" -------------- Day: {day} -------------------------- " )
-            legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
-            print( f"Legacy-> Dims: {legacy_data.dims}, Shape: {legacy_data.shape}, attrs: {legacy_data.attrs}" )
-
-            nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
-            print( f"NRT-> Dims: {nrt_data.dims}, Shape: {nrt_data.shape}, attrs: {legacy_data.attrs}" )
+            print(f"Legacy-> {legacy_data_file}")
+            print(f"NRT->    {nrt_data_file}")
+            # legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
+            # print( f"Legacy-> Dims: {legacy_data.dims}, Shape: {legacy_data.shape}, attrs: {legacy_data.attrs}" )
+            #
+            # nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
+            # print( f"NRT-> Dims: {nrt_data.dims}, Shape: {nrt_data.shape}, attrs: {legacy_data.attrs}" )
 
