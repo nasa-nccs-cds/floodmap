@@ -7,9 +7,12 @@ from floodmap.util.configuration import opSpecs
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
+    scale = 0.00001
     year = 2021
     days = [10,20]
     (xmin, xmax, ymin, ymax) = (-86.9, -86.8, 47.6, 47.7)
+    legacy_nodata, legacy_size = [], []
+    nrt_nodata, nrt_size = [], []
 
     for day in range(*days):
         legacy_tile = TileLocator.get_tiles_legacy(xmin, xmax, ymin, ymax)[0]
@@ -30,7 +33,15 @@ if __name__ == '__main__':
             legacy_nz = np.count_nonzero(legacy_nodata_mask.values)
             nrt_nt = nrt_data.size
             nrt_nz = np.count_nonzero(nrt_nodata_mask.values)
-            print(f" LEGACY: {legacy_nz} / {legacy_nt}:  {(legacy_nz * 100.0) / legacy_nt:.2f} %")
-            print(f" NRT:    {nrt_nz} / {nrt_nt}:  {(nrt_nz * 100.0) / nrt_nt:.2f} %")
+            legacy_nodata.append( legacy_nz * scale )
+            legacy_size.append( legacy_nt * scale )
+            nrt_nodata.append( nrt_nz * scale )
+            nrt_size.append( nrt_nt * scale )
+
+        legacy_total = np.array(legacy_nodata).sum() / np.array(legacy_size).sum()
+        nrt_total = np.array(nrt_nodata).sum() / np.array(nrt_size).sum()
+
+        print(f" LEGACY: {legacy_total*100} %")
+        print(f" NRT:    {nrt_total*100} %")
 
 
