@@ -6,7 +6,7 @@ if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
     year = 2021
-    days = [0,260]
+    days = [10,260]
     (xmin, xmax, ymin, ymax) = (-86.9, -86.8, 47.6, 47.7)
 
     for day in range(*days):
@@ -16,8 +16,8 @@ if __name__ == '__main__':
         nrt_tile = TileLocator.get_tiles(xmin, xmax, ymin, ymax)[0]
         nrt_data_file = f"{data_loc}/{nrt_tile}/{nrt_path}/MCDWD_L3_F2_NRT.A{year}{day:03}.{nrt_tile}.061.tif"
 
-        if not os.path.isfile(legacy_data_file): print( f"Legacy file does not exist: {legacy_data_file}" )
-        elif not os.path.isfile(nrt_data_file):  print( f" NRT file does not exist: {nrt_data_file} " )
+        if not os.path.isfile(legacy_data_file): print( f"\nLegacy file does not exist: {legacy_data_file}\n" )
+        elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
         else:
             print( f" -------------- Day: {day} -------------------------- " )
             print( f"Legacy: {legacy_data_file}" )
