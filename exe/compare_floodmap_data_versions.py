@@ -16,7 +16,9 @@ if __name__ == '__main__':
         nrt_tile = TileLocator.get_tiles(xmin, xmax, ymin, ymax)
         nrt_data_file = f"{data_loc}/{nrt_tile}/{nrt_path}/MCDWD_L3_F2_NRT.A{year}{day:03}.{nrt_tile}.061.tif"
 
-        if os.path.isfile(legacy_data_file) and os.path.isfile(nrt_data_file):
+        if not os.path.isfile(legacy_data_file): print( f"Legacy file does not exist: {legacy_data_file}" )
+        elif not os.path.isfile(nrt_data_file):  print( f" NRT file does not exist: {nrt_data_file} " )
+        else:
             print( f" -------------- Day: {day} -------------------------- " )
             print( f"Legacy: {legacy_data_file}" )
             print( f"NRT:    {nrt_data_file}" )
