@@ -25,5 +25,5 @@ if __name__ == '__main__':
             print( f"Legacy-> Dims: {legacy_data.dims}, Shape: {legacy_data.shape}, atts: {legacy_data.atts}" )
 
             nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
-            print( f"NRT-> Dims: {nrt_data.dims}, Shape: {nrt_data.shape}, atts: {legacy_data.atts}" )
+            print( f"NRT-> Dims: {nrt_data.dims}, Shape: {nrt_data.shape}, attrs: {legacy_data.attrs}" )
 
