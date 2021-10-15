@@ -22,16 +22,15 @@ if __name__ == '__main__':
         elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
         else:
             print( f" -------------- Day: {day} -------------------------- " )
-            legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
-            nz0 = np.count_nonzero( (legacy_data == 0).values )
-            print(f"Legacy-> {legacy_data_file}: {nz0}")
+            legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
+            nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file).squeeze(drop=True)
+            legacy_nodata_mask = (legacy_data == 0)
+            nrt_nodata_mask = (nrt_data == 255)
+            legacy_nt = legacy_data.size
+            legacy_nz = np.count_nonzero(legacy_nodata_mask.values)
+            nrt_nt = nrt_data.size
+            nrt_nz = np.count_nonzero(nrt_nodata_mask.values)
+            print(f" LEGACY: {legacy_nz} / {legacy_nt}:  {(legacy_nz * 100.0) / legacy_nt:.2f} %")
+            print(f" NRT:    {nrt_nz} / {nrt_nt}:  {(nrt_nz * 100.0) / nrt_nt:.2f} %")
 
-            nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
-            nz1 = np.count_nonzero( (nrt_data == 255).values )
-            print(f"NRT->    {nrt_data_file}: {nz1}")
-            # legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file)
-            # print( f"Legacy-> Dims: {legacy_data.dims}, Shape: {legacy_data.shape}, attrs: {legacy_data.attrs}" )
-            #
-            # nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file)
-            # print( f"NRT-> Dims: {nrt_data.dims}, Shape: {nrt_data.shape}, attrs: {legacy_data.attrs}" )
 
