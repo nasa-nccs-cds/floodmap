@@ -38,10 +38,10 @@ if __name__ == '__main__':
             nrt_nodata.append( nrt_nz * scale )
             nrt_size.append( nrt_nt * scale )
 
-        legacy_total = np.array(legacy_nodata).sum() / np.array(legacy_size).sum()
-        nrt_total = np.array(nrt_nodata).sum() / np.array(nrt_size).sum()
+    legacy_total = np.array(legacy_nodata).sum() / np.array(legacy_size).sum()
+    nrt_total = np.array(nrt_nodata).sum() / np.array(nrt_size).sum()
 
-        print(f" LEGACY: {legacy_total*100} %")
-        print(f" NRT:    {nrt_total*100} %")
+    print(f" LEGACY: {legacy_total*100} %")
+    print(f" NRT:    {nrt_total*100} %")
 
 
