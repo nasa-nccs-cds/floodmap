@@ -6,7 +6,7 @@ import numpy  as np
 from floodmap.util.configuration import opSpecs
 
 def get_centroid( tile: str ) -> Tuple[float,float]:
-    x, xs = int(tile[0:3]), tile[4]
+    x, xs = int(tile[0:3]), tile[3]
     y, ys = int(tile[4:7]), tile[7]
     if xs == 'W': x = -x
     if ys == 'S': y = -y
@@ -20,8 +20,8 @@ if __name__ == '__main__':
         pos = get_centroid( tile )
         tile_test = TileLocator.get_tiles_legacy(pos[0], pos[0], pos[1], pos[1])[0]
         nrt_tile = TileLocator.get_tiles(pos[0], pos[0], pos[1], pos[1])[0]
-        print( f" {pos}-> {tile}={tile_test}: {nrt_tile}" )
-
+        assert tile == tile_test, f"\nTile mismatch: {pos}-> {tile} = {tile_test}: {nrt_tile} \n"
+        print( f" {pos}-> {tile} = {tile_test}: {nrt_tile}" )
 
     exit(0)
     scale = 0.00001
@@ -60,5 +60,8 @@ if __name__ == '__main__':
 
     print(f" LEGACY: {legacy_total*100} %")
     print(f" NRT:    {nrt_total*100} %")
+
+
+
 
 
