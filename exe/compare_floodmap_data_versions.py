@@ -9,6 +9,9 @@ if __name__ == '__main__':
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
     legacy_tiles = [ os.path.basename(tpath) for tpath in glob.glob(f"{data_loc}/???[EW]???[NS]") ]
     print( legacy_tiles )
+    for x in range( -20, 21, 5 ): print( f" {x}: {TileLocator.lon_label(x)}")
+    for y in range( -20, 21, 5 ): print( f" {y}: {TileLocator.lat_label(y)}")
+
     exit(0)
     scale = 0.00001
     year = 2021
