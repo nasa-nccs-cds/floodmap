@@ -54,7 +54,7 @@ if __name__ == '__main__':
                 nrt_nodata.append( nrt_nz * scale )
                 nrt_size.append( nrt_nt * scale )
         if len(legacy_size) == 0:
-            print( f"Skipping tile {legacy_tile}: NO DATA")
+            print( f"\nSkipping tile {legacy_tile}: NO DATA")
         else:
             tile_legacy_nodata = np.array(legacy_nodata).sum()
             tile_legacy_size = np.array(legacy_size).sum()
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             tile_nrt_size = np.array(nrt_size).sum()
             tile_legacy_pctn =  tile_legacy_nodata / tile_legacy_size
             tile_nrt_pctn = tile_nrt_nodata / tile_nrt_size
-            print(f" TILE {legacy_tile}: LEGACY: {tile_legacy_pctn*100}%, NRT: {tile_nrt_pctn*100}%, pct_diff: {pct_diff(tile_legacy_pctn,tile_nrt_pctn)}" )
+            print(f"\nTILE {legacy_tile}: LEGACY: {tile_legacy_pctn*100}%, NRT: {tile_nrt_pctn*100}%, pct_diff: {pct_diff(tile_legacy_pctn,tile_nrt_pctn)}" )
 
         tot_legacy_nodata.append( tile_legacy_nodata )
         tot_legacy_size.append( tile_legacy_size )
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     result_nrt_size = np.array(tot_nrt_size).sum()
     result_legacy_pctn = result_legacy_nodata / result_legacy_size
     result_nrt_pctn = result_nrt_nodata / result_nrt_size
-    print(f" RESULT: LEGACY: {result_legacy_pctn * 100}%, NRT: {result_nrt_pctn * 100}%, pct_diff: {pct_diff(result_legacy_pctn,result_nrt_pctn)}")
+    print(f"\nRESULT: LEGACY: {result_legacy_pctn * 100}%, NRT: {result_nrt_pctn * 100}%, pct_diff: {pct_diff(result_legacy_pctn,result_nrt_pctn)}")
 
 
 
