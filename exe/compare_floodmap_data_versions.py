@@ -7,8 +7,8 @@ from floodmap.util.configuration import opSpecs
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
-    tiles = glob.glob(f"{data_loc}/???[EW]???[NS]")
-    print( tiles )
+    legacy_tiles = [ os.path.basename(tpath) for tpath in glob.glob(f"{data_loc}/???[EW]???[NS]") ]
+    print( legacy_tiles )
     exit(0)
     scale = 0.00001
     year = 2021
