@@ -1,6 +1,6 @@
 from floodmap.surfaceMapping.tiles import TileLocator
 from typing import Dict, List, Tuple, Optional
-import os, glob
+import os, glob, sys
 import xarray as xa
 import numpy  as np
 from floodmap.util.configuration import opSpecs
@@ -36,11 +36,10 @@ if __name__ == '__main__':
             legacy_data_file = f"{data_loc}/{legacy_tile}/MWP_{year}{day:03}_{legacy_tile}_2D2OT.tif"
             nrt_data_file = f"{data_loc}/{nrt_tile}/{nrt_path}/MCDWD_L3_F2_NRT.A{year}{day:03}.{nrt_tile}.061.tif"
 
-            if not os.path.isfile(legacy_data_file): print(f" LSKIP-{day}", end='')
-            elif not os.path.isfile(nrt_data_file):  print(f" NSKIP-{day}", end='')
+            if not os.path.isfile(legacy_data_file): print(f" LSKIP-{day}", end=''); sys.stdout.flush()
+            elif not os.path.isfile(nrt_data_file):  print(f" NSKIP-{day}", end=''); sys.stdout.flush()
             else:
-                print(f" {day}", end='')
-    #            print( f" -------------- Day: {day} -------------------------- " )
+                print(f" {day}", end=''); sys.stdout.flush()
                 legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
                 nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file).squeeze(drop=True)
                 legacy_nodata_mask = (legacy_data == 0)
