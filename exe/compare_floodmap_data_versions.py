@@ -5,6 +5,9 @@ import xarray as xa
 import numpy  as np
 from floodmap.util.configuration import opSpecs
 
+def pct_diff( x0: float, x1: float) -> float:
+    return (abs(x1 - x0) * 100) / min(x0, x1)
+
 def get_centroid( tile: str ) -> Tuple[float,float]:
     x, xs = int(tile[0:3]), tile[3]
     y, ys = int(tile[4:7]), tile[7]
@@ -33,9 +36,10 @@ if __name__ == '__main__':
             legacy_data_file = f"{data_loc}/{legacy_tile}/MWP_{year}{day:03}_{legacy_tile}_2D2OT.tif"
             nrt_data_file = f"{data_loc}/{nrt_tile}/{nrt_path}/MCDWD_L3_F2_NRT.A{year}{day:03}.{nrt_tile}.061.tif"
 
-            if not os.path.isfile(legacy_data_file): print( f"\nLegacy file does not exist: {legacy_data_file}\n" )
-            elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
+            if not os.path.isfile(legacy_data_file): print(f" LSKIP-{day}", end='')
+            elif not os.path.isfile(nrt_data_file):  print(f" NSKIP-{day}", end='')
             else:
+                print(f" {day}", end='')
     #            print( f" -------------- Day: {day} -------------------------- " )
                 legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
                 nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file).squeeze(drop=True)
@@ -58,7 +62,7 @@ if __name__ == '__main__':
             tile_nrt_size = np.array(nrt_size).sum()
             tile_legacy_pctn =  tile_legacy_nodata / tile_legacy_size
             tile_nrt_pctn = tile_nrt_nodata / tile_nrt_size
-            print(f" TILE {legacy_tile}: LEGACY: {tile_legacy_pctn*100}%, NRT: {tile_nrt_pctn*100}%" )
+            print(f" TILE {legacy_tile}: LEGACY: {tile_legacy_pctn*100}%, NRT: {tile_nrt_pctn*100}%, pct_diff: {pct_diff(tile_legacy_pctn,tile_nrt_pctn)}" )
 
         tot_legacy_nodata.append( tile_legacy_nodata )
         tot_legacy_size.append( tile_legacy_size )
@@ -71,7 +75,7 @@ if __name__ == '__main__':
     result_nrt_size = np.array(tot_nrt_size).sum()
     result_legacy_pctn = result_legacy_nodata / result_legacy_size
     result_nrt_pctn = result_nrt_nodata / result_nrt_size
-    print(f" RESULT: LEGACY: {result_legacy_pctn * 100}%, NRT: {result_nrt_pctn * 100}%")
+    print(f" RESULT: LEGACY: {result_legacy_pctn * 100}%, NRT: {result_nrt_pctn * 100}%, pct_diff: {pct_diff(result_legacy_pctn,result_nrt_pctn)}")
 
 
 
