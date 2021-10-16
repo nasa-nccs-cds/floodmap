@@ -6,7 +6,8 @@ import numpy  as np
 from floodmap.util.configuration import opSpecs
 
 def pct_diff( x0: float, x1: float) -> float:
-    return (abs(x1 - x0) * 100) / min(x0, x1)
+    sgn = 1 if (x1>x0) else -1
+    return sgn * (abs(x1 - x0) * 100) / min(x0, x1)
 
 def get_centroid( tile: str ) -> Tuple[float,float]:
     x, xs = int(tile[0:3]), tile[3]
