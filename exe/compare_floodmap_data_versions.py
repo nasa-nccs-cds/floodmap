@@ -1,5 +1,5 @@
 from floodmap.surfaceMapping.tiles import TileLocator
-import os
+import os, glob
 import xarray as xa
 import numpy  as np
 from floodmap.util.configuration import opSpecs
@@ -7,6 +7,9 @@ from floodmap.util.configuration import opSpecs
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
+    tiles = glob.glob(f"{data_loc}/???[EW]???[NS]")
+    print( tiles )
+    exit(0)
     scale = 0.00001
     year = 2021
     days = [10,260]
@@ -24,7 +27,7 @@ if __name__ == '__main__':
         if not os.path.isfile(legacy_data_file): print( f"\nLegacy file does not exist: {legacy_data_file}\n" )
         elif not os.path.isfile(nrt_data_file):  print( f"\nNRT file does not exist: {nrt_data_file}\n" )
         else:
-            print( f" -------------- Day: {day} -------------------------- " )
+#            print( f" -------------- Day: {day} -------------------------- " )
             legacy_data: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
             nrt_data: xa.DataArray = xa.open_rasterio(nrt_data_file).squeeze(drop=True)
             legacy_nodata_mask = (legacy_data == 0)
