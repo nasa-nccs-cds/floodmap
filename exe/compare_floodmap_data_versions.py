@@ -1,16 +1,27 @@
 from floodmap.surfaceMapping.tiles import TileLocator
+from typing import Dict, List, Tuple, Optional
 import os, glob
 import xarray as xa
 import numpy  as np
 from floodmap.util.configuration import opSpecs
 
+def get_centroid( tile: str ) -> Tuple[float,float]:
+    x, xs = int(tile[0:3]), tile[4]
+    y, ys = int(tile[4:7]), tile[7]
+    if xs == 'W': x = -x
+    if ys == 'S': y = -y
+    return ( float(x+5), float(y-5) )
+
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
     nrt_path = "allData/61/MCDWD_L3_F2_NRT/Recent"
     legacy_tiles = [ os.path.basename(tpath) for tpath in glob.glob(f"{data_loc}/???[EW]???[NS]") ]
-    print( legacy_tiles )
-    for x in range( -20, 21, 5 ): print( f" {x}: {TileLocator.lon_label(x)}")
-    for y in range( -20, 21, 5 ): print( f" {y}: {TileLocator.lat_label(y)}")
+    for tile in legacy_tiles:
+        pos = get_centroid( tile )
+        tile_test = TileLocator.get_tiles_legacy(pos[0], pos[0], pos[1], pos[1])[0]
+        nrt_tile = TileLocator.get_tiles(pos[0], pos[0], pos[1], pos[1])[0]
+        print( f" {pos}-> {tile}={tile_test}: {nrt_tile}" )
+
 
     exit(0)
     scale = 0.00001
