@@ -432,7 +432,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.water_maps: xr.DataArray =  self.get_water_maps( water_mapping_data, self._opspecs, time=time_values )
             patched_water_maps = self.patch_water_maps( self._opspecs, **kwargs )
             patched_water_maps.name = f"Lake {lake_index}"
-            result: xr.DataArray = sanitize(patched_water_maps).xgeo.to_utm( [250.0, 250.0] )
+            result: xr.DataArray = sanitize( patched_water_maps.xgeo.to_utm( [250.0, 250.0] ) )
             self.write_water_area_results( result, specs_file )
             if format ==  'tif':    result.xgeo.to_tif( result_file )
             else:                   result.to_netcdf( result_file )

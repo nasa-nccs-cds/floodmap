@@ -13,7 +13,7 @@ def sanitize( array: xr.DataArray ):
         if key == "cmap" and not isinstance(value,str):
             array.attrs[key] = json.dumps(value)
         else:
-            array.attrs[key] = value
+            array.attrs[key] = str(value)
     return array
 
 class ConfigurableObject:
