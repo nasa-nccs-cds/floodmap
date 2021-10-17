@@ -55,6 +55,7 @@ class LakeMaskProcessor:
             lake_index_range = lakeMaskSpecs["lake_index_range"]
             directorys_spec = lakeMaskSpecs["subdir"]
             files_spec = lakeMaskSpecs["file"]
+            print( f" {files_spec}, {lakeMaskSpecs} ")
             lake_masks = {}
             lake_indices = set()
             for year in range( int(year_range[0]), int(year_range[1]) + 1 ):
