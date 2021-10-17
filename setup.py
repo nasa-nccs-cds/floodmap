@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='floodmap',
-      version='0.0.1',
+      version='1.0.0',
       description='This project computes surface water extents from lake shapefile boundary maps',
       author='Thomas Maxwell',
       author_email='thomas.maxwell@nasa.gov',

@@ -56,19 +56,18 @@ class LakeMaskProcessor:
             directorys_spec = lakeMaskSpecs["subdir"]
             files_spec = lakeMaskSpecs["file"]
             lake_masks = {}
-            lake_indices = []
+            lake_indices = set()
             for year in range( int(year_range[0]), int(year_range[1]) + 1 ):
                 year_dir = os.path.join( data_dir, directorys_spec.format( year=year ) )
                 _lake_indices = lake_indices if year > year_range[0] else range(lake_index_range[0], lake_index_range[1] + 1)
                 for lake_index in _lake_indices:
                     file_path = os.path.join(year_dir, files_spec.format( year=year, lake_index=lake_index ) )
-                    if year == year_range[0]:
-                        if os.path.isfile( file_path ):
-                            lake_masks[lake_index] = collections.OrderedDict( )
-                            lake_masks[lake_index][year] = self.convert( file_path ) if reproject_inputs else file_path
-                            lake_indices.append( lake_index )
-                    elif os.path.isfile( file_path ):
-                        lake_masks[lake_index][year]= self.convert( file_path ) if reproject_inputs else file_path
+                    if os.path.isfile( file_path ):
+                        if lake_index not in lake_masks: lake_masks[lake_index] = collections.OrderedDict( )
+                        lake_masks[lake_index][year] = self.convert( file_path ) if reproject_inputs else file_path
+                        lake_indices.add( lake_index )
+                    else:
+                        print( f"Lake file[{lake_index}] does not exist: {file_path}")
 
             nproc = opSpecs.get( 'ncores', cpu_count() )
             items = list(lake_masks.items())
