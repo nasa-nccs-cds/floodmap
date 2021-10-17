@@ -4,7 +4,7 @@ from floodmap.surfaceMapping.processing import LakeMaskProcessor
 if __name__ == '__main__':
     freeze_support()
     lakeMaskProcessor = LakeMaskProcessor()
-    lakeMaskProcessor.process_lakes( format="nc", skip_existing=True )
+    lakeMaskProcessor.process_lakes( format="nc", skip_existing=False )
 
 
 
