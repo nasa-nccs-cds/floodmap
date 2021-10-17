@@ -288,15 +288,17 @@ class WaterMapGenerator(ConfigurableObject):
                 time_values = np.array([ self.get_date_from_filename(os.path.basename(path)) for path in file_paths], dtype='datetime64[ns]')
                 tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
                 if (tile_raster is not None) and tile_raster.size > 0:
-                    if self.yearly_lake_masks is None:
-                        cropped_tiles[location] = tile_raster
-                    else:
-                        lake_mask_interp: xr.DataArray = self.yearly_lake_masks.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
-                        tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
-                        tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
-                        tile_raster_data: np.ndarray = tile_raster.values.flatten()
-                        tile_raster_data[ tile_mask_data ] = self.mask_value + 1
-                        cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
+                    # if self.yearly_lake_masks is None:
+                    #     cropped_tiles[location] = tile_raster
+                    # else:
+                    lake_mask_interp: xr.DataArray = self.yearly_lake_masks.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
+                    tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
+                    nMaskValues = np.count_nonzero( tile_mask.values )
+                    print(f"Masking Lake {lake_id} with mask value {self.mask_value + 1}, nMaskValues = {nMaskValues}")
+                    tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
+                    tile_raster_data: np.ndarray = tile_raster.values.flatten()
+                    tile_raster_data[ tile_mask_data ] = self.mask_value + 1
+                    cropped_tiles[location] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
             except Exception as err:
                 self.logger.error( f"Error reading mpw data for location {location}, first file paths = {file_paths[0:10]} ")
                 for file in file_paths:
