@@ -60,12 +60,11 @@ if __name__ == '__main__':
                     elif not os.path.isfile(nrt_data_file):
                         print(f" NSKIP-{day}", end=''); sys.stdout.flush()
                     else:
-                        print(f" {day}", end='')
                         sys.stdout.flush()
                         legacy_data: xa.DataArray = read_subset( legacy_data_file, lake_mask )
-                        print( f"Read legacy data[{lake_index}][{legacy_data.dims}]: shape= {legacy_data.shape}")
+                        print( f"Read legacy data[{lake_index}][{day}][{legacy_data.dims}]: shape= {legacy_data.shape}")
                         nrt_data: xa.DataArray = read_subset( nrt_data_file, lake_mask )
-                        print(f"Read nrt data[{lake_index}][{nrt_data.dims}]: shape= {nrt_data.shape}")
+                        print(f"Read nrt data[{lake_index}][{day}][{nrt_data.dims}]: shape= {nrt_data.shape}")
                         legacy_nodata_mask = (legacy_data == 0)
                         nrt_nodata_mask = (nrt_data == 255)
                         legacy_nt = legacy_data.size
