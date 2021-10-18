@@ -75,3 +75,4 @@ class TileLocator:
         x_coord = array.coords[array.dims[-1]].values
         y_coord = array.coords[array.dims[-2]].values
         return [ x_coord[0], x_coord[-1], y_coord[0], y_coord[-1] ]
+
