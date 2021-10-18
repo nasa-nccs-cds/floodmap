@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
-            print( lake_mask_specs )
+            waterMapGenerator.lake_mask = lake_mask_specs.get( 'mask', None )
             (floodmap_data, time_values) = waterMapGenerator.get_mpw_data( **lake_mask_specs )
 
             print( f"floodmap_data[{lake_index}]{floodmap_data.dims}, shape = {floodmap_data.shape} {floodmap_data.dims} ")
