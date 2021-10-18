@@ -54,8 +54,10 @@ if __name__ == '__main__':
         lake_masks = LakeMaskProcessor.getLakeMasks()
 
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
+            print( f"Processing Lake {lake_index}: ", end='' )
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
             lake_mask = lake_mask_specs.get( 'mask', None )
+            [x0, x1, y0, y1] = lake_mask.xgeo.extent()
             locations = dataMgr.infer_tile_locations( lake_mask=lake_mask, legacy=True )
             for legacy_tile in locations:
                 pos = get_centroid(legacy_tile)
@@ -75,19 +77,25 @@ if __name__ == '__main__':
                     else:
                         print(f" {day}", end=''); sys.stdout.flush()
                         legacy_data: xa.DataArray = read_subset( legacy_data_file, lake_mask, apply_mask )
-                       # print( f"Read legacy data[{lake_index}][{day}][{legacy_data.dims}]: shape= {legacy_data.shape}")
                         nrt_data: xa.DataArray = read_subset( nrt_data_file, lake_mask, apply_mask )
-                       # print(f"Read nrt data[{lake_index}][{day}][{nrt_data.dims}]: shape= {nrt_data.shape}")
-                        legacy_nodata_mask = (legacy_data == 0)
-                        nrt_nodata_mask = (nrt_data == 255)
-                        legacy_nt = legacy_data.size
-                        legacy_nz = np.count_nonzero(legacy_nodata_mask.values)
-                        nrt_nt = nrt_data.size
-                        nrt_nz = np.count_nonzero(nrt_nodata_mask.values)
-                        legacy_nodata.append(legacy_nz * scale)
-                        legacy_size.append(legacy_nt * scale)
-                        nrt_nodata.append(nrt_nz * scale)
-                        nrt_size.append(nrt_nt * scale)
+
+                        legacy_nodata_mask: xa.DataArray = (legacy_data == 0)
+                        nrt_nodata_mask: xa.DataArray = (nrt_data == 255)
+
+                        legacy_ntot_mask: xa.DataArray = ( legacy_data != 100 )
+                        nrt_ntot_mask: xa.DataArray = ( nrt_data != 100 )
+
+                        legacy_nodata_count = np.count_nonzero( legacy_nodata_mask.values )
+                        nrt_nodata_count = np.count_nonzero( nrt_nodata_mask.values )
+
+                        legacy_ntot_count = np.count_nonzero( legacy_ntot_mask.values )
+                        nrt_ntot_count = np.count_nonzero( nrt_ntot_mask.values )
+
+                        legacy_nodata.append( legacy_nodata_count * scale )
+                        legacy_size.append( legacy_ntot_count * scale )
+                        nrt_nodata.append( nrt_nodata_count * scale )
+                        nrt_size.append( nrt_ntot_count * scale )
+
                 if len(legacy_size) == 0:
                     print(f"\nSkipping tile {legacy_tile}: NO DATA")
                 else:
@@ -95,28 +103,21 @@ if __name__ == '__main__':
                     tile_legacy_size = np.array(legacy_size).sum()
                     tile_nrt_nodata = np.array(nrt_nodata).sum()
                     tile_nrt_size = np.array(nrt_size).sum()
-                    tile_legacy_pctn = tile_legacy_nodata / tile_legacy_size
-                    tile_nrt_pctn = tile_nrt_nodata / tile_nrt_size
-                    print(
-                        f"\n\nTILE {legacy_tile}: LEGACY: {tile_legacy_pctn * 100:.2f}%, NRT: {tile_nrt_pctn * 100:.2f}%, pct_diff: {pct_diff(tile_legacy_pctn, tile_nrt_pctn):.2f}")
-                    output_file.write(
-                        f"{legacy_tile}, {tile_legacy_pctn * 100:.2f}, {tile_nrt_pctn * 100:.2f}, {pct_diff(tile_legacy_pctn, tile_nrt_pctn):.2f}\n")
+                    output_file.write( f"{lake_index}, {tile_legacy_nodata:.2f}, {tile_legacy_size:.2f}, {tile_nrt_nodata:.2f}, {tile_nrt_size:.2f}, {x0:.4f}, {x1:.4f}, {y0:.4f}, {y1:.4f}\n" )
 
                 tot_legacy_nodata.append(tile_legacy_nodata)
                 tot_legacy_size.append(tile_legacy_size)
                 tot_nrt_nodata.append(tile_nrt_nodata)
                 tot_nrt_size.append(tile_nrt_size)
 
-    result_legacy_nodata = np.array(tot_legacy_nodata).sum()
-    result_legacy_size = np.array(tot_legacy_size).sum()
-    result_nrt_nodata = np.array(tot_nrt_nodata).sum()
-    result_nrt_size = np.array(tot_nrt_size).sum()
-    result_legacy_pctn = result_legacy_nodata / result_legacy_size
-    result_nrt_pctn = result_nrt_nodata / result_nrt_size
-    print(
-        f"\n\nRESULT: LEGACY: {result_legacy_pctn * 100:.2f}%, NRT: {result_nrt_pctn * 100:.2f}%, pct_diff: {pct_diff(result_legacy_pctn, result_nrt_pctn):.2f}")
-    output_file.write(
-        f"TOTAL, {result_legacy_pctn * 100:.2f}, {result_nrt_pctn * 100:.2f}, {pct_diff(result_legacy_pctn, result_nrt_pctn):.2f}\n")
+        result_legacy_nodata = np.array(tot_legacy_nodata).sum()
+        result_legacy_size = np.array(tot_legacy_size).sum()
+        result_nrt_nodata = np.array(tot_nrt_nodata).sum()
+        result_nrt_size = np.array(tot_nrt_size).sum()
+        result_legacy_pctn = result_legacy_nodata / result_legacy_size
+        result_nrt_pctn = result_nrt_nodata / result_nrt_size
+        print( f"\n\nRESULT: LEGACY: {result_legacy_pctn * 100:.2f}%, NRT: {result_nrt_pctn * 100:.2f}%, pct_diff: {pct_diff(result_legacy_pctn, result_nrt_pctn):.2f}")
+        output_file.write( f"TOTAL, {result_legacy_pctn * 100:.2f}, {result_nrt_pctn * 100:.2f}, {pct_diff(result_legacy_pctn, result_nrt_pctn):.2f}\n")
 
 
 
