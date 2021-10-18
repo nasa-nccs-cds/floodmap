@@ -41,8 +41,8 @@ class TileLocator:
         else:       return f"{cls.ceil10(lat):03d}S"
 
     @classmethod
-    def infer_tiles_xa( cls, array: xa.DataArray ) -> List[str]:
-        return cls.get_tiles( *array.xgeo.extent() )
+    def infer_tiles_xa( cls, array: xa.DataArray, **kwargs ) -> List[str]:
+        return cls.get_tiles( *array.xgeo.extent(), **kwargs )
 
     @classmethod
     def infer_tiles_gpd( cls, series: gpd.GeoSeries ) -> List[str]:
@@ -58,11 +58,17 @@ class TileLocator:
         return results
 
     @classmethod
-    def get_tiles( cls, xmin, xmax, ymin, ymax ) -> List[str]:
+    def get_tiles_nrt( cls, xmin, xmax, ymin, ymax ) -> List[str]:
         xvals = { cls.hc( xmin ), cls.hc( xmax ) }
         yvals = { cls.vc( ymin ), cls.vc( ymax ) }
         results = [ f"{xval}{yval}" for xval in xvals for yval in yvals ]
         return results
+
+    @classmethod
+    def get_tiles( cls, xmin, xmax, ymin, ymax, **kwargs ) -> List[str]:
+        legacy = kwargs.get('legacy', False)
+        if legacy:  return TileLocator.get_tiles_legacy( xmin, xmax, ymin, ymax )
+        else:       return TileLocator.get_tiles( xmin, xmax, ymin, ymax )
 
     @classmethod
     def get_bounds(cls, array: xa.DataArray ) -> List:

@@ -62,14 +62,13 @@ class MWPDataManager(ConfigurableObject):
     def infer_tile_locations(self, **kwargs ) -> List[str]:
         from .tiles import TileLocator
         lake_mask = kwargs.get( 'lake_mask', None )
-        legacy = kwargs.get( 'legacy', False )
         roi_bounds = kwargs.get('roi', None)
         if lake_mask is not None:
-            return TileLocator.infer_tiles_xa( lake_mask )
+            return TileLocator.infer_tiles_xa( lake_mask, **kwargs )
         if roi_bounds is not None:
             if isinstance( roi_bounds, gpd.GeoSeries ):    rbnds = roi_bounds.geometry.boundary.bounds.values[0]
             else:                                          rbnds = roi_bounds
-            tiles = TileLocator.get_tiles_legacy( *rbnds ) if legacy else TileLocator.get_tiles( *rbnds )
+            tiles = TileLocator.get_tiles( *rbnds, **kwargs )
             self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
             return tiles
         raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
