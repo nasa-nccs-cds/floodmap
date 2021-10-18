@@ -24,7 +24,7 @@ if __name__ == '__main__':
     days = [10,260]
     tot_legacy_nodata, tot_legacy_size = [], []
     tot_nrt_nodata, tot_nrt_size = [], []
-    output_file_path = f"{data_loc}/nodata_stats_comparison.csv"
+    output_file_path = f"{data_loc}/nodata_stats_comparison_tile.csv"
     with open( output_file_path, "w" ) as output_file:
 
         legacy_tiles = [ os.path.basename(tpath) for tpath in glob.glob(f"{data_loc}/???[EW]???[NS]") ]
