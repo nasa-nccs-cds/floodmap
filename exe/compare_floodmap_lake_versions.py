@@ -27,13 +27,15 @@ if __name__ == '__main__':
     tot_legacy_nodata, tot_legacy_size = [], []
     tot_nrt_nodata, tot_nrt_size = [], []
     output_file_path = f"{data_loc}/nodata_stats_comparison.csv"
+    waterMapGenerator = WaterMapGenerator()
+
     with open( output_file_path, "w" ) as output_file:
         lake_masks = LakeMaskProcessor.getLakeMasks()
 
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
 
-            (floodmap_data, time_values) = WaterMapGenerator.get_mpw_data( **lake_mask_specs )
+            (floodmap_data, time_values) = waterMapGenerator.get_mpw_data( **lake_mask_specs )
 
             print( f"floodmap_data[{lake_index}]{floodmap_data.dims}, shape = {floodmap_data.shape} {floodmap_data.dims} ")
             exit(0)
