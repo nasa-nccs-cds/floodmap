@@ -6,6 +6,7 @@ import numpy  as np
 from floodmap.util.configuration import opSpecs
 from floodmap.surfaceMapping.processing import LakeMaskProcessor
 from floodmap.surfaceMapping.lakeExtentMapping import WaterMapGenerator
+from  floodmap.surfaceMapping.mwp import MWPDataManager
 
 def pct_diff( x0: float, x1: float) -> float:
     sgn = 1 if (x1>x0) else -1
@@ -27,7 +28,9 @@ if __name__ == '__main__':
     tot_legacy_nodata, tot_legacy_size = [], []
     tot_nrt_nodata, tot_nrt_size = [], []
     output_file_path = f"{data_loc}/nodata_stats_comparison.csv"
+    dataMgr = MWPDataManager.instance(day=260)
     waterMapGenerator = WaterMapGenerator()
+    opSpecs.set('history_length', (days[1]-days[0]) )
 
     with open( output_file_path, "w" ) as output_file:
         lake_masks = LakeMaskProcessor.getLakeMasks()
