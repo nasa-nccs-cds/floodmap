@@ -68,7 +68,7 @@ class TileLocator:
     def get_tiles( cls, xmin, xmax, ymin, ymax, **kwargs ) -> List[str]:
         legacy = kwargs.get('legacy', False)
         if legacy:  return TileLocator.get_tiles_legacy( xmin, xmax, ymin, ymax )
-        else:       return TileLocator.get_tiles( xmin, xmax, ymin, ymax )
+        else:       return TileLocator.get_tiles_nrt( xmin, xmax, ymin, ymax )
 
     @classmethod
     def get_bounds(cls, array: xa.DataArray ) -> List:
