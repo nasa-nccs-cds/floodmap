@@ -26,7 +26,7 @@ def read_subset( legacy_data_file, lake_mask, apply_mask=False, **kwargs ):
     raster: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
     tile_raster = raster.sel( x=slice(x0, x1), y= slice(y1, y0) )
     if apply_mask:
-        lake_mask_interp: xa.DataArray = lake_mask.squeeze(drop=True).interp_like(tile_raster[0, :, :]).fillna( lake_mask_value)
+        lake_mask_interp: xa.DataArray = lake_mask.squeeze(drop=True).interp_like(tile_raster).fillna( lake_mask_value)
         tile_mask: xa.DataArray = (lake_mask_interp == lake_mask_value)
         tile_mask_data: np.ndarray = np.broadcast_to(tile_mask.values, tile_raster.shape).flatten()
         tile_raster_data: np.ndarray = tile_raster.values.flatten()
