@@ -38,7 +38,7 @@ if __name__ == '__main__':
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
             lake_mask = lake_mask_specs.get( 'mask', None )
-            locations = dataMgr.infer_tile_locations( lake_mask=lake_mask )
+            locations = dataMgr.infer_tile_locations( lake_mask=lake_mask, legacy=True )
             print( locations )
             exit(0)
             pos = get_centroid(legacy_tile)
