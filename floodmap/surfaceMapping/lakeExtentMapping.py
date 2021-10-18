@@ -232,7 +232,7 @@ class WaterMapGenerator(ConfigurableObject):
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result
 
-    def get_mpw_data(self, **kwargs ) -> Tuple[Optional[xr.DataArray],Optional[ np.array]]:
+    def get_mwp_data(self, **kwargs) -> Tuple[Optional[xr.DataArray], Optional[ np.array]]:
         from .mwp import MWPDataManager
         from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
@@ -398,7 +398,7 @@ class WaterMapGenerator(ConfigurableObject):
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
-            (self.floodmap_data, time_values) = self.get_mpw_data(**kwargs)
+            (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
                 self.logger.warning(msg)
@@ -429,7 +429,7 @@ class WaterMapGenerator(ConfigurableObject):
             return None
         else:
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
-            (self.floodmap_data, time_values) = self.get_mpw_data( **kwargs )
+            (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
                 self.logger.warning( msg ); print( msg )

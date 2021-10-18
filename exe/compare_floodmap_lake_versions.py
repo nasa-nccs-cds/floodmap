@@ -19,10 +19,21 @@ def get_centroid( tile: str ) -> Tuple[float,float]:
     if ys == 'S': y = -y
     return ( float(x+5), float(y-5) )
 
-def read_subset( legacy_data_file, lake_mask ):
+def read_subset( legacy_data_file, lake_mask, apply_mask=False, **kwargs ):
+    lake_mask_value = kwargs.get( 'lake_mask_value', 3 )
+    mask_value = kwargs.get( 'result_mask_value', 100 )
     (x0, x1, y0, y1) = lake_mask.xgeo.extent()
     raster: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
-    return raster.sel( x=slice(x0, x1), y= slice(y1, y0) )
+    tile_raster = raster.sel( x=slice(x0, x1), y= slice(y1, y0) )
+    if apply_mask:
+        lake_mask_interp: xa.DataArray = lake_mask.squeeze(drop=True).interp_like(tile_raster[0, :, :]).fillna( lake_mask_value)
+        tile_mask: xa.DataArray = (lake_mask_interp == lake_mask_value)
+        tile_mask_data: np.ndarray = np.broadcast_to(tile_mask.values, tile_raster.shape).flatten()
+        tile_raster_data: np.ndarray = tile_raster.values.flatten()
+        tile_raster_data[tile_mask_data] = mask_value
+        return tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
+    return tile_raster
+
 
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
@@ -30,9 +41,11 @@ if __name__ == '__main__':
     scale = 0.00001
     year = 2021
     days = [10,260]
+    apply_mask = True
     tot_legacy_nodata, tot_legacy_size = [], []
     tot_nrt_nodata, tot_nrt_size = [], []
-    output_file_path = f"{data_loc}/nodata_stats_comparison_lake.csv"
+    mtype = "_masked" if apply_mask else ""
+    output_file_path = f"{data_loc}/nodata_stats_comparison_lake{mtype}.csv"
     dataMgr = MWPDataManager.instance(day=260)
     waterMapGenerator = WaterMapGenerator()
     opSpecs.set('history_length', (days[1]-days[0]) )
@@ -61,9 +74,9 @@ if __name__ == '__main__':
                         print(f" NSKIP-{day}", end=''); sys.stdout.flush()
                     else:
                         print(f" {day}", end=''); sys.stdout.flush()
-                        legacy_data: xa.DataArray = read_subset( legacy_data_file, lake_mask )
+                        legacy_data: xa.DataArray = read_subset( legacy_data_file, lake_mask, apply_mask )
                        # print( f"Read legacy data[{lake_index}][{day}][{legacy_data.dims}]: shape= {legacy_data.shape}")
-                        nrt_data: xa.DataArray = read_subset( nrt_data_file, lake_mask )
+                        nrt_data: xa.DataArray = read_subset( nrt_data_file, lake_mask, apply_mask )
                        # print(f"Read nrt data[{lake_index}][{day}][{nrt_data.dims}]: shape= {nrt_data.shape}")
                         legacy_nodata_mask = (legacy_data == 0)
                         nrt_nodata_mask = (nrt_data == 255)
