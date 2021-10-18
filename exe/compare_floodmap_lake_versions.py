@@ -54,7 +54,7 @@ if __name__ == '__main__':
         lake_masks = LakeMaskProcessor.getLakeMasks()
 
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
-            print( f"Processing Lake {lake_index}: ", end='' )
+            print( f"\nProcessing Lake {lake_index}: ", end='' )
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
             lake_mask = lake_mask_specs.get( 'mask', None )
             [x0, x1, y0, y1] = lake_mask.xgeo.extent()
@@ -82,8 +82,8 @@ if __name__ == '__main__':
                         legacy_nodata_mask: xa.DataArray = (legacy_data == 0)
                         nrt_nodata_mask: xa.DataArray = (nrt_data == 255)
 
-                        legacy_ntot_mask: xa.DataArray = ( legacy_data != 100 )
-                        nrt_ntot_mask: xa.DataArray = ( nrt_data != 100 )
+                        legacy_ntot_mask: xa.DataArray = legacy_data.isin( [0, 2, 3] )
+                        nrt_ntot_mask: xa.DataArray = nrt_data.isin( [1, 2, 3, 255] )
 
                         legacy_nodata_count = np.count_nonzero( legacy_nodata_mask.values )
                         nrt_nodata_count = np.count_nonzero( nrt_nodata_mask.values )
