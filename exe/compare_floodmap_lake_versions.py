@@ -20,9 +20,9 @@ def get_centroid( tile: str ) -> Tuple[float,float]:
     return ( float(x+5), float(y-5) )
 
 def read_subset( legacy_data_file, lake_mask ):
-    (xmin, xmax, ymin, ymax) = lake_mask.xgeo.extent()
+    (x0, x1, y0, y1) = lake_mask.xgeo.extent()
     raster: xa.DataArray = xa.open_rasterio(legacy_data_file).squeeze(drop=True)
-    return raster.sel( x=slice(xmin, xmax), y= slice(ymin, ymax) )
+    return raster.sel( x=slice(x0, x1), y= slice(y1, y0) )
 
 if __name__ == '__main__':
     data_loc = opSpecs.get('results_dir')
