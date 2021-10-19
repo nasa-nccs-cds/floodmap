@@ -48,7 +48,7 @@ class LakeMaskProcessor:
 
     @classmethod
     def getLakeMasks( cls ) -> Dict[int,str]:
-        from floodmap.util.configuration import opSpecs
+        from floodmap_legacy.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
@@ -87,7 +87,7 @@ class LakeMaskProcessor:
             print( "No lakes configured in specs file." )
         return lake_masks
 
-    def process_lakes( self, **kwargs ):
+    def process_lakes1( self, **kwargs ):
         try:
             reproject_inputs = False
             lake_masks = self.getLakeMasks()
@@ -121,6 +121,25 @@ class LakeMaskProcessor:
                 results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), items )
 
             self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {results}")
+        except Exception as err:
+            self.logger.error(f"Exception: {err}")
+            self.logger.error( traceback.format_exc() )
+
+    def process_lakes( self, **kwargs ):
+        try:
+            lake_masks = self.getLakeMasks()
+            parallel = kwargs.get( 'parallel', True )
+            nproc = opSpecs.get( 'ncores', cpu_count() )
+            lake_specs = list(lake_masks.items())
+            lakeMaskSpecs = opSpecs.get("lake_masks", None)
+            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
+            if parallel:
+                with get_context("spawn").Pool(processes=nproc) as p:
+                    self.pool = p
+                    results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), lake_specs )
+            else:
+                results = [ process_lake_mask( lakeMaskSpecs, kwargs, lake_spec ) for lake_spec in lake_specs ]
+            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )

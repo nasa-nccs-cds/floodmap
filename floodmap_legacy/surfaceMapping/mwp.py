@@ -2,11 +2,11 @@ import time, os, wget, sys, pprint, logging
 from typing import List, Union, Dict
 import numpy as np
 from multiprocessing import Pool
-from floodmap.xext.xgeo import XGeo
+from floodmap_legacy.xext.xgeo import XGeo
 from ..util.logs import getLogger
 import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint
-from floodmap.util.configuration import ConfigurableObject
+from floodmap_legacy.util.configuration import ConfigurableObject
 
 def getStreamLogger( level ):
     logger = logging.getLogger (__name__ )

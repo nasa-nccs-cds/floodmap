@@ -1,7 +1,7 @@
-from floodmap.util.plot import plot_arrays
+from floodmap_legacy.util.plot import plot_arrays
 import xarray as xa
 import matplotlib.pyplot as plt
-from floodmap.util.configuration import opSpecs
+from floodmap_legacy.util.configuration import opSpecs
 results_dir = opSpecs.get('results_dir')
 
 result_color_map = {

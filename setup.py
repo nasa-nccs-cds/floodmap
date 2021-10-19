@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setup(name='floodmap',
+setup(name='floodmap_legacy',
       version='1.0.0',
       description='This project computes surface water extents from lake shapefile boundary maps',
       author='Thomas Maxwell',

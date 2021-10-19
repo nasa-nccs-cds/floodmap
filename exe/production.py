@@ -1,5 +1,5 @@
 from multiprocessing import freeze_support
-from floodmap.surfaceMapping.processing import LakeMaskProcessor
+from floodmap_legacy.surfaceMapping.processing import LakeMaskProcessor
 
 if __name__ == '__main__':
     freeze_support()
