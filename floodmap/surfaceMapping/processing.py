@@ -44,6 +44,8 @@ class LakeMaskProcessor:
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
         lake_index: int = int( lakeMaskSpecs.get( "lake_index", -1 ) )
+        lake_indices: List[int] = [ int(lake_indx) for lake_indx in lakeMaskSpecs.get("lake_indices", [] ) ]
+        lake_index_range: Tuple[int, int] = lakeMaskSpecs.get("lake_index_range", (0, 1000))
         files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
         lake_masks = {}
         if files_spec != "UNDEF":
@@ -57,8 +59,10 @@ class LakeMaskProcessor:
                     if lake_index in [-1,index]:
                         lake_masks[ index ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
         elif files_spec.endswith(".tif"):
-            lake_index_range = lakeMaskSpecs.get( "lake_index_range", (0,1000) ) if (lake_index == -1) else (lake_index, lake_index)
-            for iLake in range(lake_index_range[0], lake_index_range[1] + 1):
+            if len(lake_indices) == 0:
+                if ( lake_index >= 0 ): lake_indices = [ lake_index ]
+                else: lake_indices = list( range(lake_index_range[0], lake_index_range[1] + 1) )
+            for iLake in lake_indices:
                 file_path = os.path.join( data_dir, files_spec.format(lake_index=iLake) )
                 if os.path.isfile(file_path):
                     lake_masks[iLake] = file_path

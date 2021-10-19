@@ -3,12 +3,12 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 4
-    skip_existing: True
+    skip_existing: False
     format: 'nc'
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
-        lake_index_range: [ 520, 3000 ]
+        lake_indices: [ 26, 314, 333, 334, 336, 337 ]
         mask: 3
         water: 1
 

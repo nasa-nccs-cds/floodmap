@@ -5,6 +5,7 @@ defaults:
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
 
+
     source:
       url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
       path: 'allData/{collection}/{product}/Recent'

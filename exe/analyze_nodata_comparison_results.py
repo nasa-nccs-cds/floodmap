@@ -10,7 +10,6 @@ def pct_diff( x0: float, x1: float) -> float:
 
 data_loc = opSpecs.get('results_dir')
 stats_filepaths = [ f"{data_loc}/nodata_stats_comparison_lake_masked.csv", f"{data_loc}/nodata_stats_comparison_lake_masked_1.csv" ]
-# 520, 33.36, 52.17, 34.77, 58.31, 29.9457, 30.9996, 50.5665, 51.2417
 legacy_nodata,legacy_size, nrt_nodata, nrt_size = [], [], [], []
 for stats_filepath in stats_filepaths:
     with open( stats_filepath, "r" ) as stats_file:
