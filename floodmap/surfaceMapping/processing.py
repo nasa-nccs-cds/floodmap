@@ -7,7 +7,7 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
-import os, time, collections, traceback, logging, atexit
+import os, time, collections, traceback, logging, atexit, csv
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')
@@ -46,9 +46,51 @@ class LakeMaskProcessor:
         self.pool: Pool = None
         atexit.register( self.shutdown )
 
+    @classmethod
+    def getLakeMasks( cls ) -> Dict[int,str]:
+        from floodmap.util.configuration import opSpecs
+        lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
+        data_dir: str = lakeMaskSpecs.get("basedir", None)
+        data_roi: str = lakeMaskSpecs.get( "roi", None )
+        lake_index: int = int( lakeMaskSpecs.get( "lake_index", -1 ) )
+        lake_indices: List[int] = [ int(lake_indx) for lake_indx in lakeMaskSpecs.get("lake_indices", [] ) ]
+        lake_index_range: Tuple[int, int] = lakeMaskSpecs.get("lake_index_range", (0, 1000))
+        files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
+        lake_masks = {}
+        if files_spec != "UNDEF":
+            assert data_dir is not None, "Must define 'basedir' with 'file' parameter in 'lake_masks' config"
+        if files_spec.endswith(".csv"):
+            file_path = os.path.join(data_dir, files_spec )
+            with open( file_path ) as csvfile:
+                reader = csv.DictReader(csvfile, dialect="nasa")
+                for row in reader:
+                    index = int(row['index'])
+                    if lake_index in [-1,index]:
+                        lake_masks[ index ] = [ float(row['lon0']), float(row['lon1']), float(row['lat0']), float(row['lat1'])  ]
+        elif files_spec.endswith(".tif"):
+            if len(lake_indices) == 0:
+                if ( lake_index >= 0 ): lake_indices = [ lake_index ]
+                else: lake_indices = list( range(lake_index_range[0], lake_index_range[1] + 1) )
+            for iLake in lake_indices:
+                file_path = os.path.join( data_dir, files_spec.format(lake_index=iLake) )
+                if os.path.isfile(file_path):
+                    lake_masks[iLake] = file_path
+                    print(f"  Processing Lake-{iLake} using lake file: {file_path}")
+                else:
+                    print(f"Skipping Lake-{iLake}, NO LAKE FILE")
+        elif files_spec != "UNDEF":
+            raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
+        elif data_roi is not None:
+            index = 0 if lake_index is None else lake_index
+            lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
+        else:
+            print( "No lakes configured in specs file." )
+        return lake_masks
+
     def process_lakes( self, **kwargs ):
         try:
             reproject_inputs = False
+            lake_masks = self.getLakeMasks()
             year_range = opSpecs.get('year_range')
             lakeMaskSpecs = opSpecs.get( "lake_masks", None )
             data_dir = lakeMaskSpecs["basedir"]
