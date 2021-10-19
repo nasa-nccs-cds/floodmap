@@ -105,6 +105,7 @@ if __name__ == '__main__':
                     tile_nrt_nodata = np.array(nrt_nodata).sum()
                     tile_nrt_size = np.array(nrt_size).sum()
                     output_file.write( f"{lake_index}, {tile_legacy_nodata:.2f}, {tile_legacy_size:.2f}, {tile_nrt_nodata:.2f}, {tile_nrt_size:.2f}, {x0:.4f}, {x1:.4f}, {y0:.4f}, {y1:.4f}\n" )
+                    output_file.flush()
 
                 tot_legacy_nodata.append(tile_legacy_nodata)
                 tot_legacy_size.append(tile_legacy_size)
