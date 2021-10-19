@@ -24,8 +24,8 @@ for stats_filepath in stats_filepaths:
             tile_nrt_nodata = float(cols[3]); nrt_nodata.append( tile_nrt_nodata )
             tile_nrt_size = float(cols[4]); nrt_size.append( tile_nrt_size )
 
-legacy_pct_nodata = ( np.ndarray(legacy_nodata).sum() / np.ndarray(legacy_size).sum() ) * 100
-nrt_pct_nodata = ( np.ndarray(nrt_nodata).sum() / np.ndarray(nrt_size).sum() ) * 100
+legacy_pct_nodata = ( np.array(legacy_nodata).sum() / np.array(legacy_size).sum() ) * 100
+nrt_pct_nodata = ( np.array(nrt_nodata).sum() / np.array(nrt_size).sum() ) * 100
 print( f" legacy_pct_nodata = {legacy_pct_nodata}" )
 print( f" nrt_pct_nodata = {nrt_pct_nodata}" )
 print( f" pct_diff = {pct_diff(legacy_pct_nodata,nrt_pct_nodata)}" )
