@@ -45,12 +45,13 @@ if __name__ == '__main__':
     tot_legacy_nodata, tot_legacy_size = [], []
     tot_nrt_nodata, tot_nrt_size = [], []
     mtype = "_masked" if apply_mask else ""
-    output_file_path = f"{data_loc}/nodata_stats_comparison_lake{mtype}.csv"
+    output_file_path = f"{data_loc}/nodata_stats_comparison_lake{mtype}_1.csv"
     dataMgr = MWPDataManager.instance(day=260)
     waterMapGenerator = WaterMapGenerator()
     opSpecs.set('history_length', (days[1]-days[0]) )
 
     with open( output_file_path, "w" ) as output_file:
+        print( f"Writing results to file {output_file_path}")
         lake_masks = LakeMaskProcessor.getLakeMasks()
 
         for ( lake_index, lake_mask_bounds ) in lake_masks.items():
