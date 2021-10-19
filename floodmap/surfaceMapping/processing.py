@@ -52,7 +52,8 @@ class LakeMaskProcessor:
             year_range = opSpecs.get('year_range')
             lakeMaskSpecs = opSpecs.get( "lake_masks", None )
             data_dir = lakeMaskSpecs["basedir"]
-            lake_index_range = lakeMaskSpecs["lake_index_range"]
+            lake_index_range = lakeMaskSpecs.get("lake_index_range",None)
+            lake_indices = lakeMaskSpecs.get("lake_indices",[])
             directorys_spec = lakeMaskSpecs["subdir"]
             files_spec = lakeMaskSpecs["file"]
             print( f" {files_spec}, {lakeMaskSpecs} ")

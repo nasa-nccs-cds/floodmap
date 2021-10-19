@@ -408,9 +408,10 @@ class WaterMapGenerator(ConfigurableObject):
         self.yearly_lake_masks: xr.DataArray = lake_masks
         format = kwargs.get('format','tif')
         results_dir = self._opspecs.get('results_dir')
+        results_file = self._opspecs.get('results_file')
         patched_water_maps_file = f"{results_dir}/lake_{lake_index}_patched_water_masks"
         result_file = patched_water_maps_file + ".tif" if format ==  'tif' else patched_water_maps_file + ".nc"
-        specs_file = f"{results_dir}/lake_{lake_index}_stats_legacy_alt.txt"
+        specs_file = f"{results_dir}/{results_file}"
         if skip_existing and os.path.isfile(specs_file):
             msg = f" --------------------->> Skipping already processed file: {specs_file}"
             print( msg )
