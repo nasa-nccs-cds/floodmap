@@ -6,8 +6,9 @@ from ..util.configuration import opSpecs
 from datetime import datetime
 import xarray as xr
 import numpy as np
+import rioxarray as rio
 from ..util.logs import getLogger
-import os, time, collections, traceback, logging, atexit, csv, rio
+import os, time, collections, traceback, logging, atexit, csv
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')
