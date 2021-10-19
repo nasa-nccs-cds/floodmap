@@ -14,6 +14,7 @@ stats_filepaths = [ f"{data_loc}/nodata_stats_comparison_lake_masked.csv", f"{da
 legacy_nodata,legacy_size, nrt_nodata, nrt_size = [], [], [], []
 for stats_filepath in stats_filepaths:
     with open( stats_filepath, "r" ) as stats_file:
+        print( f"Processing file {stats_filepath}")
         lines = stats_file.readlines()
         for line in lines:
             cols = line.split(",")
