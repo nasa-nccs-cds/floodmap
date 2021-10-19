@@ -47,6 +47,22 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
+    def process_lake_mask(cls, runSpecs: Dict, lake_info: Tuple[int, str]):
+        from .lakeExtentMapping import WaterMapGenerator
+        logger = getLogger(False, logging.DEBUG)
+        (lake_index, lake_mask_bounds) = lake_info
+        try:
+            lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
+            waterMapGenerator = WaterMapGenerator({'lake_index': lake_index, **opSpecs._defaults})
+            waterMapGenerator.process_yearly_lake_masks(lake_index, lake_mask_specs, **runSpecs)
+            return lake_index
+        except Exception as err:
+            msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
+            logger.error(msg);
+            print(msg)
+            write_result_report(lake_index, msg)
+
+    @classmethod
     def getLakeMasks( cls ) -> Dict[int,str]:
         from floodmap_legacy.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
@@ -131,14 +147,13 @@ class LakeMaskProcessor:
             parallel = kwargs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             lake_specs = list(lake_masks.items())
-            lakeMaskSpecs = opSpecs.get("lake_masks", None)
             self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
             if parallel:
                 with get_context("spawn").Pool(processes=nproc) as p:
                     self.pool = p
-                    results = p.map( partial( process_lake_mask, lakeMaskSpecs, kwargs ), lake_specs )
+                    results = p.map( partial( self.process_lake_mask, kwargs ), lake_specs )
             else:
-                results = [ process_lake_mask( lakeMaskSpecs, kwargs, lake_spec ) for lake_spec in lake_specs ]
+                results = [ self.process_lake_mask(  kwargs, lake_spec ) for lake_spec in lake_specs ]
             self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
