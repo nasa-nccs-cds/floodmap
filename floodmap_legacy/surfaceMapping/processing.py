@@ -7,7 +7,7 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
-import os, time, collections, traceback, logging, atexit, csv
+import os, time, collections, traceback, logging, atexit, csv, rio
 
 def write_result_report( lake_index, report: str ):
     results_dir = opSpecs.get('results_dir')
@@ -47,6 +47,19 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
+    def read_lake_mask( cls, lake_index: int, lake_mask: Union[str,Tuple], **kwargs ) -> Dict:
+        rv = dict( mask=None, roi=None, index=lake_index, **kwargs )
+        if isinstance(lake_mask, str):
+            lake_mask: xr.DataArray = rio.open_rasterio(lake_mask).astype(np.dtype('f4'))
+            lake_mask.attrs.update( kwargs )
+            lake_mask.name = f"Lake {lake_index} Mask"
+            rv['mask'] = lake_mask
+            rv['roi'] = lake_mask.xgeo.extent()
+        else:
+            rv['roi'] = lake_mask
+        return rv
+
+    @classmethod
     def process_lake_mask(cls, runSpecs: Dict, lake_info: Tuple[int, str]):
         from .lakeExtentMapping import WaterMapGenerator
         logger = getLogger(False, logging.DEBUG)
@@ -54,7 +67,7 @@ class LakeMaskProcessor:
         try:
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
             waterMapGenerator = WaterMapGenerator({'lake_index': lake_index, **opSpecs._defaults})
-            waterMapGenerator.process_yearly_lake_masks(lake_index, lake_mask_specs, **runSpecs)
+            waterMapGenerator.process_yearly_lake_masks(lake_index, lake_mask_specs['mask'], **runSpecs)
             return lake_index
         except Exception as err:
             msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
