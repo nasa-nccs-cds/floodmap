@@ -421,7 +421,7 @@ class WaterMapGenerator(ConfigurableObject):
         skip_existing = opSpecs.get( 'skip_existing', True )
         format = opSpecs.get('format','tif')
         results_dir = opSpecs.get('results_dir')
-        results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv')
+        results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv').format( lake_index=lake_index )
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
         result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
         if skip_existing and os.path.isfile(result_water_map_file):
