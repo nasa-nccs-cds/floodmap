@@ -19,7 +19,7 @@ for (fmtype, results_file) in results_files.items():
             for iLine in range(35):
                 line = file.readline()
                 if iLine > 0:
-                    (date, water_area_km2, percent_interploated) = line.split(",")
+                    (date, water_area_km2, percent_interploated) = line.split()
                     pct_interp_values.append( float(percent_interploated) )
                     interp_area.append( float(water_area_km2) * float(percent_interploated) / 100 )
     pct_interp_ave = np.array( pct_interp_values ).mean()
