@@ -15,7 +15,7 @@ for (fmtype, results_file) in results_files.items():
     interp_area = []
     for lake_index in lake_indices:
         result_file_path = "/".join( [ results_dir, results_file.format( lake_index=lake_index ) ] )
-        print(f"Processing file = {result_file_path}")
+#        print(f"Processing file = {result_file_path}")
         with open(result_file_path) as file:
             for iLine in range(33):
                 line = file.readline()
