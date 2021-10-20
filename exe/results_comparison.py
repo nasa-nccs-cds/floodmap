@@ -17,7 +17,7 @@ bin_size = water_maps_specs.get( 'bin_size', 8 )
 # opSpecs.get('lake_masks')['lake_index'] = lake_index
 # run_cfg = {}
 
-day_range = [ 6, 275 ]
+day_range = [ 9, 263 ]
 
 if __name__ == '__main__':
     freeze_support()
