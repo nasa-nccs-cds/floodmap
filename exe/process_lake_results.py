@@ -15,12 +15,12 @@ for (fmtype, results_file) in results_files.items():
     interp_area = []
     for lake_index in lake_indices:
         result_file_path = "/".join( [ results_dir, results_file.format( lake_index=lake_index ) ] )
-#        print(f"Processing file = {result_file_path}")
+        print(f"Processing file = {result_file_path}")
         with open(result_file_path) as file:
             for iLine in range(33):
                 line = file.readline()
                 if iLine > 0:
-                    print( f" {lake_index}[{iLine}]: {line}" )
+#                    print( f" {lake_index}[{iLine}]: {line}" )
                     (date, water_area_km2, percent_interploated) = line.split(' ')
                     pct_interp_values.append( float(percent_interploated) )
                     interp_area.append( float(water_area_km2) * float(percent_interploated) / 100 )
