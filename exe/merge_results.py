@@ -23,8 +23,7 @@ def get_rows( cvsreader, nrows  ):
     rows = []
     for iR, row in enumerate(cvsreader):
         rows.append( row )
-        if row.strip().startswith("date"):
-            istart = iR + 1
+        if row[0].strip() == "date":  istart = iR + 1
     return [ rows[i] for i in range( istart, istart+nrows) ]
 
 fmversion = "legacy" # "nrt"
