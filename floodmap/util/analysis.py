@@ -60,6 +60,8 @@ class FloodmapProcessor:
         for fmversion in [ "legacy", 'nrt' ]:
             water_area: xa.DataArray = dsets[fmversion].data_vars['water_area']
             pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp']
+            print(f"water_area: dims={water_area.dims}, shape={water_area.shape}")
+            print(f"pct_interp_array: dims={pct_interp_array.dims}, shape={pct_interp_array.shape}")
 
             water_area_means[fmversion] = self.get_mean( water_area, outliers )
             pct_interp_means[fmversion] = self.get_mean( pct_interp_array, outliers )
