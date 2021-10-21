@@ -18,10 +18,19 @@ def get_timestamp( tstr: str, fmversion: str ) -> int:
     else: raise Exception( f"Unrecognized fmversion: {fmversion}")
     return int( nc.date2num( datetime(int(y), int(m), int(d)), units=units, calendar=calendar ) )
 
+def get_rows( cvsreader, nrows  ):
+    istart = -1
+    rows = []
+    for iR, row in enumerate(cvsreader):
+        rows.append( row )
+        if row.strip().startswith("date"):
+            istart = iR + 1
+    return [ rows[i] for i in range( istart, istart+nrows) ]
+
 fmversion = "legacy" # "nrt"
 print(f"\n **** Processing fmversion = {fmversion} ****\n ")
-stats_file_glob = "lake_*_stats.txt" if fmversion == "nrt" else "lake_*_stats_legacy.txt"
-result_name = f"floodmap_results_{fmversion}"
+stats_file_glob = "lake_*_stats.csv" if fmversion == "nrt" else "lake_*_stats_legacy_alt.csv"
+result_name = f"floodmap_results_{fmversion}_alt"
 result_file = f"{results_dir}/{result_name}.nc"
 lake_data = {}
 timeindex = []
@@ -34,18 +43,19 @@ for filepath in file_list:
         lake_index = int( filepath.split('_')[1] )
         lake_spec = ([],[])
         print(f"Processing file {filepath} for lake {lake_index}")
-        for iR, row in enumerate(csvreader):
-            if (iR > 0) and (iR <= nts):
-                ts: int = get_timestamp(row[0], fmversion)
-                if len(lake_data) == 0:
-                    timeindex.append(ts)
-                elif (ts != timeindex[iR-1]):
-                    print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
-                    break
-                water_area = float( row[1] )
-                pct_interp = float( row[2] )
-                lake_spec[0].append( water_area )
-                lake_spec[1].append( pct_interp )
+        rows = get_rows( csvreader, nts )
+        for iR, row in enumerate(rows):
+            print( f"Processing date[{iR}]: {row[0]}")
+            ts: int = get_timestamp(row[0], fmversion)
+            if len(lake_data) == 0:
+                timeindex.append(ts)
+            elif (ts != timeindex[iR-1]):
+                print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
+                break
+            water_area = float( row[1] )
+            pct_interp = float( row[2] )
+            lake_spec[0].append( water_area )
+            lake_spec[1].append( pct_interp )
 
         if len( lake_spec[0] ) == len( timeindex ):
             lake_data[lake_index] = lake_spec
