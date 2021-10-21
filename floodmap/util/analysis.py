@@ -29,11 +29,12 @@ class FloodmapProcessor:
         else: raise Exception( f"Unrecognized fmversion: {fmversion}")
         return datetime(int(y), int(m), int(d))
 
-    def filter_outliers( self, data: xa.DataArray, outliers: Optional[List[int]] = None ) -> xa.DataArray:
-        return data if (outliers is None) else data.where( np.logical_not(data.lake.isin(outliers)), drop = True  )
+    def filter_outliers( self, data: xa.DataArray, lakes: Optional[np.ndarray] = None ) -> xa.DataArray:
+        return data if (lakes is None) else data.where( data.lake.isin(lakes), drop = True  )
 
-    def get_mean(self, data: xa.DataArray, outliers: Optional[List[int]] = None ) -> xa.DataArray:
-        fdata = self.filter_outliers( data, outliers )
+    def get_mean(self, data: xa.DataArray, lakes: Optional[np.ndarray] = None ) -> float:
+        fdata = self.filter_outliers( data, lakes )
+        print( f"Processing mean with shape {fdata.shape} ")
         return fdata.mean(skipna=True).values.tolist()
 
     def get_lake_version_means(self, fmversion: str, varname: str ) -> xa.DataArray:
@@ -52,20 +53,20 @@ class FloodmapProcessor:
         dsets: Dict[str, xa.Dataset] = self.get_datasets()
         return  { fmversion: self.filter_outliers( dsets[fmversion].data_vars[ name ], outliers ) for fmversion in [ "legacy", 'nrt' ] }
 
-    def get_means(self, outliers: Optional[List[int]] = None ):
+    def get_means(self, lakes: Optional[np.ndarray] = None ):
         water_area_means = {}
         interp_area_means = {}
         pct_interp_means = {}
         dsets = self.get_datasets()
+        if lakes is None:
+            lakes = dsets["legacy"].data_vars['water_area'].coords['lake'].values
         for fmversion in [ "legacy", 'nrt' ]:
             water_area: xa.DataArray = dsets[fmversion].data_vars['water_area']
             pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp']
-            print(f"water_area: dims={water_area.dims}, shape={water_area.shape}")
-            print(f"pct_interp_array: dims={pct_interp_array.dims}, shape={pct_interp_array.shape}")
 
-            water_area_means[fmversion] = self.get_mean( water_area, outliers )
-            pct_interp_means[fmversion] = self.get_mean( pct_interp_array, outliers )
-            interp_area_means[fmversion] = self.get_mean( pct_interp_array * water_area, outliers )
+            water_area_means[fmversion] = self.get_mean( water_area, lakes )
+            pct_interp_means[fmversion] = self.get_mean( pct_interp_array, lakes )
+            interp_area_means[fmversion] = self.get_mean( pct_interp_array * water_area, lakes )
 
         print(f"\nMeans: {water_area_means}")
         print(f"Pct DIFF: {self.pct_diff(*list(water_area_means.values())):.2f} %")
