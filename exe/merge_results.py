@@ -48,8 +48,8 @@ for filepath in file_list:
             ts: int = get_timestamp(row[0], fmversion)
             if len(lake_data) == 0:
                 timeindex.append(ts)
-            elif (ts != timeindex[iR-1]):
-                print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR-1]})" )
+            elif (ts != timeindex[iR]):
+                print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR]})" )
                 break
             water_area = float( row[1] )
             pct_interp = float( row[2] )
