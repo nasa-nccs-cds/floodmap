@@ -61,8 +61,8 @@ class FloodmapProcessor:
         if lakes is None:
             lakes = dsets["legacy"].data_vars['water_area'].coords['lake'].values
         for fmversion in [ "legacy", 'nrt' ]:
-            water_area: xa.DataArray = dsets[fmversion].data_vars['water_area'][:31,:]
-            pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp'][:31,:]
+            water_area: xa.DataArray = dsets[fmversion].data_vars['water_area'][:30,:]
+            pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp'][:30,:]
 
             water_area_means[fmversion] = self.get_mean( water_area, lakes )
             pct_interp_means[fmversion] = self.get_mean( pct_interp_array, lakes )
