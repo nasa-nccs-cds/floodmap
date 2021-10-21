@@ -37,30 +37,32 @@ dset = nc.Dataset(result_file, 'w', format='NETCDF4')
 file_list = glob( f"{results_dir}/{stats_file_glob}")
 
 for filepath in file_list:
-    with open(filepath, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-        lake_index = int( filepath.split('_')[1] )
-        lake_spec = ([],[])
-        print(f"Processing file {filepath} for lake {lake_index}")
-        rows = get_rows( csvreader, nts )
-        for iR, row in enumerate(rows):
-            print( f"Processing date[{iR}]: {row[0]}")
-            ts: int = get_timestamp(row[0], fmversion)
-            if len(lake_data) == 0:
-                timeindex.append(ts)
-            elif (ts != timeindex[iR]):
-                print( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR]})" )
-                break
-            water_area = float( row[1] )
-            pct_interp = float( row[2] )
-            lake_spec[0].append( water_area )
-            lake_spec[1].append( pct_interp )
+    lake_index = int(filepath.split('_')[1])
+    try:
+        with open(filepath, newline='') as csvfile:
+            csvreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+            lake_spec = ([],[])
+            print(f"Processing file {filepath} for lake {lake_index}")
+            rows = get_rows( csvreader, nts )
+            for iR, row in enumerate(rows):
+    #            print( f"Processing date[{iR}]: {row[0]}")
+                ts: int = get_timestamp(row[0], fmversion)
+                if len(lake_data) == 0:
+                    timeindex.append(ts)
+                elif (ts != timeindex[iR]):
+                    raise Exception( f"Mismatched time value[{iR}] for lake {lake_index} ({ts} vs {timeindex[iR]})" )
+                water_area = float( row[1] )
+                pct_interp = float( row[2] )
+                lake_spec[0].append( water_area )
+                lake_spec[1].append( pct_interp )
 
-        if len( lake_spec[0] ) == len( timeindex ):
-            lake_data[lake_index] = lake_spec
-        else:
-            print( f"Skipping lake {lake_index} due to faulty data")
-            if len(lake_data) == 0: timeindex = []
+            if len( lake_spec[0] ) == len( timeindex ):
+                lake_data[lake_index] = lake_spec
+            else:
+                raise Exception( f"Faulty data")
+    except Exception as err:
+        print( f"Skipping lake {lake_index} due to err: {err}" )
+        if len(lake_data) == 0: timeindex = []
 
 
 lakeindex = sorted(lake_data.keys())
