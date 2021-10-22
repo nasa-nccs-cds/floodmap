@@ -436,7 +436,7 @@ class WaterMapGenerator(ConfigurableObject):
                 self.logger.warning( msg ); print( msg )
                 return None
             else:
-                times = [ np.datetime64(datetime.strptime(f"{timestr}", '%Y%j').date()) for timestr in time_values ]
+                times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
                 nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
                 water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
                 nrt_input_data.to_netcdf( water_data_file )
