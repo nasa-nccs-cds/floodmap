@@ -184,7 +184,7 @@ class MWPDataManager(ConfigurableObject):
         from floodmap.util.configuration import opSpecs
         water_maps_opspec = opSpecs.get('water_map', {})
         download_only = kwargs.get('download_only',False)
-        history_length = water_maps_opspec.get( 'history_length', 30 )
+        history_length = water_maps_opspec.get( 'history_length', 260 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", **kwargs )
         this_year = self.getParameter("year", **kwargs )
@@ -218,7 +218,7 @@ class MWPDataManager(ConfigurableObject):
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
-        if len(dstrs): print( f"Downloading MWP data for dates: {dstrs}" )
+        if len(dstrs): print( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
         if len(tstrs) and not download_only: print( f"Reading MWP data for dates: {tstrs}" )
         return files
 
