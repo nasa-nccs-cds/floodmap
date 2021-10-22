@@ -315,9 +315,6 @@ class WaterMapGenerator(ConfigurableObject):
         cropped_data.attrs.update( roi = self.roi_bounds )
         cropped_data = cropped_data.persist()
         self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
-        mwp_maps_file = os.path.join(results_dir, f"lake_{lake_id}_mwp_data.nc")
-        cropped_data.to_netcdf(mwp_maps_file)
-        print(f"Writing cropped mwp data to {mwp_maps_file}")
         return cropped_data, time_values
 
     def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray] ) -> xr.DataArray:
@@ -426,6 +423,10 @@ class WaterMapGenerator(ConfigurableObject):
             if water_mapping_data is None:
                 self.logger.warning( "No water mapping data! ABORTING ")
                 return None
+            else:
+                mwp_maps_file = os.path.join(results_dir, f"lake_{lake_index}_legacy_input_data.nc")
+                water_mapping_data.to_netcdf(mwp_maps_file)
+                print(f"Writing cropped input data to {mwp_maps_file}")
             wmd_y_coord, wmd_x_coord = water_mapping_data.coords[ water_mapping_data.dims[-2]].values, water_mapping_data.coords[water_mapping_data.dims[-1]].values
             self.roi_bounds = [x_coord[0], x_coord[-1], y_coord[0], y_coord[-1]]
             wmd_roi_bounds = [wmd_x_coord[0], wmd_x_coord[-1], wmd_y_coord[0], wmd_y_coord[-1]]
