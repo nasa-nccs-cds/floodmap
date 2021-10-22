@@ -435,6 +435,9 @@ class WaterMapGenerator(ConfigurableObject):
                 msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
                 self.logger.warning( msg ); print( msg )
                 return None
+            else:
+                water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
+                self.floodmap_data.to_netcdf( water_data_file )
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values, **kwargs )

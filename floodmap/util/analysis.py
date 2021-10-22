@@ -12,6 +12,7 @@ class FloodmapProcessor:
     def __init__( self, results_dir: str ):
         self.results_dir = results_dir
         self._datasets = None
+        self._tsmax = 30
 
     def results_file( self, fmversion: str):
         result_name = f"floodmap_results_{fmversion}_alt"
@@ -29,11 +30,12 @@ class FloodmapProcessor:
         else: raise Exception( f"Unrecognized fmversion: {fmversion}")
         return datetime(int(y), int(m), int(d))
 
-    def filter_outliers( self, data: xa.DataArray, lakes: Optional[np.ndarray] = None ) -> xa.DataArray:
-        return data if (lakes is None) else data.where( data.lake.isin(lakes), drop = True  )
+    def filter_shape(self, data: xa.DataArray, lakes: Optional[np.ndarray] = None) -> xa.DataArray:
+        result = data if (lakes is None) else data.where( data.lake.isin(lakes), drop = True  )
+        return result[:self._tsmax,:]
 
     def get_mean(self, data: xa.DataArray, lakes: Optional[np.ndarray] = None ) -> float:
-        fdata = self.filter_outliers( data, lakes )
+        fdata = self.filter_shape(data, lakes)
         print( f"Processing mean with shape {fdata.shape} ")
         return fdata.mean(skipna=True).values.tolist()
 
@@ -49,9 +51,9 @@ class FloodmapProcessor:
             self._datasets = { fmversion: xa.open_dataset( self.results_file(fmversion) ) for fmversion in ["legacy", 'nrt'] }
         return self._datasets
 
-    def get_vars(self, name: str, outliers: Optional[List[int]] = None )-> Dict[str,xa.DataArray]:
+    def get_vars(self, name: str, lakes: Optional[np.ndarray] = None )-> Dict[str,xa.DataArray]:
         dsets: Dict[str, xa.Dataset] = self.get_datasets()
-        return  { fmversion: self.filter_outliers( dsets[fmversion].data_vars[ name ], outliers ) for fmversion in [ "legacy", 'nrt' ] }
+        return  {fmversion: self.filter_shape(dsets[fmversion].data_vars[ name], lakes) for fmversion in ["legacy", 'nrt']}
 
     def get_means(self, lakes: Optional[np.ndarray] = None ):
         water_area_means = {}
@@ -61,8 +63,8 @@ class FloodmapProcessor:
         if lakes is None:
             lakes = dsets["legacy"].data_vars['water_area'].coords['lake'].values
         for fmversion in [ "legacy", 'nrt' ]:
-            water_area: xa.DataArray = dsets[fmversion].data_vars['water_area'][:30,:]
-            pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp'][:30,:]
+            water_area: xa.DataArray = dsets[fmversion].data_vars['water_area']
+            pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp']
 
             water_area_means[fmversion] = self.get_mean( water_area, lakes )
             pct_interp_means[fmversion] = self.get_mean( pct_interp_array, lakes )
@@ -76,9 +78,9 @@ class FloodmapProcessor:
         print(f"Pct DIFF: {self.pct_diff(*list(interp_area_means.values())):.2f} %")
         return dict( water_area=water_area_means, interp_area=interp_area_means, pct_interp=pct_interp_means )
 
-    def get_interp_diff( self, outliers: Optional[List[int]] = None ):
-        water_vars: Dict[str, xa.DataArray] = self.get_vars('water_area', outliers )
-        interp_vars: Dict[str, xa.DataArray] = self.get_vars('pct_interp', outliers )
+    def get_interp_diff( self, lakes: Optional[np.ndarray] = None ):
+        water_vars: Dict[str, xa.DataArray] = self.get_vars('water_area', lakes )
+        interp_vars: Dict[str, xa.DataArray] = self.get_vars('pct_interp', lakes )
         lake_interp_means = {}
         water_area_means = {}
         for fmversion in ["legacy", 'nrt']:
