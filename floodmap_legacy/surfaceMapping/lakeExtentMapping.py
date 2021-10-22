@@ -424,7 +424,7 @@ class WaterMapGenerator(ConfigurableObject):
                 self.logger.warning( "No water mapping data! ABORTING ")
                 return None
             else:
-                times = [ np.datetime64(datetime.strptime(f"{timestr}", '%Y%j').date()) for timestr in time_values ]
+                times = [ np.datetime64(timestr) for timestr in time_values ] # datetime.strptime(f"{timestr}", '%Y%j').date()
                 legacy_input_data = water_mapping_data.assign_coords( time = np.array( times, dtype='datetime64' ) )
                 mwp_maps_file = os.path.join(results_dir, f"lake_{lake_index}_legacy_input_data.nc")
                 legacy_input_data.to_netcdf(mwp_maps_file)
