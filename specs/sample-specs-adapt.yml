@@ -21,7 +21,7 @@ defaults:
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
       archive_tiles: 'current'
       day: 263
-      history_length: 360
+      history_length: 260
 
     water_maps:
         threshold: 0.5
