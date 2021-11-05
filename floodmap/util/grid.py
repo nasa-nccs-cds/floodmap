@@ -8,7 +8,6 @@ from osgeo import gdal, gdalconst, ogr, osr
 from pyproj import Proj, transform
 from .crs import CRS
 import xarray as xr
-import utm
 gdal.UseExceptions()
 
 class GDALGrid(object):

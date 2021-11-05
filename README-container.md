@@ -1,6 +1,5 @@
 # floodmap
-This project computes surface water extents from lake shapefile boundary maps.  It uses the NRT Global Flood Mapping products produced from the LANCE-MODIS data processing system at NASA Goddard to compute the probability of water in each spatial cell within each shapefile boundary map.   It then thresholds this probability to produce water mask files.
-
+This project computes surface water extents from lake geotiff mask files.  It uses the NRT Global Flood Mapping products produced from the LANCE-MODIS data processing system at NASA Goddard to compute the probability of water in each spatial cell within each shapefile boundary map.   It then thresholds this probability to produce water mask files.
 
 ### Install floodmap
 
@@ -8,7 +7,7 @@ Retrieve the container from NASA NOMAD Large File Transfer Service (forward invi
 
 ### Configure execution
 
-1. Copy the [sample-specs](https://github.com/nasa-nccs-cds/floodmap/blob/v0/specs/sample_specs-v0.yml) file to a local location (e.g. ~/specs.yml)
+1. Copy the [sample-specs](https://github.com/nasa-nccs-cds/floodmap/blob/v0/specs/sample_specs-v1.yml) file to a local location (e.g. ~/specs.yml)
 2. Edit the file to reflect your local confioguration.   Explanations of the various parameters can be found in the user guide (see below).
 
 ### Run floodmap
@@ -17,7 +16,7 @@ Retrieve the container from NASA NOMAD Large File Transfer Service (forward invi
 >> singularity run ilab-floodmap-1.0.0.simg python /usr/local/floodmap/exe/production.py ~/specs.yml
 ```
 ### Documentation
-The floodmap user guide is found at [nasa-nccs-cds/floodmap](https://github.com/nasa-nccs-cds/floodmap/blob/master/docs/floodmap.pdf)
+The floodmap user guide is found at [nasa-nccs-cds/floodmap](https://github.com/nasa-nccs-cds/floodmap/blob/v0/docs/floodmap.docx)
 
 ### Notes
 

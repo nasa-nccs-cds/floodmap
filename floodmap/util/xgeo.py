@@ -6,7 +6,7 @@ from osgeo import osr, gdalconst, gdal
 from pyproj import Proj, transform
 from .grid import GDALGrid
 from shapely.geometry import Polygon
-import xarray as xr, regionmask, utm
+import xarray as xr, regionmask
 from .xext import XExtension
 import rasterio
 from rasterio.warp import reproject, Resampling, transform, calculate_default_transform
