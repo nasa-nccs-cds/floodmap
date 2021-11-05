@@ -248,7 +248,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
-        dataMgr.download_mpw_data( locations=locations, download_only=True, **source_specs )
+        dataMgr.download_mpw_data( locations=locations, **source_specs )
         cropped_tiles: Dict[str,xr.DataArray] = {}
         time_values = None
         file_paths = None

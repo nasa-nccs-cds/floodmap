@@ -109,16 +109,18 @@ class LakeMaskProcessor:
             lake_masks = self.getLakeMasks()
             parallel = kwargs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
+            download_only = opSpecs.get('download_only', False)
             lake_specs = list(lake_masks.items())
             self.update_floodmap_archive()
-            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
-            if parallel:
-                with get_context("spawn").Pool(processes=nproc) as p:
-                    self.pool = p
-                    results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
-            else:
-                results = [ LakeMaskProcessor.process_lake_mask( kwargs, lake_spec ) for lake_spec in lake_specs ]
-            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
+            if not download_only:
+                self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
+                if parallel:
+                    with get_context("spawn").Pool(processes=nproc) as p:
+                        self.pool = p
+                        results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
+                else:
+                    results = [ LakeMaskProcessor.process_lake_mask( kwargs, lake_spec ) for lake_spec in lake_specs ]
+                self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )

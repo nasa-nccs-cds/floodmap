@@ -4,6 +4,7 @@ defaults:
     log_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Logs"
     ncores: 1
     skip_existing: True
+    download_only: False
     format: 'tif'
     lake_masks:
       roi:    29.2812,  29.9303, -0.7261, -0.0520  # 29.2812,  29.9303, -0.7261, -0.0520

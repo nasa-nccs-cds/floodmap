@@ -5,6 +5,7 @@ defaults:
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 4
     skip_existing: False
+    download_only: False
     format: 'nc'
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
