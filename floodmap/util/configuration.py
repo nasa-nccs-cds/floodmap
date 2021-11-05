@@ -1,4 +1,4 @@
-import osr
+from osgeo import osr
 from shapely.geometry import Point
 import xarray as xr
 import string, random, json

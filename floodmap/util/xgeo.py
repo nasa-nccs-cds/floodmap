@@ -43,8 +43,8 @@ class XGeo(XExtension):
         counts = ( [( self._obj == cval ).sum(dim=[self.x_coord,self.y_coord],keep_attrs=True) for cval in values] )
         return xr.concat( counts, 'counts' ).transpose()
 
-    def regionmask( self, name: str, poly: Polygon ) -> regionmask.Region_cls:
-        return regionmask.Region_cls( 0, name, name, poly )
+    def regionmask( self, name: str, poly: Polygon ) -> regionmask.Regions:
+        return regionmask.Regions( [poly], name=name )
 
     def crop_to_poly(self, poly: Polygon, buffer: float = 0 ) -> xr.DataArray:
         return self.crop( *poly.envelope.bounds, buffer )
