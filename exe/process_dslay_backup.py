@@ -16,9 +16,13 @@ def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
     product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
     result_path = f"{archive_dir}/{outpath}/{result_file}"
-    command = f"cd {fdir}; gdal_translate {product} {result_path} -q -co 'COMPRESS=DEFLATE'"
-    rv = os.system(command)
-    print(f" *** [{rv}]->      {outpath}:  {result_file}")
+    if os.path.isfile( result_path ):
+        rv = 0
+        print( f" *** SKIPPING EXISTING {outpath}: {result_file}" )
+    else:
+        command = f"cd {fdir}; gdal_translate {product} {result_path} -q -co 'COMPRESS=DEFLATE'"
+        rv = os.system(command)
+        print( f" *** [{rv}]->      {outpath}:  {result_file}" )
     return rv
 
 if __name__ == '__main__':
