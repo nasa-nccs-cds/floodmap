@@ -149,7 +149,8 @@ class MWPDataManager(ConfigurableObject):
         cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
         stream = os.popen(cmd)
         output = stream.read()
-        print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+        print(f"Downloading url {target_url} to dir {result_dir}: result = {output}:")
+        print( cmd )
 
     def global_location_list(self):
         locs = []
