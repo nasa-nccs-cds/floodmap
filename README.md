@@ -32,7 +32,7 @@ Download script for archived files for tile h20v09:
 #### Configure execution
 ```
 (floodmap)>> cp ./specs/sample-specs.yml ~/specs.yml
-(floodmap)>> emacs -nw ~/specs.yml
+(floodmap)>> pico ~/specs.yml
 ```
 
 #### Run floodmap
