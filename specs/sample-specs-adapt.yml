@@ -4,13 +4,12 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 4
-    skip_existing: False
+    skip_existing: True
     download_only: True
     format: 'nc'
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
-        lake_indices: [ 26, 314, 333, 334, 336, 337 ]
         mask: 3
         water: 1
 
@@ -21,7 +20,6 @@ defaults:
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
       archive_tiles: 'current'
-      day: 263
       history_length: 260
 
     water_maps:
