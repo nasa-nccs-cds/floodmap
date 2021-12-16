@@ -70,6 +70,7 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
         tvals = list(arrays.keys())
         t0, t1, a0 = tvals[0], tvals[-1], arrays[tvals[0]]
         tick_labels, cmap_specs = create_cmap( colors )
+        print(f"a0 = {a0}")
         image = a0.plot.imshow( ax=ax, **plot_coords, **cmap_specs )
         sax = plt.axes([0.2, 0.01, 0.6, 0.03])   # [left, bottom, width, height]
         slider = Slider( sax, 'Time index', t0, t1, t0, valfmt='%i', valstep=1 )
