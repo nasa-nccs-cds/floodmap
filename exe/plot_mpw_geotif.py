@@ -5,8 +5,8 @@ from floodmap.util.plot import plot_array, floodmap_colors, plot_arrays
 from floodmap.util.configuration import opSpecs
 results_dir = opSpecs.get('results_dir')
 
-day_range = [ 100, 260 ]
-tile = "h20v09"
+day_range = [ 334, 348 ]
+tile = "h18v02"
 rasters = {}
 
 for day in range( *day_range ):
