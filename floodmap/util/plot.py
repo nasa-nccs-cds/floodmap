@@ -1,5 +1,5 @@
 import xarray
-import xarray as xr
+import traceback, xarray as xr
 import numpy as np
 from ..util.logs import getLogger
 from typing import List, Union, Tuple, Dict, Optional
@@ -52,6 +52,7 @@ def plot_array( ax, array: xr.DataArray, **kwargs ):
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
+        logger.error( traceback.format_exc() )
 
 def update_cursor( cursor: MultiCursor ):
     if cursor is not None:
@@ -115,6 +116,7 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
+        logger.error(traceback.format_exc())
 
 
 def plot_floodmap_arrays( title: str, array: xr.DataArray ):
@@ -139,3 +141,4 @@ def plot_floodmap_arrays( title: str, array: xr.DataArray ):
     except Exception as err:
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
+        logger.error(traceback.format_exc())
