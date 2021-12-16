@@ -1,5 +1,6 @@
 import rioxarray as rxr
 import os
+import matplotlib.pyplot as plt
 import xarray as xa
 from floodmap.util.plot import plot_array, floodmap_colors, plot_arrays
 from floodmap.util.configuration import opSpecs
@@ -16,7 +17,9 @@ for day in range( *day_range ):
         raster: xa.DataArray = rxr.open_rasterio( input_file ).squeeze( drop=True )
         rasters[day] = raster.where( raster < 10, 4 )
 
-plot_arrays( f"Floodmap: tile={tile}", rasters, colors=floodmap_colors )
+figure, ax = plt.subplots()
+plot_arrays( ax, rasters, title=f"Floodmap: tile={tile}", colors=floodmap_colors )
+plt.show()
 
 
 # MCDWD_L3_F2_NRT.A2021240.h20v09.061.tif
