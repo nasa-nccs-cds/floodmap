@@ -16,7 +16,7 @@ for day in range( *day_range ):
         raster: xa.DataArray = rxr.open_rasterio( input_file ).squeeze( drop=True )
         rasters[day] = raster.where( raster < 10, 4 )
 
-plot_arrays( f"Floodmap: tile={tile}", rasters, floodmap_colors )
+plot_arrays( f"Floodmap: tile={tile}", rasters, colors=floodmap_colors )
 
 
 # MCDWD_L3_F2_NRT.A2021240.h20v09.061.tif
