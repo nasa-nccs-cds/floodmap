@@ -153,7 +153,7 @@ class MWPDataManager(ConfigurableObject):
 
     @classmethod
     def download(cls, target_url: str, result_dir: str, token: str, verbose: bool ):
-        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}" &'
+        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
         stream = os.popen(cmd)
         output = stream.read()
         if verbose:

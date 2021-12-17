@@ -89,24 +89,24 @@ class LakeMaskProcessor:
         dataMgr.download_mpw_data( **source_specs )
         dataMgr.delete_old_files( )
 
-    def get_pct_nodata( self, **kwargs ):
-        try:
-            lake_masks = self.getLakeMasks()
-            parallel = kwargs.get( 'parallel', True )
-            nproc = opSpecs.get( 'ncores', cpu_count() )
-            lake_specs = list(lake_masks.items())
-            self.update_floodmap_archive()
-            self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
-            if parallel:
-                with get_context("spawn").Pool(processes=nproc) as p:
-                    self.pool = p
-                    results = p.map( partial( LakeMaskProcessor.compute_pct_nodata, kwargs ), lake_specs )
-            else:
-                results = [ LakeMaskProcessor.compute_pct_nodata( kwargs, lake_spec ) for lake_spec in lake_specs ]
-            self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
-        except Exception as err:
-            self.logger.error(f"Exception: {err}")
-            self.logger.error( traceback.format_exc() )
+    # def get_pct_nodata( self, **kwargs ):
+    #     try:
+    #         lake_masks = self.getLakeMasks()
+    #         parallel = kwargs.get( 'parallel', True )
+    #         nproc = opSpecs.get( 'ncores', cpu_count() )
+    #         lake_specs = list(lake_masks.items())
+    #         self.update_floodmap_archive()
+    #         self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
+    #         if parallel:
+    #             with get_context("spawn").Pool(processes=nproc) as p:
+    #                 self.pool = p
+    #                 results = p.map( partial( LakeMaskProcessor.compute_pct_nodata, kwargs ), lake_specs )
+    #         else:
+    #             results = [ LakeMaskProcessor.compute_pct_nodata( kwargs, lake_spec ) for lake_spec in lake_specs ]
+    #         self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
+    #     except Exception as err:
+    #         self.logger.error(f"Exception: {err}")
+    #         self.logger.error( traceback.format_exc() )
 
     def process_lakes( self, **kwargs ):
         try:
