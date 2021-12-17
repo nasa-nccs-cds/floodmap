@@ -40,6 +40,8 @@ class LakeMaskProcessor:
     @classmethod
     def getLakeMasks( cls ) -> Dict[int,str]:
         from floodmap.util.configuration import opSpecs
+        print("Retreiving Lake masks ", end='', flush=True )
+        logger = getLogger(True)
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
@@ -66,9 +68,10 @@ class LakeMaskProcessor:
                 file_path = os.path.join( data_dir, files_spec.format(lake_index=iLake) )
                 if os.path.isfile(file_path):
                     lake_masks[iLake] = file_path
-                    print(f"  Processing Lake-{iLake} using lake file: {file_path}")
+                    logger.info(f"  Retreiving Lake-{iLake} using lake file: {file_path}")
+                    print('.', end='', flush=True)
                 else:
-                    print(f"Skipping Lake-{iLake}, NO LAKE FILE")
+                    logger.info(f"Skipping Lake-{iLake}, NO LAKE FILE")
         elif files_spec != "UNDEF":
             raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:
