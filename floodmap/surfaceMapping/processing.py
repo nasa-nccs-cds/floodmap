@@ -79,6 +79,7 @@ class LakeMaskProcessor:
             lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
         else:
             print( "No lakes configured in specs file." )
+        print(f"\nRetreived {len(lake_masks)} Lake masks ")
         return lake_masks
 
     def update_floodmap_archive( self ):

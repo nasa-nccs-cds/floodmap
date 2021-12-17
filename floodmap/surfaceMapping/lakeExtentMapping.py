@@ -237,10 +237,10 @@ class WaterMapGenerator(ConfigurableObject):
         source_specs: Dict = opSpecs.get( 'source' )
         self.logger.info( "reading mpw data")
         lake_id = kwargs.get('index')
-        print( f"ROI for lake {lake_id}: {self.roi_bounds}" )
         t0 = time.time()
         dataMgr = MWPDataManager.instance()
         locations = dataMgr.infer_tile_locations( roi=self.roi_bounds, lake_mask = self.lake_mask )
+        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, locations={locations}" )
 
         if not locations:
             self.logger.error( "NO LOCATION DATA.  ABORTING")
@@ -275,7 +275,7 @@ class WaterMapGenerator(ConfigurableObject):
                         if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
                     exc = traceback.format_exc()
                     msg = f"Error reading mpw data for location {location} \n  Error: {err}: \n{exc}"
-                    self.logger.error( msg ); print( msg )
+                    self.logger.error( msg )
                     XRio.print_array_dims( file_paths )
                 except OSError: pass
         nTiles = len( cropped_tiles.keys() )

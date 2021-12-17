@@ -75,11 +75,8 @@ class MWPDataManager(ConfigurableObject):
 
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
-        archive_tiles = kwargs.get( 'archive_tiles','global' )
-        locations = kwargs.get('locations', [])
-        print( f"Accessing floodmap data for locations: {locations}")
-        if (archive_tiles == "global") and (len(locations) == 0):
-            locations = self.get_valid_locations()
+        locations = kwargs.get('locations', self.get_valid_locations() )
+        print(f"Accessing floodmap data for locations: {locations}")
         for location in locations:
             self.get_tile( location, **kwargs )
 
@@ -156,12 +153,11 @@ class MWPDataManager(ConfigurableObject):
 
     @classmethod
     def download(cls, target_url: str, result_dir: str, token: str, verbose: bool ):
-        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}" &'
         stream = os.popen(cmd)
         output = stream.read()
         if verbose:
-            print(f"Downloading url {target_url} to dir {result_dir}: result = {output}:")
-            print( cmd )
+            print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
     def global_location_list(self):
         locs = []
@@ -218,7 +214,7 @@ class MWPDataManager(ConfigurableObject):
             dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
-                    if verbose: print(f" Local NRT file does not exist: {target_file_path}")
+                    self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     target_url = self.data_source_url + f"/{path}/{target_file}"
                     self.download( target_url, location_dir, token, verbose )
                     if os.path.exists(target_file_path):
@@ -226,13 +222,13 @@ class MWPDataManager(ConfigurableObject):
                         files[dtime] = target_file_path
                         dstrs.append(timestr)
                     elif verbose:
-                        print( f" Can't access NRT file: {target_file_path}")
+                        self.logger( f" Can't access NRT file: {target_file_path}")
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
-        if len(dstrs): print( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
-        if len(tstrs): print( f"Reading MWP data for dates: {tstrs}" )
+        if len(dstrs): self.logger( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
+        if len(tstrs): self.logger( f"Reading MWP data for dates: {tstrs}" )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:
