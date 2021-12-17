@@ -5,7 +5,7 @@ defaults:
     log_dir: "/att/pubrepo/ILAB/logs/tpmaxwel"
     ncores: 4
     skip_existing: True
-    download_only: True
+    download_only: False
     format: 'nc'
     lake_masks:
         basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
@@ -20,7 +20,7 @@ defaults:
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
       archive_tiles: 'global'
-      history_length: 10
+      history_length: 8
 
     water_maps:
         threshold: 0.5

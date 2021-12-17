@@ -78,7 +78,7 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
         ax.title.set_text( title )
 
         def on_button(event):
-            xc, yc = a0.lon.values, a0.lat.values
+            xc, yc = a0.x.values, a0.y.values
             if (event.xdata is not None) and (event.ydata is not None):
                 ix =  np.abs( xc - event.xdata ).argmin()
                 iy =  np.abs( yc - event.ydata ).argmin()
@@ -117,7 +117,6 @@ def plot_arrays( ax, arrays: Dict[int,xr.DataArray], **kwargs ):
         logger = getLogger( True )
         logger.warning( f"Can't plot array due to error: {err}" )
         logger.error(traceback.format_exc())
-
 
 def plot_floodmap_arrays( title: str, array: xr.DataArray ):
     from matplotlib.widgets import Slider
