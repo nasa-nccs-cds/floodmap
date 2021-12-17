@@ -78,10 +78,20 @@ class MWPDataManager(ConfigurableObject):
         archive_tiles = kwargs.get( 'archive_tiles','global' )
         locations = kwargs.get('locations', [])
         print( f"Accessing floodmap data for locations: {locations}")
-        if archive_tiles == "global":
-            locations = self.global_location_list()
+        if (archive_tiles == "global") and (len(locations) == 0):
+            locations = self.get_valid_locations()
         for location in locations:
             self.get_tile( location, **kwargs )
+
+    def get_valid_locations(self) -> List[str]:
+        all_locations = self.global_location_list()
+        day_of_year = datetime.now().timetuple().tm_yday
+        valid_locations = []
+        for location in all_locations:
+            files = self.get_tile( location, history_length=1, day=day_of_year-3, show_errors=False )
+            if len(files): valid_locations.append( location )
+        print( f"Got {len(valid_locations)} valid Locations: {valid_locations}")
+        return valid_locations
 
     @classmethod
     def today(cls) -> Tuple[int,int]:
@@ -145,12 +155,13 @@ class MWPDataManager(ConfigurableObject):
         return files
 
     @classmethod
-    def download(cls, target_url: str, result_dir: str, token: str):
+    def download(cls, target_url: str, result_dir: str, token: str, verbose: bool ):
         cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
         stream = os.popen(cmd)
         output = stream.read()
-        print(f"Downloading url {target_url} to dir {result_dir}: result = {output}:")
-        print( cmd )
+        if verbose:
+            print(f"Downloading url {target_url} to dir {result_dir}: result = {output}:")
+            print( cmd )
 
     def global_location_list(self):
         locs = []
@@ -183,10 +194,12 @@ class MWPDataManager(ConfigurableObject):
 
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
+        verbose = kwargs.get('verbose',True)
+        day_of_year = datetime.now().timetuple().tm_yday
         water_maps_opspec = opSpecs.get('water_map', {})
         history_length = self.getParameter( 'history_length', 8 )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
-        this_day = self.getParameter( "day", **kwargs )
+        this_day = self.getParameter( "day", day_of_year )
         this_year = self.getParameter("year", **kwargs )
         product =   self.getParameter( "product",   **kwargs )
         path_template =  self.getParameter( "path", **kwargs)
@@ -205,14 +218,14 @@ class MWPDataManager(ConfigurableObject):
             dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
-                    print(f" Local NRT file does not exist: {target_file_path}")
+                    if verbose: print(f" Local NRT file does not exist: {target_file_path}")
                     target_url = self.data_source_url + f"/{path}/{target_file}"
-                    self.download( target_url, location_dir, token )
+                    self.download( target_url, location_dir, token, verbose )
                     if os.path.exists(target_file_path):
-                        print(f" Downloaded NRT file: {target_file_path}")
+                        if verbose: print(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
                         dstrs.append(timestr)
-                    else:
+                    elif verbose:
                         print( f" Can't access NRT file: {target_file_path}")
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
