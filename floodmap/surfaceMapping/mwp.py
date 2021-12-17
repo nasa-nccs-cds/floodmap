@@ -222,13 +222,13 @@ class MWPDataManager(ConfigurableObject):
                         files[dtime] = target_file_path
                         dstrs.append(timestr)
                     elif verbose:
-                        self.logger( f" Can't access NRT file: {target_file_path}")
+                        self.logger.info( f" Can't access NRT file: {target_file_path}")
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
-        if len(dstrs): self.logger( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
-        if len(tstrs): self.logger( f"Reading MWP data for dates: {tstrs}" )
+        if len(dstrs): self.logger.info( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
+        if len(tstrs): self.logger.info( f"Reading MWP data for dates: {tstrs}" )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:
