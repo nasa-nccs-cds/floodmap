@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
-from ..util.logs import getLogger
+from ..util.logs import getLogger, getLogFile
 import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint
 from floodmap.util.configuration import ConfigurableObject
@@ -76,7 +76,7 @@ class MWPDataManager(ConfigurableObject):
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
         locations = kwargs.get('locations', self.get_valid_locations() )
-        print(f"Accessing floodmap data for locations: {locations}")
+        print(f"\nAccessing floodmap data for locations: {locations}")
         for location in locations:
             self.get_tile( location, **kwargs )
 
@@ -151,13 +151,12 @@ class MWPDataManager(ConfigurableObject):
         pp( files )
         return files
 
-    @classmethod
-    def download(cls, target_url: str, result_dir: str, token: str, verbose: bool ):
-        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+    def download( self, target_url: str, result_dir: str, token: str, verbose: bool ):
+        (lname,log_file) = getLogFile( False )
+        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
         stream = os.popen(cmd)
         output = stream.read()
-        if verbose:
-            print(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+        if verbose: self.logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
     def global_location_list(self):
         locs = []
