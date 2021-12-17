@@ -2,9 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
-
-import xarray
-
+import xarray, getpass
 from floodmap.util.configuration import opSpecs
 import xarray as xr
 from glob import glob
@@ -420,7 +418,8 @@ class WaterMapGenerator(ConfigurableObject):
         self.roi_bounds = kwargs.get('roi', None)
         skip_existing = opSpecs.get( 'skip_existing', True )
         format = opSpecs.get('format','tif')
-        results_dir = opSpecs.get('results_dir')
+        results_dir = os.path.join( opSpecs.get('results_dir'), getpass.getuser() )
+        os.makedirs( results_dir, exist_ok=True )
         results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv').format( lake_index=lake_index )
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
         result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
