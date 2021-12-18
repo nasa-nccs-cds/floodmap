@@ -1,4 +1,5 @@
 import os, wget, sys, pprint, logging, glob
+from multiprocessing import cpu_count, get_context, Pool
 import geopandas as gpd
 from typing import List, Union, Tuple, Dict
 from collections import OrderedDict
@@ -84,15 +85,15 @@ class MWPDataManager(ConfigurableObject):
     def get_valid_locations(self) -> List[str]:
         if self._valid_locations is None:
             self._valid_locations = []
+            nproc = cpu_count()
             all_locations = self.global_location_list()
             day_of_year = datetime.now().timetuple().tm_yday
             day = day_of_year-3
             print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
-            for location in all_locations:
-                files = self.get_tile( location, history_length=1, day=day, show_errors=False )
-                if len(files):
-                    self._valid_locations.append( location )
-                    print('.', end='', flush=True)
+            processor = lambda location: ( location, self.get_tile( location, history_length=1, day=day ) )
+            with get_context("spawn").Pool(processes=nproc) as p:
+                all_locations = p.map( processor, all_locations )
+            self._valid_locations = [ location for (location, files) in all_locations if len(files) ]
             print( f"Got {len(self._valid_locations)} valid Locations")
         return self._valid_locations
 
@@ -195,7 +196,6 @@ class MWPDataManager(ConfigurableObject):
 
     def get_tile(self, location, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
-        verbose = kwargs.get('verbose',True)
         day_of_year = datetime.now().timetuple().tm_yday
         water_maps_opspec = opSpecs.get('water_map', {})
         history_length = self.getParameter( 'history_length', 8 )
@@ -217,17 +217,18 @@ class MWPDataManager(ConfigurableObject):
             target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
             target_file_path = os.path.join( location_dir, path, target_file )
             dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
+            self.logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     target_url = self.data_source_url + f"/{path}/{target_file}"
-                    self.download( target_url, location_dir, token, verbose )
+                    self.download( target_url, location_dir, token )
                     if os.path.exists(target_file_path):
-                        if verbose: print(f" Downloaded NRT file: {target_file_path}")
+                        self.logger.info(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
                         dstrs.append(timestr)
-                    elif verbose:
-                        self.logger.info( f" Can't access NRT file: {target_file_path}")
+                    else:
+                        self.logger.info( f" Can't access NRT file: {target_file_path}" )
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
                 files[dtime] = target_file_path
