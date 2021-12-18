@@ -442,6 +442,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values, **kwargs )
+            print( str(self.floodmap_data.attrs) )
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
