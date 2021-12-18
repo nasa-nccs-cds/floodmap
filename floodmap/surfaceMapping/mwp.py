@@ -1,9 +1,10 @@
 import os, wget, sys, pprint, logging, glob
 from multiprocessing import cpu_count, get_context, Pool
+from functools import partial
 import geopandas as gpd
 from typing import List, Union, Tuple, Dict
 from collections import OrderedDict
-import numpy as np
+import time, numpy as np
 from datetime import datetime, timedelta
 from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
@@ -20,6 +21,53 @@ def getStreamLogger( level ):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     return logger
+
+def get_location_dir( data_dir, location: str ) -> str:
+    loc_dir = os.path.join( data_dir, location )
+    if not os.path.exists(loc_dir): os.makedirs(loc_dir)
+    return loc_dir
+
+def download( target_url: str, result_dir: str, token: str ):
+    logger = getLogger(False)
+    (lname,log_file) = getLogFile( False )
+    cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+    stream = os.popen(cmd)
+    output = stream.read()
+    logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+
+def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> OrderedDict:
+    logger = getLogger(False)
+    t0 = time.time()
+    tt = datetime.now().timetuple()
+    day_of_year = tt.tm_yday
+    this_year = tt.tm_year
+    day = day_of_year - 3
+    files = OrderedDict()
+    location_dir = get_location_dir( data_dir, location)
+    path = path_template.format( collection=collection, product=product )
+    dstrs, tstrs = [], []
+    (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
+    timestr = f"{iY}{iD:03}"
+    target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
+    target_file_path = os.path.join( location_dir, path, target_file )
+    dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
+    logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
+    if not os.path.exists( target_file_path ):
+        logger.info(f" Local NRT file does not exist: {target_file_path}")
+        target_url = data_source_url + f"/{path}/{target_file}"
+        download( target_url, location_dir, token )
+        if os.path.exists(target_file_path):
+            logger.info(f" Downloaded NRT file: {target_file_path}")
+            files[dtime] = target_file_path
+            dstrs.append(timestr)
+        else:
+            logger.info( f" Can't access NRT file: {target_file_path}" )
+    else:
+        logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
+        files[dtime] = target_file_path
+        tstrs.append(timestr)
+    logger.info( f"Completed Tile Access for location {location}, nfiles={len(files)}, time={time.time()-t0}" )
+    return files
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
@@ -82,15 +130,20 @@ class MWPDataManager(ConfigurableObject):
         for location in locations:
             self.get_tile( location, **kwargs )
 
-    def get_valid_locations(self) -> List[str]:
+    def get_valid_locations(self,**kwargs) -> List[str]:
         if self._valid_locations is None:
             self._valid_locations = []
             nproc = cpu_count()
             all_locations = self.global_location_list()
             day_of_year = datetime.now().timetuple().tm_yday
             day = day_of_year-3
+            product = self.getParameter("product", **kwargs)
+            path_template = self.getParameter("path", **kwargs)
+            collection = self.getParameter("collection", **kwargs)
+            token = self.getParameter("token", **kwargs)
+
             print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
-            processor = lambda location: ( location, self.get_tile( location, history_length=1, day=day ) )
+            processor = partial( download_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
             with get_context("spawn").Pool(processes=nproc) as p:
                 all_locations = p.map( processor, all_locations )
             self._valid_locations = [ location for (location, files) in all_locations if len(files) ]
@@ -106,10 +159,7 @@ class MWPDataManager(ConfigurableObject):
     def get_dstr(self, **kargs ) -> str:
         return f"{self.parms['year']}{self.parms['day']:03}"
 
-    def get_location_dir( self, location: str ) -> str:
-        loc_dir = os.path.join( self.data_dir, location )
-        if not os.path.exists(loc_dir): os.makedirs(loc_dir)
-        return loc_dir
+
 
     def delete_if_empty( self, location: str  ):
         ldir = self.get_location_dir( location )
@@ -158,13 +208,6 @@ class MWPDataManager(ConfigurableObject):
         pp( files )
         return files
 
-    def download( self, target_url: str, result_dir: str, token: str, verbose: bool ):
-        (lname,log_file) = getLogFile( False )
-        cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
-        stream = os.popen(cmd)
-        output = stream.read()
-        if verbose: self.logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
-
     def global_location_list(self):
         locs = []
         for hi in range(0,36):
@@ -206,7 +249,7 @@ class MWPDataManager(ConfigurableObject):
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
-        location_dir = self.get_location_dir( location )
+        location_dir = get_location_dir( self.data_dir, location )
         files = OrderedDict()
         days = range( this_day-history_length, this_day )
         path = path_template.format( collection=collection, product=product )
@@ -222,7 +265,7 @@ class MWPDataManager(ConfigurableObject):
                 if ( this_day - day ) <= bin_size:
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     target_url = self.data_source_url + f"/{path}/{target_file}"
-                    self.download( target_url, location_dir, token )
+                    download( target_url, location_dir, token )
                     if os.path.exists(target_file_path):
                         self.logger.info(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
