@@ -314,18 +314,20 @@ class GDALGrid(object):
     def reproject( self, dstSRS: osr.SpatialReference, **kwargs ):
         logger = getLogger(False)
         resampling = kwargs.get( 'resampling', gdalconst.GRA_NearestNeighbour  )
-        nx =  kwargs.get( 'nx',None  )
+        nx =  kwargs.get( 'nx', None  )
         ny = kwargs.get( 'ny', None )
         resolution = kwargs.get('resolution', None)
-        newbounds = self.bounds( as_projection=dstSRS )
+        newbounds = self.bounds( as_utm=True )
         mem_drv = gdal.GetDriverByName('MEM')
         nBands = self.dataset.RasterCount
         if resolution is not None:
             nx, ny = int(round((newbounds[1] - newbounds[0]) / resolution[0])), int(round((newbounds[3] - newbounds[2]) / resolution[1]))
         elif nx is not None and ny is not None:
             resolution = [ (newbounds[1] - newbounds[0]) / nx, (newbounds[3] - newbounds[2]) / ny ]
+        else:
+            nx, ny = self.x_size, self.y_size
         gtype = self.dataset.GetRasterBand(1).DataType
-        print(f"reproject: dims(xyb)={[nx, ny, nBands]}, res={resolution}, bounds={newbounds}, gtype={gtype}", flush=True )
+        print(f"reproject: dims(xyb)={[nx, ny, nBands]}, res={resolution}, bounds={newbounds}, gtype={gtype}, dstSRS={dstSRS}", flush=True )
         dest: gdal.Dataset = mem_drv.Create( "GdalDataset", nx, ny, nBands, gtype )
         new_geo = (newbounds[0], resolution[0], 0.0,  newbounds[3], 0.0, -resolution[1] )
         srcWkt = self.wkt
