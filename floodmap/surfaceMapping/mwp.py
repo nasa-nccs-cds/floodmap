@@ -28,6 +28,7 @@ class MWPDataManager(ConfigurableObject):
         self.data_dir = data_dir
         self.data_source_url = data_source_url
         self.logger = getLogger( False )
+        self._valid_locations: List[str] = None
 
     @classmethod
     def instance(cls, **kwargs ) -> "MWPDataManager":
@@ -76,19 +77,24 @@ class MWPDataManager(ConfigurableObject):
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
         locations = kwargs.get('locations', self.get_valid_locations() )
-        print(f"\nAccessing floodmap data for locations: {locations}")
+        print(f"\nAccessing floodmap data for locations: {locations}", flush=True)
         for location in locations:
             self.get_tile( location, **kwargs )
 
     def get_valid_locations(self) -> List[str]:
-        all_locations = self.global_location_list()
-        day_of_year = datetime.now().timetuple().tm_yday
-        valid_locations = []
-        for location in all_locations:
-            files = self.get_tile( location, history_length=1, day=day_of_year-3, show_errors=False )
-            if len(files): valid_locations.append( location )
-        print( f"Got {len(valid_locations)} valid Locations: {valid_locations}")
-        return valid_locations
+        if self._valid_locations is None:
+            self._valid_locations = []
+            all_locations = self.global_location_list()
+            day_of_year = datetime.now().timetuple().tm_yday
+            day = day_of_year-3
+            print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
+            for location in all_locations:
+                files = self.get_tile( location, history_length=1, day=day, show_errors=False )
+                if len(files):
+                    self._valid_locations.append( location )
+                    print('.', end='', flush=True)
+            print( f"Got {len(self._valid_locations)} valid Locations")
+        return self._valid_locations
 
     @classmethod
     def today(cls) -> Tuple[int,int]:

@@ -79,7 +79,7 @@ class LakeMaskProcessor:
             lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
         else:
             print( "No lakes configured in specs file." )
-        print(f"\nRetreived {len(lake_masks)} Lake masks ")
+        print(f"\nRetrieved {len(lake_masks)} Lake masks ")
         return lake_masks
 
     def update_floodmap_archive( self ):
@@ -117,7 +117,7 @@ class LakeMaskProcessor:
             lake_specs = list(lake_masks.items())
             self.update_floodmap_archive()
             if not download_only:
-                self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
+                print( f"\nProcessing Lakes: {list(lake_masks.keys())}" )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p
@@ -142,23 +142,23 @@ class LakeMaskProcessor:
             rv['roi'] = lake_mask
         return rv
 
-    @classmethod
-    def compute_pct_nodata(cls, runSpecs: Dict, lake_info: Tuple[int, str]):
-        from .lakeExtentMapping import WaterMapGenerator
-        from floodmap.surfaceMapping.mwp import MWPDataManager
-        dataMgr = MWPDataManager.instance(**runSpecs)
-        logger = getLogger(False, logging.DEBUG)
-        (lake_index, lake_mask_bounds) = lake_info
-        try:
-            lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
-            waterMapGenerator = WaterMapGenerator()
-            waterMapGenerator.compute_pct_nodata(**lake_mask_specs)
-            return lake_index
-        except Exception as err:
-            msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
-            logger.error(msg);
-            print(msg)
-            write_result_report(lake_index, msg)
+    # @classmethod
+    # def compute_pct_nodata(cls, runSpecs: Dict, lake_info: Tuple[int, str]):
+    #     from .lakeExtentMapping import WaterMapGenerator
+    #     from floodmap.surfaceMapping.mwp import MWPDataManager
+    #     dataMgr = MWPDataManager.instance(**runSpecs)
+    #     logger = getLogger(False, logging.DEBUG)
+    #     (lake_index, lake_mask_bounds) = lake_info
+    #     try:
+    #         lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
+    #         waterMapGenerator = WaterMapGenerator()
+    #         waterMapGenerator.compute_pct_nodata(**lake_mask_specs)
+    #         return lake_index
+    #     except Exception as err:
+    #         msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
+    #         logger.error(msg);
+    #         print(msg)
+    #         write_result_report(lake_index, msg)
 
     @classmethod
     def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int, str]):
