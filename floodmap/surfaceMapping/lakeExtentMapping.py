@@ -259,7 +259,8 @@ class WaterMapGenerator(ConfigurableObject):
                 file_paths = list(tile_filespec.values())
                 time_values = list(tile_filespec.keys())
                 tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                print( f" ##### TILE ATTRS=" + str(tile_raster.attrs) )
+                print( f" ##### TILE FILES: {file_paths}" )
+                print( f" TILE: {dir(tile_raster)}" )
                 if (tile_raster is not None) and tile_raster.size > 0:
                     if self.lake_mask is None:
                         cropped_tiles[location] = tile_raster
