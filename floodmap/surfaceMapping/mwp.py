@@ -44,12 +44,14 @@ def local_file_path( product, path_template, collection, data_dir, location, yea
     return os.path.join( location_dir, path, target_file )
 
 def most_recent_data( product, path_template, collection, data_dir, location ) -> Tuple[int,int]:
+    result = ( -1, -1 )
     location_dir = get_location_dir( data_dir, location)
     path = path_template.format( collection=collection, product=product )
     target_file = f"{product}.A*.{location}.{collection:03}.tif"
-    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) )
-    if len( files ) == 0: return ( -1, -1 )
-    return ( -1, -1 )
+    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) ).sort()
+    if len( files ) > 0:
+        latest_file = files
+    return result
 
 def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> Tuple[str,bool]:
     logger = getLogger(False)
@@ -62,7 +64,7 @@ def download_tile( product, path_template, collection, token, data_dir, data_sou
     (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
-    target_file_path = local_file_path( product, path_template, collection, data_dir, location )
+    target_file_path = os.path.join( location_dir, path, target_file )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
     logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
     if os.path.exists(target_file_path):
