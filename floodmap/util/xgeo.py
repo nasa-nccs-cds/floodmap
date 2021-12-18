@@ -6,6 +6,7 @@ from osgeo import osr, gdalconst, gdal
 from pyproj import Proj, transform
 from .grid import GDALGrid
 from shapely.geometry import Polygon
+from floodmap.util.logs import getLogger
 import xarray as xr, regionmask
 from .xext import XExtension
 import rasterio
@@ -176,6 +177,7 @@ class XGeo(XExtension):
         return gdalconst.GDT_Float32
 
     def to_gdal(self) -> gdal.Dataset:
+        logger  = getLogger(False)
         in_array: np.ndarray = self._obj.values
         num_bands = 1
         nodata_value = self._obj.attrs.get('nodatavals',[None])[0]
@@ -185,6 +187,7 @@ class XGeo(XExtension):
         if in_array.ndim == 3:  num_bands, y_size, x_size = in_array.shape
         else:                   y_size, x_size = in_array.shape
 
+        logger.info( f"Create GDAL Dataset: dims(xyb) = {[x_size,y_size,num_bands]}, proj={proj}, transform={self._geotransform}")
         dataset: gdal.Dataset = gdal.GetDriverByName('MEM').Create("GdalDataset", x_size, y_size, num_bands, gdal_dtype)
 
         dataset.SetGeoTransform( self._geotransform )
