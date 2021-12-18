@@ -35,39 +35,27 @@ def download( target_url: str, result_dir: str, token: str ):
     output = stream.read()
     logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
-def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> OrderedDict:
+def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> Tuple[str,bool]:
     logger = getLogger(False)
-    t0 = time.time()
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
     this_year = tt.tm_year
     day = day_of_year - 3
-    files = OrderedDict()
     location_dir = get_location_dir( data_dir, location)
     path = path_template.format( collection=collection, product=product )
-    dstrs, tstrs = [], []
     (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
     target_file_path = os.path.join( location_dir, path, target_file )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
     logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
-    if not os.path.exists( target_file_path ):
-        logger.info(f" Local NRT file does not exist: {target_file_path}")
+    if os.path.exists(target_file_path):
+        logger.info(f" Local NRT file exists: {target_file_path}")
+        return (location, True)
+    else:
         target_url = data_source_url + f"/{path}/{target_file}"
         download( target_url, location_dir, token )
-        if os.path.exists(target_file_path):
-            logger.info(f" Downloaded NRT file: {target_file_path}")
-            files[dtime] = target_file_path
-            dstrs.append(timestr)
-        else:
-            logger.info( f" Can't access NRT file: {target_file_path}" )
-    else:
-        logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
-        files[dtime] = target_file_path
-        tstrs.append(timestr)
-    logger.info( f"Completed Tile Access for location {location}, nfiles={len(files)}, time={time.time()-t0}" )
-    return files
+        return (location, os.path.exists( target_file_path ))
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
@@ -145,8 +133,8 @@ class MWPDataManager(ConfigurableObject):
             print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
             processor = partial( download_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
             with get_context("spawn").Pool(processes=nproc) as p:
-                all_locations = p.map( processor, all_locations )
-            self._valid_locations = [ location for (location, files) in all_locations if len(files) ]
+                valid_locations = p.map( processor, all_locations )
+            self._valid_locations = [ location for ( location, has_files ) in valid_locations if len(has_files) ]
             print( f"Got {len(self._valid_locations)} valid Locations")
         return self._valid_locations
 
