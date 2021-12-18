@@ -324,9 +324,9 @@ class GDALGrid(object):
             nx, ny = int(round((newbounds[1] - newbounds[0]) / resolution[0])), int(round((newbounds[3] - newbounds[2]) / resolution[1]))
         elif nx is not None and ny is not None:
             resolution = [ (newbounds[1] - newbounds[0]) / nx, (newbounds[3] - newbounds[2]) / ny ]
-        logger.info( f"reproject: dims(xyb)={[nx,ny,nBands]}, res={resolution}, bounds={newbounds}")
         gtype = self.dataset.GetRasterBand(1).DataType
-        dest: gdal.Dataset = mem_drv.Create('', nx, ny, nBands, gtype )
+        print(f"reproject: dims(xyb)={[nx, ny, nBands]}, res={resolution}, bounds={newbounds}, gtype={gtype}", flush=True )
+        dest: gdal.Dataset = mem_drv.Create( "GdalDataset", nx, ny, nBands, gtype )
         new_geo = (newbounds[0], resolution[0], 0.0,  newbounds[3], 0.0, -resolution[1] )
         srcWkt = self.wkt
         destWkt = dstSRS.ExportToWkt()

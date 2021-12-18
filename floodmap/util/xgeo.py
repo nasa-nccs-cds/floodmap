@@ -171,8 +171,9 @@ class XGeo(XExtension):
         dim_args = { dim0: target[dim1] for dim0,dim1 in dims_map.items() }
         return self._obj.interp(**dim_args)
 
-    def get_gtype(self,  array: np.ndarray ):
-        for (dt,gt) in self.type_trans.items():
+    @classmethod
+    def get_gtype(cls,  array: np.ndarray ):
+        for (dt,gt) in cls.type_trans.items():
             if array.dtype == np.dtype( dt ): return gt
         return gdalconst.GDT_Float32
 
