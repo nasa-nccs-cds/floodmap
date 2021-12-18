@@ -35,6 +35,22 @@ def download( target_url: str, result_dir: str, token: str ):
     output = stream.read()
     logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
+def local_file_path( product, path_template, collection, data_dir, location, year, day ):
+    location_dir = get_location_dir( data_dir, location)
+    path = path_template.format( collection=collection, product=product )
+    (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
+    timestr = f"{iY}{iD:03}"
+    target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
+    return os.path.join( location_dir, path, target_file )
+
+def most_recent_data( product, path_template, collection, data_dir, location ) -> Tuple[int,int]:
+    location_dir = get_location_dir( data_dir, location)
+    path = path_template.format( collection=collection, product=product )
+    target_file = f"{product}.A*.{location}.{collection:03}.tif"
+    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) )
+    if len( files ) == 0: return ( -1, -1 )
+    return ( -1, -1 )
+
 def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> Tuple[str,bool]:
     logger = getLogger(False)
     tt = datetime.now().timetuple()
@@ -46,7 +62,7 @@ def download_tile( product, path_template, collection, token, data_dir, data_sou
     (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
-    target_file_path = os.path.join( location_dir, path, target_file )
+    target_file_path = local_file_path( product, path_template, collection, data_dir, location )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
     logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
     if os.path.exists(target_file_path):
@@ -121,6 +137,7 @@ class MWPDataManager(ConfigurableObject):
     def get_valid_locations(self,**kwargs) -> List[str]:
         if self._valid_locations is None:
             self._valid_locations = []
+            parallel = kwargs.get('parallel', False)
             nproc = cpu_count()
             all_locations = self.global_location_list()
             day_of_year = datetime.now().timetuple().tm_yday
@@ -129,11 +146,13 @@ class MWPDataManager(ConfigurableObject):
             path_template = self.getParameter("path", **kwargs)
             collection = self.getParameter("collection", **kwargs)
             token = self.getParameter("token", **kwargs)
-
             print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
             processor = partial( download_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
-            with get_context("spawn").Pool(processes=nproc) as p:
-                valid_locations = p.map( processor, all_locations )
+            if parallel:
+                with get_context("spawn").Pool(processes=nproc) as p:
+                    valid_locations = p.map( processor, all_locations )
+            else:
+                valid_locations = [ processor(location) for location in all_locations ]
             self._valid_locations = [ location for ( location, has_files ) in valid_locations if has_files ]
             print( f"Got {len(self._valid_locations)} valid Locations")
         return self._valid_locations
