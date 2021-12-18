@@ -285,7 +285,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f"Merging {nTiles} Tiles ")
             cropped_data = self.merge_tiles( cropped_tiles)
             cropped_data.attrs.update( roi = self.roi_bounds )
-            setattr( cropped_data, "spatial_ref", sref )
+            cropped_data["spatial_ref"] = sref
             cropped_data = cropped_data.persist()
             self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
             return self.update_classes( cropped_data ), time_values
@@ -307,7 +307,7 @@ class WaterMapGenerator(ConfigurableObject):
         land = ( mpw_data == 0 )
         nodata = ( mpw_data > 200 )
         result =  xr.where( nodata, np.uint8(0), xr.where( water, np.uint8(2), xr.where(land, np.uint8(1), mpw_data ) ) )
-        setattr( result, 'spatial_ref', mpw_data.spatial_ref )
+        result['spatial_ref'] = mpw_data.spatial_ref
         return result
 
     def merge_tiles(self, cropped_tiles: Dict[str,xr.DataArray], name="mpw" ) -> xr.DataArray:
@@ -529,7 +529,7 @@ class WaterMapGenerator(ConfigurableObject):
         patched_water_map: xr.DataArray = self.interpolate( opSpecs, **kwargs ).assign_attrs(**self.water_map.attrs)
         patched_water_map.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
         rv = patched_water_map.fillna( self.mask_value )
-        setattr( rv, 'spatial_ref', self.floodmap_data.spatial_ref )
+        rv['spatial_ref'] = self.floodmap_data.spatial_ref
         return rv
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:
