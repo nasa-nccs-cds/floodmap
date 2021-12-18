@@ -150,7 +150,7 @@ class MWPDataManager(ConfigurableObject):
 
 
     def delete_if_empty( self, location: str  ):
-        ldir = self.get_location_dir( location )
+        ldir = get_location_dir( self.data_dir, location )
         try: os.rmdir( ldir )
         except OSError: pass
 
@@ -173,7 +173,7 @@ class MWPDataManager(ConfigurableObject):
         years =     self.getParameter( "years",      **kwargs )
         year =      self.getParameter("year", **kwargs)
         product =   self.getParameter( "product",   **kwargs )
-        location_dir = self.get_location_dir( location )
+        location_dir = get_location_dir( self.data_dir, location )
         files = []
         if years is None: years = year
         iYs = years if isinstance(years, list) else [years]
@@ -217,7 +217,7 @@ class MWPDataManager(ConfigurableObject):
             collection= self.getParameter( "collection", **kwargs )
             path = path_template.format(collection=collection, product=product)
             for location in self.global_location_list():
-                location_dir = self.get_location_dir(location)
+                location_dir = get_location_dir( self.data_dir, location )
                 target_dir = os.path.join(location_dir, path )
                 if os.path.exists( target_dir ):
                     files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
