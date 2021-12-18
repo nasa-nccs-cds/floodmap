@@ -134,7 +134,7 @@ class MWPDataManager(ConfigurableObject):
             processor = partial( download_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
             with get_context("spawn").Pool(processes=nproc) as p:
                 valid_locations = p.map( processor, all_locations )
-            self._valid_locations = [ location for ( location, has_files ) in valid_locations if len(has_files) ]
+            self._valid_locations = [ location for ( location, has_files ) in valid_locations if has_files ]
             print( f"Got {len(self._valid_locations)} valid Locations")
         return self._valid_locations
 
