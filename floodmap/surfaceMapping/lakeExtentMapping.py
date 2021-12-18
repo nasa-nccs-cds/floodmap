@@ -259,6 +259,7 @@ class WaterMapGenerator(ConfigurableObject):
                 file_paths = list(tile_filespec.values())
                 time_values = list(tile_filespec.keys())
                 tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                print( f" ##### TILE ATTRS=" + str(tile_raster.attrs) )
                 if (tile_raster is not None) and tile_raster.size > 0:
                     if self.lake_mask is None:
                         cropped_tiles[location] = tile_raster
@@ -442,7 +443,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values, **kwargs )
-            print( str(self.floodmap_data.attrs) )
+            print( f" ##### ATTRS=" + str(self.floodmap_data.attrs) )
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
