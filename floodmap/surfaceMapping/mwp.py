@@ -30,6 +30,7 @@ def get_tile_dir(data_dir, tile: str) -> str:
 def download( target_url: str, result_dir: str, token: str ):
     logger = getLogger(False)
     (lname,log_file) = getLogFile( False )
+    print( f"Downloading Tile: {target_url}", flush=True )
     cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     stream = os.popen(cmd)
     output = stream.read()
