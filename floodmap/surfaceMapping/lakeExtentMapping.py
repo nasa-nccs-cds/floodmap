@@ -241,7 +241,7 @@ class WaterMapGenerator(ConfigurableObject):
         t0 = time.time()
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask )
-        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, locations={tiles}" )
+        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, using tiles: {tiles}" )
 
         if not tiles:
             self.logger.error( "NO LOCATION DATA.  ABORTING")
@@ -451,7 +451,6 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
             utm_result = sanitize( patched_water_map.rio.reproject( patched_water_map.rio.estimate_utm_crs(), 250.0 ) )
-            print( f"--> UTM projection: shape = {utm_result.shape}",  flush=True )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
             self.write_water_area_results( utm_result, stats_file )

@@ -102,7 +102,6 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms.update( kwargs )
         if cls._instance._valid_tiles is None:
             cls._instance._valid_tiles = kwargs.get('tiles')
-            print(f"Create MPW MGR, tiles = {cls._instance._valid_tiles}")
         return cls._instance
 
     def set_day(self, day: int ):
@@ -306,7 +305,7 @@ class MWPDataManager(ConfigurableObject):
         if origin == "upper": ( ext[2], ext[3] ) = ( ext[3], ext[2] )
         return ext
 
-    def get_global_locations( self ) -> List:
+    def get_global_tile_list(self) -> List:
         global_locs = []
         for ix in range(10,181,10):
             for xhemi in [ "E", "W" ]:
