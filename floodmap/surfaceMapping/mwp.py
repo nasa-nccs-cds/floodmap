@@ -92,8 +92,6 @@ class MWPDataManager(ConfigurableObject):
             day0, year0 = cls.today()
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
-            cls._instance._valid_tiles = source_spec.get('tiles')
-            print( f"Create MPW MGR, tiles = {cls._instance._valid_tiles}")
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
             cls._instance.parms['day'] = source_spec.get('day',day0)
@@ -102,6 +100,9 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
+        if cls._instance._valid_tiles is None:
+            cls._instance._valid_tiles = kwargs.get('tiles')
+            print(f"Create MPW MGR, tiles = {cls._instance._valid_tiles}")
         return cls._instance
 
     def set_day(self, day: int ):
@@ -133,7 +134,7 @@ class MWPDataManager(ConfigurableObject):
                 raise Exception( f"Lake requires nonexistent tile: {tile}")
         return required_tiles
 
-    def download_mpw_data( self, **kwargs ):
+    def download_mpw_data( self, **kwargs ) -> List[str]:
         self.logger.info( "downloading mpw data")
         tiles = kwargs.get( 'tiles', self.get_valid_tiles() )
         for tile in tiles:
