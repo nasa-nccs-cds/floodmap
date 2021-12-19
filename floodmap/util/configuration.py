@@ -99,6 +99,9 @@ class OpSpecs:
     def set( self, key: str , value: str ):
         self._defaults[key] = value
 
+    def setmod( self, module: str, key: str , value: str ):
+        self._defaults[module][key] = value
+
 opSpecs = OpSpecs()
 
 

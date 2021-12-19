@@ -84,7 +84,7 @@ class MWPDataManager(ConfigurableObject):
         self._valid_tiles: List[str] = None
 
     @classmethod
-    def instance(cls, **kwargs ) -> "MWPDataManager":
+    def instance( cls, **kwargs ) -> "MWPDataManager":
         if cls._instance is None:
             results_dir = opSpecs.get('results_dir')
             source_spec = opSpecs.get('source')
@@ -92,7 +92,7 @@ class MWPDataManager(ConfigurableObject):
             day0, year0 = cls.today()
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
-            cls._instance._valid_tiles = kwargs.get('tiles',None)
+            cls._instance._valid_tiles = source_spec.get('tiles')
             print( f"Create MPW MGR, tiles = {cls._instance._valid_tiles}")
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
