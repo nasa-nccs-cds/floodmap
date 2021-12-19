@@ -128,7 +128,7 @@ class MWPDataManager(ConfigurableObject):
 
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
-        tiles = self.get_valid_tiles()
+        tiles = kwargs.get( 'tiles', self.get_valid_tiles() )
         for tile in tiles:
             self.get_tile( tile, **kwargs )
 
