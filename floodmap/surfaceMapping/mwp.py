@@ -92,6 +92,8 @@ class MWPDataManager(ConfigurableObject):
             day0, year0 = cls.today()
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
+            cls._instance._valid_tiles = kwargs.get('tiles',None)
+            print( f"Create MPW MGR, tiles = {cls._instance._valid_tiles}")
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
             cls._instance.parms['day'] = source_spec.get('day',day0)
@@ -113,25 +115,30 @@ class MWPDataManager(ConfigurableObject):
         daystr = f"{self.parms['year']}-{self.parms['day']}"
         return datetime.strptime( daystr, "%Y-%j").strftime("%m-%d-%Y")
 
-    def infer_tile_locations(self, **kwargs ) -> List[str]:
+    def list_required_tiles(self, **kwargs) -> List[str]:
         from .tiles import TileLocator
         lake_mask = kwargs.get( 'lake_mask', None )
         roi_bounds = kwargs.get('roi', None)
         if lake_mask is not None:
-            return TileLocator.infer_tiles_xa( lake_mask, **kwargs )
-        if roi_bounds is not None:
+            required_tiles = TileLocator.infer_tiles_xa( lake_mask, **kwargs )
+        elif roi_bounds is not None:
             if isinstance( roi_bounds, gpd.GeoSeries ):    rbnds = roi_bounds.geometry.boundary.bounds.values[0]
             else:                                          rbnds = roi_bounds
-            tiles = TileLocator.get_tiles( *rbnds, **kwargs )
-            self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
-            return tiles
-        raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
+            required_tiles = TileLocator.get_tiles( *rbnds, **kwargs )
+            self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {required_tiles}")
+        else:
+            raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
+        for tile in required_tiles:
+            if tile not in self._valid_tiles:
+                raise Exception( f"Lake requires nonexistent tile: {tile}")
+        return required_tiles
 
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
         tiles = kwargs.get( 'tiles', self.get_valid_tiles() )
         for tile in tiles:
             self.get_tile( tile, **kwargs )
+        return tiles
 
     def get_valid_tiles(self, **kwargs) -> List[str]:
         if self._valid_tiles is None:

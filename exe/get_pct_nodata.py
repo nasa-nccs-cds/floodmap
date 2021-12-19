@@ -12,10 +12,10 @@ if __name__ == '__main__':
     rbnds = [ -86.9, 47.6, -86.8, 47.7 ]
 
     dataMgr = MWPDataManager.instance()
-    locations = dataMgr.infer_tile_locations( roi=rbnds )
+    tiles = dataMgr.list_required_tiles(roi=rbnds)
     dataMgr.download_mpw_data( **source_specs )
-    for location in locations:
-        tile_filespec: OrderedDict = dataMgr.get_tile(location)
+    for tile in tiles:
+        tile_filespec: OrderedDict = dataMgr.get_tile(tile)
         file_paths = list(tile_filespec.values())
         time_values = list(tile_filespec.keys())
         tile_raster: Optional[xa.DataArray] = XRio.load( file_paths, band=0, index=time_values )

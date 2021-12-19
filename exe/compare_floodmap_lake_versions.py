@@ -59,7 +59,7 @@ if __name__ == '__main__':
             lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_mask_bounds )
             lake_mask = lake_mask_specs.get( 'mask', None )
             [x0, x1, y0, y1] = lake_mask.xgeo.extent()
-            locations = dataMgr.infer_tile_locations( lake_mask=lake_mask, legacy=True )
+            locations = dataMgr.list_required_tiles(lake_mask=lake_mask, legacy=True)
             for legacy_tile in locations:
                 pos = get_centroid(legacy_tile)
                 nrt_tile = TileLocator.get_tiles(pos[0], pos[0], pos[1], pos[1])[0]

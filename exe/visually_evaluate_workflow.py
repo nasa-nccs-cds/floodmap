@@ -45,7 +45,7 @@ if __name__ == '__main__':
     lake_mask_specs = LakeMaskProcessor.read_lake_mask( lake_index, lake_masks[lake_index] )
     roi: List[float] = lake_mask_specs['roi']
     mask: Optional[xa.DataArray] = lake_mask_specs['mask']
-    locations = dataMgr.infer_tile_locations(roi=roi, lake_mask=mask)
+    locations = dataMgr.list_required_tiles(roi=roi, lake_mask=mask)
     tile= locations[0]
 
     water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_2021{target_day}.nc"

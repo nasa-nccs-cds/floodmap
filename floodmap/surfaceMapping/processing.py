@@ -38,7 +38,7 @@ class LakeMaskProcessor:
         atexit.register( self.shutdown )
 
     @classmethod
-    def getLakeMasks( cls ) -> Dict[int,str]:
+    def getLakeMasks( cls ) -> Dict[int,Union[str,List[float]]]:
         from floodmap.util.configuration import opSpecs
         print("Retreiving Lake masks ", end='', flush=True )
         logger = getLogger(True)
@@ -49,7 +49,7 @@ class LakeMaskProcessor:
         lake_indices: List[int] = [ int(lake_indx) for lake_indx in lakeMaskSpecs.get("lake_indices", [] ) ]
         lake_index_range: Tuple[int, int] = lakeMaskSpecs.get("lake_index_range", (0, 1000))
         files_spec: str = lakeMaskSpecs.get("file", "UNDEF" )
-        lake_masks = {}
+        lake_masks: Dict[int,Union[str,List[float]]] = {}
         if files_spec != "UNDEF":
             assert data_dir is not None, "Must define 'basedir' with 'file' parameter in 'lake_masks' config"
         if files_spec.endswith(".csv"):
@@ -82,12 +82,13 @@ class LakeMaskProcessor:
         print(f"\nRetrieved {len(lake_masks)} Lake masks ")
         return lake_masks
 
-    def update_floodmap_archive( self ):
+    def update_floodmap_archive( self ) -> List[str]:
         from .mwp import MWPDataManager
         source_specs = opSpecs.get( 'source' )
         dataMgr = MWPDataManager.instance()
-        dataMgr.download_mpw_data( **source_specs )
+        tiles = dataMgr.download_mpw_data( **source_specs )
         dataMgr.delete_old_files( )
+        return tiles
 
     # def get_pct_nodata( self, **kwargs ):
     #     try:
@@ -110,27 +111,28 @@ class LakeMaskProcessor:
 
     def process_lakes( self, **kwargs ):
         try:
-            lake_masks = self.getLakeMasks()
-            parallel = kwargs.get( 'parallel', True )
+            lake_masks: Dict[int,Union[str,List[float]]] = self.getLakeMasks()
+            parallel = kwargs.pop( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             download_only = opSpecs.get('download_only', False)
-            lake_specs = list(lake_masks.items())
-            self.update_floodmap_archive()
+            lake_specs: List[Tuple[int,Union[str,List[float]]]] = list(lake_masks.items())
+            tiles = self.update_floodmap_archive()
+            pspecs = dict( tiles=tiles, **kwargs )
             if not download_only:
                 print( f"\nProcessing Lakes: {list(lake_masks.keys())}" )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p
-                        results = p.map( partial( LakeMaskProcessor.process_lake_mask, kwargs ), lake_specs )
+                        results = p.map( partial( LakeMaskProcessor.process_lake_mask, pspecs ), lake_specs )
                 else:
-                    results = [ LakeMaskProcessor.process_lake_mask( kwargs, lake_spec ) for lake_spec in lake_specs ]
+                    results = [ LakeMaskProcessor.process_lake_mask( pspecs, lake_spec ) for lake_spec in lake_specs ]
                 self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
             self.logger.error( traceback.format_exc() )
 
     @classmethod
-    def read_lake_mask( cls, lake_index: int, lake_mask: Union[str,Tuple], **kwargs ) -> Dict:
+    def read_lake_mask( cls, lake_index: int, lake_mask: Union[str,List[float]], **kwargs ) -> Dict:
         rv = dict( mask=None, roi=None, index=lake_index, **kwargs )
         if isinstance(lake_mask, str):
             lake_mask: xr.DataArray = rio.open_rasterio(lake_mask).astype(np.dtype('f4'))
@@ -161,10 +163,8 @@ class LakeMaskProcessor:
     #         write_result_report(lake_index, msg)
 
     @classmethod
-    def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int, str]):
+    def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int,Union[str,List[float]]]):
         from .lakeExtentMapping import WaterMapGenerator
-        from floodmap.surfaceMapping.mwp import MWPDataManager
-        dataMgr = MWPDataManager.instance( **runSpecs )
         logger = getLogger(False, logging.DEBUG)
         ( lake_index, lake_mask_bounds ) = lake_info
         try:
