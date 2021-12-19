@@ -1,10 +1,11 @@
-import os, logging
+import os, getpass, logging
 from .configuration import opSpecs
 
 def getLogFile( master: bool ):
     pid = os.getpid()
     lname = "master" if master else f"worker-{pid}"
-    log_dir = opSpecs.get("log_dir", "/tmp")
+    log_dir = os.path.join( opSpecs.get("log_dir", "/tmp"), getpass.getuser() )
+    os.makedirs( log_dir, exist_ok=True )
     return (lname, f"{log_dir}/floodmap.{lname}.log")
 
 def getLogger( master: bool, level = logging.DEBUG ):
