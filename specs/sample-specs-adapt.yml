@@ -2,7 +2,7 @@ defaults:
     results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/att/pubrepo/ILAB/logs/tpmaxwel"
+    log_dir: "/att/pubrepo/ILAB/logs"
     ncores: 8
     skip_existing: True
     download_only: False
