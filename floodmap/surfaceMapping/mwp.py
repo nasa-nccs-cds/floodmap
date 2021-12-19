@@ -22,8 +22,8 @@ def getStreamLogger( level ):
     logger.addHandler(ch)
     return logger
 
-def get_location_dir( data_dir, location: str ) -> str:
-    loc_dir = os.path.join( data_dir, location )
+def get_tile_dir(data_dir, tile: str) -> str:
+    loc_dir = os.path.join( data_dir, tile )
     if not os.path.exists(loc_dir): os.makedirs(loc_dir)
     return loc_dir
 
@@ -35,45 +35,42 @@ def download( target_url: str, result_dir: str, token: str ):
     output = stream.read()
     logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
 
-def local_file_path( product, path_template, collection, data_dir, location, year, day ):
-    location_dir = get_location_dir( data_dir, location)
+def local_file_path( product, path_template, collection, data_dir, tile, year, day ):
+    location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
-    target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
+    target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
     return os.path.join( location_dir, path, target_file )
 
-def most_recent_data( product, path_template, collection, data_dir, location ) -> Tuple[int,int]:
-    result = ( -1, -1 )
-    location_dir = get_location_dir( data_dir, location)
+def has_tile_data( product, path_template, collection, data_dir, tile ) -> Tuple[str,bool]:
+    location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product )
-    target_file = f"{product}.A*.{location}.{collection:03}.tif"
-    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) ).sort()
-    if len( files ) > 0:
-        latest_file = files
-    return result
+    target_file = f"{product}.A*.{tile}.{collection:03}.tif"
+    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) )
+    return ( tile, ( len( files ) > 0 ) )
 
-def download_tile( product, path_template, collection, token, data_dir, data_source_url, location) -> Tuple[str,bool]:
+def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, tile) -> Tuple[str,bool]:
     logger = getLogger(False)
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
     this_year = tt.tm_year
     day = day_of_year - 3
-    location_dir = get_location_dir( data_dir, location)
+    location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product )
     (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
     timestr = f"{iY}{iD:03}"
-    target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
+    target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
     target_file_path = os.path.join( location_dir, path, target_file )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
-    logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
+    logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
     if os.path.exists(target_file_path):
         logger.info(f" Local NRT file exists: {target_file_path}")
-        return (location, True)
+        return (tile, True)
     else:
         target_url = data_source_url + f"/{path}/{target_file}"
         download( target_url, location_dir, token )
-        return (location, os.path.exists( target_file_path ))
+        return (tile, os.path.exists( target_file_path ))
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
@@ -83,7 +80,7 @@ class MWPDataManager(ConfigurableObject):
         self.data_dir = data_dir
         self.data_source_url = data_source_url
         self.logger = getLogger( False )
-        self._valid_locations: List[str] = None
+        self._valid_tiles: List[str] = None
 
     @classmethod
     def instance(cls, **kwargs ) -> "MWPDataManager":
@@ -127,37 +124,32 @@ class MWPDataManager(ConfigurableObject):
             tiles = TileLocator.get_tiles( *rbnds, **kwargs )
             self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {tiles}")
             return tiles
-        raise Exception( "Must supply either source.location, roi, or lake masks in order to locate region")
+        raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
 
     def download_mpw_data( self, **kwargs ):
         self.logger.info( "downloading mpw data")
-        locations = kwargs.get('locations', self.get_valid_locations() )
-        print(f"\nAccessing floodmap data for locations: {locations}", flush=True)
-        for location in locations:
-            self.get_tile( location, **kwargs )
+        tiles = self.get_valid_tiles()
+        for tile in tiles:
+            self.get_tile( tile, **kwargs )
 
-    def get_valid_locations(self,**kwargs) -> List[str]:
-        if self._valid_locations is None:
-            self._valid_locations = []
-            parallel = kwargs.get('parallel', False)
-            nproc = cpu_count()
-            all_locations = self.global_location_list()
-            day_of_year = datetime.now().timetuple().tm_yday
-            day = day_of_year-3
+    def get_valid_tiles(self, **kwargs) -> List[str]:
+        if self._valid_tiles is None:
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
             collection = self.getParameter("collection", **kwargs)
-            token = self.getParameter("token", **kwargs)
-            print( f"Computing valid Locations and downloading tiles for day {day} ", end='', flush=True )
-            processor = partial( download_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
-            if parallel:
-                with get_context("spawn").Pool(processes=nproc) as p:
-                    valid_locations = p.map( processor, all_locations )
-            else:
-                valid_locations = [ processor(location) for location in all_locations ]
-            self._valid_locations = [ location for ( location, has_files ) in valid_locations if has_files ]
-            print( f"Got {len(self._valid_locations)} valid Locations")
-        return self._valid_locations
+            all_tiles = [has_tile_data( product, path_template, collection, self.data_dir, tile ) for tile in self.global_tile_list()]
+            if not True in [valid for (tile, valid) in all_tiles]:
+                parallel = kwargs.get('parallel', True)
+                token = self.getParameter("token", **kwargs)
+                processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
+                if parallel:
+                    with get_context("spawn").Pool( processes=cpu_count() ) as p:
+                        all_tiles = p.map( processor, all_tiles )
+                else:
+                    all_tiles = [ processor(tile) for tile in all_tiles ]
+            self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
+            print( f"Got {len(self._valid_tiles)} valid Tiles")
+        return self._valid_tiles
 
     @classmethod
     def today(cls) -> Tuple[int,int]:
@@ -170,8 +162,8 @@ class MWPDataManager(ConfigurableObject):
 
 
 
-    def delete_if_empty( self, location: str  ):
-        ldir = get_location_dir( self.data_dir, location )
+    def delete_if_empty( self, tile: str  ):
+        ldir = get_tile_dir(self.data_dir, tile)
         try: os.rmdir( ldir )
         except OSError: pass
 
@@ -188,22 +180,22 @@ class MWPDataManager(ConfigurableObject):
         except Exception as err:
             return True
 
-    def reload_damaged_files(self, location: str = "120W050N", **kwargs) -> List[str]:
+    def reload_damaged_files(self, tile: str = "120W050N", **kwargs) -> List[str]:
         start_day = self.getParameter( "start_day", **kwargs )
         end_day =   self.getParameter( "end_day",   **kwargs )
         years =     self.getParameter( "years",      **kwargs )
         year =      self.getParameter("year", **kwargs)
         product =   self.getParameter( "product",   **kwargs )
-        location_dir = get_location_dir( self.data_dir, location )
+        location_dir = get_tile_dir(self.data_dir, tile)
         files = []
         if years is None: years = year
         iYs = years if isinstance(years, list) else [years]
         for iY in iYs:
             for iFile in range(start_day+1,end_day+1):
-                target_file = f"MWP_{iY}{iFile:03}_{location}_{product}.tif"
+                target_file = f"MWP_{iY}{iFile:03}_{tile}_{product}.tif"
                 target_file_path = os.path.join( location_dir, target_file )
                 if self.test_if_damaged( target_file_path ):
-                    target_url = self.data_source_url + f"/{location}/{iY}/{target_file}"
+                    target_url = self.data_source_url + f"/{tile}/{iY}/{target_file}"
                     try:
                         wget.download( target_url, target_file_path )
                         self.logger.info(f"Downloading url {target_url} to file {target_file_path}")
@@ -217,7 +209,7 @@ class MWPDataManager(ConfigurableObject):
         pp( files )
         return files
 
-    def global_location_list(self):
+    def global_tile_list(self):
         locs = []
         for hi in range(0,36):
             for vi in range(0, 18):
@@ -237,16 +229,16 @@ class MWPDataManager(ConfigurableObject):
             product = self.getParameter("product", **kwargs)
             collection= self.getParameter( "collection", **kwargs )
             path = path_template.format(collection=collection, product=product)
-            for location in self.global_location_list():
-                location_dir = get_location_dir( self.data_dir, location )
+            for tile in self.global_tile_list():
+                location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
                 if os.path.exists( target_dir ):
-                    files = glob.glob(f"{target_dir}/{product}.A*.{location}.{collection:03}.tif")
+                    files = glob.glob(f"{target_dir}/{product}.A*.{tile}.{collection:03}.tif")
                     for file in files:
                         dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
                         if dt.days > max_history_length: os.remove( file )
 
-    def get_tile(self, location, **kwargs) -> OrderedDict:
+    def get_tile(self, tile, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
         day_of_year = datetime.now().timetuple().tm_yday
         water_maps_opspec = opSpecs.get('water_map', {})
@@ -258,7 +250,7 @@ class MWPDataManager(ConfigurableObject):
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
-        location_dir = get_location_dir( self.data_dir, location )
+        tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()
         days = range( this_day-history_length, this_day )
         path = path_template.format( collection=collection, product=product )
@@ -266,15 +258,15 @@ class MWPDataManager(ConfigurableObject):
         for day in days:
             (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
             timestr = f"{iY}{iD:03}"
-            target_file = f"{product}.A{timestr}.{location}.{collection:03}.tif"
-            target_file_path = os.path.join( location_dir, path, target_file )
+            target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
+            target_file_path = os.path.join( tile_dir, path, target_file )
             dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
-            self.logger.info(f" Accessing MPW Tile[{day}] for {location}:{dtime}")
+            self.logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     target_url = self.data_source_url + f"/{path}/{target_file}"
-                    download( target_url, location_dir, token )
+                    download( target_url, tile_dir, token )
                     if os.path.exists(target_file_path):
                         self.logger.info(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
@@ -293,8 +285,8 @@ class MWPDataManager(ConfigurableObject):
         arrays = XGeo.loadRasterFiles( files, region = self.getParameter("bbox") )
         return self.time_merge(arrays) if merge else arrays
 
-    # def get_tile_data(self, location: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
-    #     files = self.get_tile(location, **kwargs)
+    # def get_tile_data(self, tile: str, merge=False, **kwargs) -> Union[xr.DataArray,List[xr.DataArray]]:
+    #     files = self.get_tile(tile, **kwargs)
     #     return self.get_array_data( files, merge )
 
     @staticmethod

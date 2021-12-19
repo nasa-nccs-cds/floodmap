@@ -108,7 +108,7 @@ class LakeMaskProcessor:
     #         self.logger.error(f"Exception: {err}")
     #         self.logger.error( traceback.format_exc() )
 
-    def process_lakes( self, **kwargs ):
+    def process_lakes( self, tiles: List[str], **kwargs ):
         try:
             lake_masks = self.getLakeMasks()
             parallel = kwargs.get( 'parallel', True )

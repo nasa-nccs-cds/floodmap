@@ -240,14 +240,14 @@ class WaterMapGenerator(ConfigurableObject):
         sref = None
         t0 = time.time()
         dataMgr = MWPDataManager.instance()
-        locations = dataMgr.infer_tile_locations( roi=self.roi_bounds, lake_mask = self.lake_mask )
-        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, locations={locations}" )
+        tiles = dataMgr.infer_tile_locations( roi=self.roi_bounds, lake_mask = self.lake_mask )
+        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, locations={tiles}" )
 
-        if not locations:
+        if not tiles:
             self.logger.error( "NO LOCATION DATA.  ABORTING")
             return None, None
 
-        dataMgr.download_mpw_data( locations=locations, **source_specs )
+        dataMgr.download_mpw_data( tiles, **source_specs )
         cropped_tiles: Dict[str,xr.DataArray] = {}
         time_values = None
         file_paths = None

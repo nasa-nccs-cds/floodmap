@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     dataMgr = MWPDataManager.instance()
     locations = dataMgr.infer_tile_locations( roi=rbnds )
-    dataMgr.download_mpw_data( locations=locations, **source_specs )
+    dataMgr.download_mpw_data( locations, **source_specs )
     for location in locations:
         tile_filespec: OrderedDict = dataMgr.get_tile(location)
         file_paths = list(tile_filespec.values())
