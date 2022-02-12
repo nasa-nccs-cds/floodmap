@@ -1,7 +1,7 @@
 defaults:
-    results_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Results"
+    results_dir: "/Volumes/Shared/Data/floodmap/Results"
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/Users/tpmaxwel/Development/Data/WaterMapping/Logs"
+    log_dir: "/Volumes/Shared/Data/floodmap/Logs"
     ncores: 1
     skip_existing: True
     download_only: False
