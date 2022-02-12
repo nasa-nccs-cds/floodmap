@@ -7,7 +7,7 @@ from pyproj import Proj, transform
 from .grid import GDALGrid
 from shapely.geometry import Polygon
 from floodmap.util.logs import getLogger
-import xarray as xr, regionmask
+import xarray as xr
 from .xext import XExtension
 import rasterio
 from rasterio.warp import reproject, Resampling, transform, calculate_default_transform
@@ -43,9 +43,6 @@ class XGeo(XExtension):
     def countInstances(self, values: List[int] ) -> xr.DataArray:
         counts = ( [( self._obj == cval ).sum(dim=[self.x_coord,self.y_coord],keep_attrs=True) for cval in values] )
         return xr.concat( counts, 'counts' ).transpose()
-
-    def regionmask( self, name: str, poly: Polygon ) -> regionmask.Regions:
-        return regionmask.Regions( [poly], name=name )
 
     def crop_to_poly(self, poly: Polygon, buffer: float = 0 ) -> xr.DataArray:
         return self.crop( *poly.envelope.bounds, buffer )
