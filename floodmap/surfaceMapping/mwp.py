@@ -154,12 +154,12 @@ class MWPDataManager(ConfigurableObject):
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
                 if parallel:
-                    mlog.info(f" ---> get_valid_tiles[PARALLEL]: all_tiles={all_tiles}")
+                    print(f" ---> get_valid_tiles[PARALLEL]: all_tiles={all_tiles}")
                     with get_context("spawn").Pool( processes=cpu_count() ) as p:
                         tiles = [ tile for (tile, valid) in all_tiles]
                         all_tiles = p.map( processor, tiles )
                 else:
-                    mlog.info(f"  ---> get_valid_tiles: all_tiles={all_tiles}")
+                    print(f"  ---> get_valid_tiles: all_tiles={all_tiles}")
                     all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
             self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
             print( f"Got {len(self._valid_tiles)} valid Tiles")
