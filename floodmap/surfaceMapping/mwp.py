@@ -148,11 +148,11 @@ class MWPDataManager(ConfigurableObject):
         if self._valid_tiles is None:
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
+            parallel = kwargs.get('parallel', True)
             collection = self.getParameter("collection", **kwargs)
             all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile ) for tile in self.global_tile_list() ]
-            print(f" **get_valid_tiles: all_tiles={all_tiles}")
+            print(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
-                parallel = kwargs.get('parallel', True)
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
                 if parallel:
