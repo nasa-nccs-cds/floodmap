@@ -165,7 +165,7 @@ class WaterMapGenerator(ConfigurableObject):
     def get_raw_water_map(self, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
         # this method computes land & water pixels over bins of {bin_size} days using thresholds
-        self.logger.info("\n Executing get_water_map ")
+        self.logger.info("       ** Executing get_water_map ** ")
         t0 = time.time()
         data_dir = opSpecs.get('results_dir')
         lake_index = kwargs.get( 'index', 0 )

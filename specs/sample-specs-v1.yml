@@ -7,9 +7,9 @@ defaults:
     download_only: False
     format: 'tif'
     lake_masks:
-        basedir: "/Volumes/Shared/Data/floodmap/LakeMasks"
-        file: "lake_{lake_index}.tif"
-        lake_index_range: [0,6]
+        basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"
+        file: "{lake_index}_2020.tif"
+        lake_index: 462
         mask: 3
         water: 1
 

@@ -23,6 +23,8 @@ def getStreamLogger( level ):
     return logger
 
 def get_tile_dir(data_dir, tile: str) -> str:
+    logger = getLogger(False)
+    logger.log( f" ---> get_tile_dir: data_dir={data_dir}, tile={tile}")
     loc_dir = os.path.join( data_dir, tile )
     if not os.path.exists(loc_dir): os.makedirs(loc_dir)
     return loc_dir
@@ -151,10 +153,12 @@ class MWPDataManager(ConfigurableObject):
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
                 if parallel:
+                    self.logger.log(f" ---> get_valid_tiles[PARALLEL]: all_tiles={all_tiles}")
                     with get_context("spawn").Pool( processes=cpu_count() ) as p:
                         tiles = [ tile for (tile, valid) in all_tiles]
                         all_tiles = p.map( processor, tiles )
                 else:
+                    self.logger.info(f"  ---> get_valid_tiles: all_tiles={all_tiles}")
                     all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
             self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
             print( f"Got {len(self._valid_tiles)} valid Tiles")
