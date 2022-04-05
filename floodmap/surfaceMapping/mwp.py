@@ -104,6 +104,8 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms.update( kwargs )
         if cls._instance._valid_tiles is None:
             cls._instance._valid_tiles = kwargs.get('tiles')
+            if cls._instance._valid_tiles is not None:
+                print(f" ---> valid_tiles[kwargs]: {cls._instance._valid_tiles}")
         return cls._instance
 
     def set_day(self, day: int ):
@@ -144,22 +146,21 @@ class MWPDataManager(ConfigurableObject):
 
     def get_valid_tiles(self, **kwargs) -> List[str]:
         if self._valid_tiles is None:
-            mlog = getLogger(True)
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
             collection = self.getParameter("collection", **kwargs)
             all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile ) for tile in self.global_tile_list() ]
+            print(f" **get_valid_tiles: all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
                 parallel = kwargs.get('parallel', True)
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
                 if parallel:
-                    print(f" ---> get_valid_tiles[PARALLEL]: all_tiles={all_tiles}")
                     with get_context("spawn").Pool( processes=cpu_count() ) as p:
                         tiles = [ tile for (tile, valid) in all_tiles]
+                        print(f" ---> process[PARALLEL]: tiles={tiles}")
                         all_tiles = p.map( processor, tiles )
                 else:
-                    print(f"  ---> get_valid_tiles: all_tiles={all_tiles}")
                     all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
             self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
             print( f"Got {len(self._valid_tiles)} valid Tiles")
