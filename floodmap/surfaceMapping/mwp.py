@@ -175,8 +175,6 @@ class MWPDataManager(ConfigurableObject):
     def get_dstr(self, **kargs ) -> str:
         return f"{self.parms['year']}{self.parms['day']:03}"
 
-
-
     def delete_if_empty( self, tile: str  ):
         ldir = get_tile_dir(self.data_dir, tile)
         try: os.rmdir( ldir )
