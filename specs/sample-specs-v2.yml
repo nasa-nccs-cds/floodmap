@@ -22,4 +22,5 @@ defaults:
     water_maps:
         threshold: 0.5
         bin_size: 8
+        history_length: 30
 

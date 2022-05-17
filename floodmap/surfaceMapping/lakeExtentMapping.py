@@ -200,7 +200,10 @@ class WaterMapGenerator(ConfigurableObject):
         remove_anomalies = kwargs.get( "remove_anomalies", False )
         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
         pwmap: xr.DataArray = self.temporal_ffill(init_water_map, **kwargs) if ffill else init_water_map
-        patched_result: xr.DataArray = pwmap.where( pwmap == self.water_map, pwmap + 2 ) if highlight else pwmap
+        valid_mask = (pwmap == self.water_map)
+        patched_result: xr.DataArray = pwmap.where( valid_mask, pwmap + 2 ) if highlight else pwmap
+        pct_interp =  (valid_mask.size - np.count_nonzero( valid_mask )) * 100.0 / valid_mask.size
+        print( f" ---> interpolate: highlight={highlight}, %interp = {pct_interp}")
         return patched_result
 
     def spatial_interpolate( self, opspec: Dict, **kwargs  ) -> xr.DataArray:
@@ -219,7 +222,7 @@ class WaterMapGenerator(ConfigurableObject):
         water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != 0, np.nan )
         interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] ).bfill( water_history_data.dims[0] ).astype( np.uint8 )
         interp_water_map: xr.DataArray = interp_water_history[-1,:,:].squeeze( drop = True )
-        self.logger.info( f"Done temporal interpolate in time {time.time() - t0}" )
+        self.logger.info( f"Done temporal interpolate in time {time.time() - t0}, history data shape = {water_history_data.shape}" )
         result =  water_map.where( (water_map > 0), interp_water_map )
         return result
 

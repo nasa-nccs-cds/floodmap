@@ -3,13 +3,13 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/Volumes/Shared/Data/floodmap/Logs"
     ncores: 1
-    skip_existing: True
+    skip_existing: False
     download_only: False
     format: 'tif'
     lake_masks:
         basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"
         file: "{lake_index}_2020.tif"
-        lake_index: 462
+        lake_index: 179
         mask: 3
         water: 1
 

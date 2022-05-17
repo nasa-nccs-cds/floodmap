@@ -257,7 +257,7 @@ class MWPDataManager(ConfigurableObject):
         from floodmap.util.configuration import opSpecs
         day_of_year = datetime.now().timetuple().tm_yday
         water_maps_opspec = opSpecs.get('water_map', {})
-        history_length = self.getParameter( 'history_length', 8 )
+        history_length = self.getParameter( 'history_length', 30, **kwargs )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         this_day = self.getParameter( "day", day_of_year )
         this_year = self.getParameter("year", **kwargs )
