@@ -94,7 +94,9 @@ class OpSpecs:
             self._defaults = self._specs.get( "defaults", {} )
 
     def get( self, key: str , default = None ):
-        return self._defaults.get( key, default )
+        result = self._defaults.get( key, default )
+        assert result is not None, f"Required parameter {key} missing from specs file"
+        return result
 
     def set( self, key: str , value: str ):
         self._defaults[key] = value
