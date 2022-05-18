@@ -9,7 +9,7 @@ defaults:
     lake_masks:
         basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"
         file: "{lake_index}_2020.tif"
-        lake_index: 179
+        lake_index_range: [0,5000]
         mask: 3
         water: 1
 

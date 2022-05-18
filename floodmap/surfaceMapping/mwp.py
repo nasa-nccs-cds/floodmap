@@ -279,8 +279,13 @@ class MWPDataManager(ConfigurableObject):
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
-                    target_url = self.data_source_url + f"/{path}/{target_file}"
-                    download( target_url, tile_dir, token )
+                    if self.data_source_url.startswith("file:/"):
+                        data_file_path = self.data_source_url[6:] + f"/{path}/{target_file}"
+                        self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
+                        os.symlink( data_file_path, target_file_path )
+                    else:
+                        target_url = self.data_source_url + f"/{path}/{target_file}"
+                        download( target_url, tile_dir, token )
                     if os.path.exists(target_file_path):
                         self.logger.info(f" Downloaded NRT file: {target_file_path}")
                         files[dtime] = target_file_path
