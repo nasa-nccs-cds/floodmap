@@ -56,15 +56,14 @@ def has_tile_data( product, path_template, collection, data_dir, tile, year ) ->
     logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
     return ( tile, ( len( files ) > 0 ) )
 
-def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, tile ) -> Tuple[str,bool]:
+def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, year, tile ) -> Tuple[str,bool]:
     logger = getLogger(False)
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
-    this_year = tt.tm_year
     day = day_of_year - 3
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product, year=this_year )
-    (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
+    path = path_template.format( collection=collection, product=product, year=year )
+    (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
     target_file_path = os.path.join( location_dir, path, target_file )
@@ -164,16 +163,16 @@ class MWPDataManager(ConfigurableObject):
             logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
                 token = self.getParameter("token", **kwargs)
-                processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
+                processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url, year )
                 if parallel:
                     with get_context("spawn").Pool( processes=cpu_count() ) as p:
                         tiles = [ tile for (tile, valid) in all_tiles]
-                        print(f" ---> process[PARALLEL]: tiles={tiles}")
+                        logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
                         all_tiles = p.map( processor, tiles )
                 else:
                     all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
             self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
-            print( f"Got {len(self._valid_tiles)} valid Tiles")
+            logger.info( f"Got {len(self._valid_tiles)} valid Tiles")
         return self._valid_tiles
 
     @classmethod
