@@ -1,14 +1,14 @@
 defaults:
-    results_dir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/results"
+    results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/att/pubrepo/ILAB/logs"
+    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs"
     ncores: 8
     skip_existing: True
     download_only: False
     format: 'nc'
     lake_masks:
-        basedir: "/att/pubrepo/ILAB/projects/Birkett/MOD44W/lakes_lat_lon/"
+        basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
         mask: 3
         water: 1
