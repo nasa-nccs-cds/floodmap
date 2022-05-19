@@ -402,9 +402,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
-                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
-                self.logger.warning(msg)
-                print(msg)
+                self.logger.warning(f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}")
                 return None
             self.logger.info(f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
@@ -435,8 +433,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
-                msg = f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}"
-                self.logger.warning( msg ); print( msg )
+                self.logger.warning( f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}" )
                 return None
             else:
                 times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
