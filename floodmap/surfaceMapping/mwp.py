@@ -74,7 +74,7 @@ def access_sample_tile( product, path_template, collection, token, data_dir, dat
         return (tile, True)
     else:
         if data_source_url.startswith("file:/"):
-            data_file_path = data_source_url[6:] + f"/{path}/{target_file}"
+            data_file_path = data_source_url[5:] + f"/{path}/{target_file}"
             logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
             os.symlink(data_file_path, target_file_path)
         else:
@@ -289,7 +289,7 @@ class MWPDataManager(ConfigurableObject):
                 if ( this_day - day ) <= bin_size:
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     if self.data_source_url.startswith("file:/"):
-                        data_file_path = self.data_source_url[6:] + f"/{path}/{target_file}"
+                        data_file_path = self.data_source_url[5:] + f"/{path}/{target_file}"
                         self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
                         os.symlink( data_file_path, target_file_path )
                     else:
