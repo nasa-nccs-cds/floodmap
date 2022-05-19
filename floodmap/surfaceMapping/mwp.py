@@ -2,7 +2,7 @@ import os, wget, sys, pprint, logging, glob
 from multiprocessing import cpu_count, get_context, Pool
 from functools import partial
 import geopandas as gpd
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, Optional
 from collections import OrderedDict
 import time, numpy as np
 from datetime import datetime, timedelta
@@ -122,7 +122,7 @@ class MWPDataManager(ConfigurableObject):
         daystr = f"{self.parms['year']}-{self.parms['day']}"
         return datetime.strptime( daystr, "%Y-%j").strftime("%m-%d-%Y")
 
-    def list_required_tiles(self, **kwargs) -> List[str]:
+    def list_required_tiles(self, **kwargs) -> Optional[List[str]]:
         from .tiles import TileLocator
         lake_mask = kwargs.get( 'lake_mask', None )
         roi_bounds = kwargs.get('roi', None)
@@ -137,7 +137,7 @@ class MWPDataManager(ConfigurableObject):
             raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
         for tile in required_tiles:
             if tile not in self._valid_tiles:
-                raise Exception( f"Lake requires nonexistent tile: {tile}")
+                return None
         return required_tiles
 
     def download_mpw_data( self, **kwargs ) -> List[str]:

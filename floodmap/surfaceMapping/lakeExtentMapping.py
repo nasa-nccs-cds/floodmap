@@ -244,57 +244,53 @@ class WaterMapGenerator(ConfigurableObject):
         t0 = time.time()
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask )
-        print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, using tiles: {tiles}" )
-
-        if not tiles:
-            self.logger.error( "NO LOCATION DATA.  ABORTING")
-            return None, None
-
-        dataMgr.download_mpw_data( tiles=tiles, **source_specs )
-        cropped_tiles: Dict[str,xr.DataArray] = {}
-        time_values = None
-        file_paths = None
-        cropped_data = None
-        for tile in tiles:
-            try:
-                lake_mask_value =  lakeMaskSpecs.get('mask',0)
-                self.logger.info( f"Reading Tile {tile}" )
-                tile_filespec: OrderedDict = dataMgr.get_tile(tile)
-                file_paths = list(tile_filespec.values())
-                time_values = list(tile_filespec.keys())
-                tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                if sref is None: sref = tile_raster.spatial_ref
-                if (tile_raster is not None) and tile_raster.size > 0:
-                    if self.lake_mask is None:
-                        cropped_tiles[tile] = tile_raster
-                    else:
-                        lake_mask_interp: xr.DataArray = self.lake_mask.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
-                        tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
-                        tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
-                        tile_raster_data: np.ndarray = tile_raster.values.flatten()
-                        tile_raster_data[ tile_mask_data ] = self.mask_value + 1
-                        cropped_tiles[tile] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
-            except Exception as err:
+        if tiles:
+            print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, using tiles: {tiles}" )
+            dataMgr.download_mpw_data( tiles=tiles, **source_specs )
+            cropped_tiles: Dict[str,xr.DataArray] = {}
+            time_values = None
+            file_paths = None
+            cropped_data = None
+            for tile in tiles:
                 try:
-                    for file in file_paths:
-                        if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
-                    exc = traceback.format_exc()
-                    msg = f"Error reading mpw data for tile {tile} \n  Error: {err}: \n{exc}"
-                    self.logger.error( msg )
-                    XRio.print_array_dims( file_paths )
-                except OSError: pass
-        nTiles = len( cropped_tiles.keys() )
-        if nTiles > 0:
-            self.logger.info( f"Merging {nTiles} Tiles ")
-            cropped_data = self.merge_tiles( cropped_tiles)
-            cropped_data.attrs.update( roi = self.roi_bounds )
-            cropped_data["spatial_ref"] = sref
-            cropped_data = cropped_data.persist()
-            self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
-            return self.update_classes( cropped_data ), time_values
-        else:
-            self.logger.error( "NO TILES AVAILABLE.  ABORTING")
-            return None, None
+                    lake_mask_value =  lakeMaskSpecs.get('mask',0)
+                    self.logger.info( f"Reading Tile {tile}" )
+                    tile_filespec: OrderedDict = dataMgr.get_tile(tile)
+                    file_paths = list(tile_filespec.values())
+                    time_values = list(tile_filespec.keys())
+                    tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                    if sref is None: sref = tile_raster.spatial_ref
+                    if (tile_raster is not None) and tile_raster.size > 0:
+                        if self.lake_mask is None:
+                            cropped_tiles[tile] = tile_raster
+                        else:
+                            lake_mask_interp: xr.DataArray = self.lake_mask.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
+                            tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
+                            tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
+                            tile_raster_data: np.ndarray = tile_raster.values.flatten()
+                            tile_raster_data[ tile_mask_data ] = self.mask_value + 1
+                            cropped_tiles[tile] = tile_raster.copy( data=tile_raster_data.reshape(tile_raster.shape) )
+                except Exception as err:
+                    try:
+                        for file in file_paths:
+                            if not os.path.isfile( file ): self.logger.warning( f"   --> File {file} does not exist!")
+                        exc = traceback.format_exc()
+                        msg = f"Error reading mpw data for tile {tile} \n  Error: {err}: \n{exc}"
+                        self.logger.error( msg )
+                        XRio.print_array_dims( file_paths )
+                    except OSError: pass
+            nTiles = len( cropped_tiles.keys() )
+            if nTiles > 0:
+                self.logger.info( f"Merging {nTiles} Tiles ")
+                cropped_data = self.merge_tiles( cropped_tiles)
+                cropped_data.attrs.update( roi = self.roi_bounds )
+                cropped_data["spatial_ref"] = sref
+                cropped_data = cropped_data.persist()
+                self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
+                return self.update_classes( cropped_data ), time_values
+
+        self.logger.error( "NO TILES AVAILABLE.  ABORTING")
+        return None, None
 
     @classmethod
     def get_class_count_layers(cls, class_layers: Dict[int,xr.DataArray] ) -> Tuple[xr.DataArray,xr.DataArray]:
