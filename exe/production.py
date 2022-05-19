@@ -9,5 +9,4 @@ if __name__ == '__main__':
     lakeMaskProcessor = LakeMaskProcessor()
     lakeMaskProcessor.process_lakes()
 
-    print( f"Completed processing in {(time.time()-t0)/60} min.")
-
+    print( f"Completed processing in {(time.time()-t0)/60} min." )
