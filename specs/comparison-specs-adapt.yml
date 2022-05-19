@@ -15,9 +15,10 @@ defaults:
 
     source:
       url: 'file:/adapt/nobackup/people/zwwillia/MODIS_water/model_outputs/BirketCompare/'
-      path: '{product}/{year}/{collection}/'
-      product:  'simple'
-      collection: 'h09v05_v2'
+      path: '{product}/{year}/{tile}_v2/'
+      file: '{year}-{day}-{tile}-{collection}-{product}.tif'
+      product:  'Simple'
+      collection: 'MOD'
       year: '2021'
       history_length: 30
 

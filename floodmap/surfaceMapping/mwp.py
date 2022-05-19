@@ -270,20 +270,20 @@ class MWPDataManager(ConfigurableObject):
         this_day = self.getParameter( "day", day_of_year, **kwargs )
         this_year = self.getParameter("year", now_year, **kwargs )
         product =   self.getParameter( "product",   **kwargs )
+        file_template = self.getParameter("file",  "{product}.A{year}{day:03}.{tile}.{collection:03}.tif", **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()
         days = range( this_day-history_length, this_day )
-        path = path_template.format( collection=collection, product=product, year=this_year )
         dstrs, tstrs = [], []
-        for day in days:
-            (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
-            timestr = f"{iY}{iD:03}"
-            target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
+        for iday in days:
+            (day,year) = (iday,this_year) if (iday > 0) else (365+iday,this_year-1)
+            path = path_template.format( collection=collection, product=product, year=year, tile=tile )
+            target_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
-            dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
+            dtime = np.datetime64( datetime.strptime( f"{year}{day:03}", '%Y%j').date() )
             self.logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
