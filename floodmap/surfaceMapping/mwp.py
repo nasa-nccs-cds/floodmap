@@ -250,8 +250,8 @@ class MWPDataManager(ConfigurableObject):
             path_template =  self.getParameter( "path", **kwargs)
             product = self.getParameter("product", **kwargs)
             collection= self.getParameter( "collection", **kwargs )
-            path = path_template.format(collection=collection, product=product, year="*", tile=tile)
             for tile in self.global_tile_list():
+                path = path_template.format(collection=collection, product=product, year="*", tile=tile)
                 location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
                 if os.path.exists( target_dir ):
@@ -283,7 +283,8 @@ class MWPDataManager(ConfigurableObject):
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
             target_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
-            dtime = np.datetime64( datetime.strptime( f"{year}{day:03}", '%Y%j').date() )
+            timestr = f"{year}{day:03}"
+            dtime = np.datetime64( datetime.strptime( timestr, '%Y%j').date() )
             self.logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
             if not os.path.exists( target_file_path ):
                 if ( this_day - day ) <= bin_size:
@@ -302,7 +303,7 @@ class MWPDataManager(ConfigurableObject):
                     else:
                         self.logger.info( f" Can't access NRT file: {target_file_path}" )
             else:
-                self.logger.info(f" Array[{len(files)}] -> Time[{iY}:{iD}]: {target_file_path}")
+                self.logger.info(f" Array[{len(files)}] -> Time[{year}:{day}]: {target_file_path}")
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
         if len(dstrs): self.logger.info( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
