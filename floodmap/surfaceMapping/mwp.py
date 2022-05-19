@@ -74,8 +74,13 @@ def access_sample_tile( product, path_template, collection, token, data_dir, dat
         logger.info(f" Local NRT file exists: {target_file_path}")
         return (tile, True)
     else:
-        target_url = data_source_url + f"/{path}/{target_file}"
-        download( target_url, location_dir, token )
+        if data_source_url.startswith("file:/"):
+            data_file_path = data_source_url[6:] + f"/{path}/{target_file}"
+            logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
+            os.symlink(data_file_path, target_file_path)
+        else:
+            target_url = data_source_url + f"/{path}/{target_file}"
+            download( target_url, location_dir, token )
         return (tile, os.path.exists( target_file_path ))
 
 class MWPDataManager(ConfigurableObject):
