@@ -8,4 +8,4 @@ for file in files:
     toks = Path(file).stem.split("-")
     basename = "-".join( toks[:4] )
     print( f"{fdir}/{basename}-simple.tif")
-#    os.rename('guru99.txt','career.guru99.txt')
+#       os.rename('guru99.txt','career.guru99.txt')
