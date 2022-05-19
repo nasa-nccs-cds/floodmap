@@ -119,7 +119,7 @@ class LakeMaskProcessor:
             tiles = self.update_floodmap_archive()
             pspecs = dict( tiles=tiles, **kwargs )
             if not download_only:
-                print( f"\nProcessing Lakes: {list(lake_masks.keys())}" )
+                print( f"\nProcessing Lakes (parallel={parallel}): {list(lake_masks.keys())}" )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p
