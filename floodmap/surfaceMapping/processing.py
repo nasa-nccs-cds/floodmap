@@ -112,7 +112,7 @@ class LakeMaskProcessor:
     def process_lakes( self, **kwargs ):
         try:
             lake_masks: Dict[int,Union[str,List[float]]] = self.getLakeMasks()
-            parallel = kwargs.pop( 'parallel', True )
+            parallel = opSpecs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             download_only = opSpecs.get('download_only', False)
             lake_specs: List[Tuple[int,Union[str,List[float]]]] = list(lake_masks.items())

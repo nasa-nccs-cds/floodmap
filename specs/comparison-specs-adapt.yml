@@ -4,6 +4,7 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs"
     ncores: 8
+    parallel: False
     skip_existing: False
     download_only: False
     format: 'nc'
