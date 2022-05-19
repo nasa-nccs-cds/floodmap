@@ -47,10 +47,13 @@ def local_file_path( product, path_template, collection, data_dir, tile, year, d
     return os.path.join( location_dir, path, target_file )
 
 def has_tile_data( product, path_template, collection, data_dir, tile ) -> Tuple[str,bool]:
+    logger = getLogger(False)
     location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product )
     target_file = f"{product}.A*.{tile}.{collection:03}.tif"
-    files: List[str] = glob.glob( os.path.join( location_dir, path, target_file ) )
+    glob_str = os.path.join( location_dir, path, target_file )
+    files: List[str] = glob.glob( glob_str )
+    logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
     return ( tile, ( len( files ) > 0 ) )
 
 def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, tile) -> Tuple[str,bool]:
@@ -145,13 +148,14 @@ class MWPDataManager(ConfigurableObject):
         return tiles
 
     def get_valid_tiles(self, **kwargs) -> List[str]:
+        logger = getLogger(False)
         if self._valid_tiles is None:
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
             parallel = kwargs.get('parallel', True)
             collection = self.getParameter("collection", **kwargs)
             all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile ) for tile in self.global_tile_list() ]
-            print(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
+            logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url )
