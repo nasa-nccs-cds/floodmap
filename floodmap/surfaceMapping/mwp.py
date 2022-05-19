@@ -40,7 +40,7 @@ def download( target_url: str, result_dir: str, token: str ):
 
 def local_file_path( product, path_template, collection, data_dir, tile, year, day ):
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product, year=year )
+    path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
@@ -49,7 +49,7 @@ def local_file_path( product, path_template, collection, data_dir, tile, year, d
 def has_tile_data( product, path_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
     logger = getLogger(False)
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product, year=year )
+    path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     target_file = f"{product}.A*.{tile}.{collection:03}.tif"
     glob_str = os.path.join( location_dir, path, target_file )
     files: List[str] = glob.glob( glob_str )
@@ -62,7 +62,7 @@ def access_sample_tile( product, path_template, collection, token, data_dir, dat
     day_of_year = tt.tm_yday
     day = day_of_year - 3
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product, year=year )
+    path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
@@ -250,7 +250,7 @@ class MWPDataManager(ConfigurableObject):
             path_template =  self.getParameter( "path", **kwargs)
             product = self.getParameter("product", **kwargs)
             collection= self.getParameter( "collection", **kwargs )
-            path = path_template.format(collection=collection, product=product, year="*")
+            path = path_template.format(collection=collection, product=product, year="*", tile=tile)
             for tile in self.global_tile_list():
                 location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
