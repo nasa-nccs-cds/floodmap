@@ -40,30 +40,30 @@ def download( target_url: str, result_dir: str, token: str ):
 
 def local_file_path( product, path_template, collection, data_dir, tile, year, day ):
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product )
+    path = path_template.format( collection=collection, product=product, year=year )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
     return os.path.join( location_dir, path, target_file )
 
-def has_tile_data( product, path_template, collection, data_dir, tile ) -> Tuple[str,bool]:
+def has_tile_data( product, path_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
     logger = getLogger(False)
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product )
+    path = path_template.format( collection=collection, product=product, year=year )
     target_file = f"{product}.A*.{tile}.{collection:03}.tif"
     glob_str = os.path.join( location_dir, path, target_file )
     files: List[str] = glob.glob( glob_str )
     logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
     return ( tile, ( len( files ) > 0 ) )
 
-def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, tile) -> Tuple[str,bool]:
+def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, tile ) -> Tuple[str,bool]:
     logger = getLogger(False)
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
     this_year = tt.tm_year
     day = day_of_year - 3
     location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product )
+    path = path_template.format( collection=collection, product=product, year=this_year )
     (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
     timestr = f"{iY}{iD:03}"
     target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
@@ -154,7 +154,8 @@ class MWPDataManager(ConfigurableObject):
             path_template = self.getParameter("path", **kwargs)
             parallel = kwargs.get('parallel', True)
             collection = self.getParameter("collection", **kwargs)
-            all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile ) for tile in self.global_tile_list() ]
+            year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
+            all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
             logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
                 token = self.getParameter("token", **kwargs)
@@ -245,7 +246,7 @@ class MWPDataManager(ConfigurableObject):
             path_template =  self.getParameter( "path", **kwargs)
             product = self.getParameter("product", **kwargs)
             collection= self.getParameter( "collection", **kwargs )
-            path = path_template.format(collection=collection, product=product)
+            path = path_template.format(collection=collection, product=product, year="*")
             for tile in self.global_tile_list():
                 location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
@@ -271,7 +272,7 @@ class MWPDataManager(ConfigurableObject):
         tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()
         days = range( this_day-history_length, this_day )
-        path = path_template.format( collection=collection, product=product )
+        path = path_template.format( collection=collection, product=product, year=this_year )
         dstrs, tstrs = [], []
         for day in days:
             (iD,iY) = (day,this_year) if (day > 0) else (365+day,this_year-1)
