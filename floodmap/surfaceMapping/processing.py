@@ -9,6 +9,7 @@ import xarray as xr
 import numpy as np
 from ..util.logs import getLogger
 import os, traceback, logging, atexit, csv
+def s2b( sval: str ): return sval.lower().startswith('t')
 
 class nasa_dialect(csv.Dialect):
     delimiter = ','
@@ -70,8 +71,6 @@ class LakeMaskProcessor:
                     lake_masks[iLake] = file_path
                     logger.info(f"  Retreiving Lake-{iLake} using lake file: {file_path}")
                     print('.', end='', flush=True)
-                else:
-                    logger.info(f"Skipping Lake-{iLake}, NO LAKE FILE")
         elif files_spec != "UNDEF":
             raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:

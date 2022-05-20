@@ -13,6 +13,8 @@ import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint
 from floodmap.util.configuration import ConfigurableObject
 
+def s2b( sval: str ): return sval.lower().startswith('t')
+
 def getStreamLogger( level ):
     logger = logging.getLogger (__name__ )
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -43,29 +45,33 @@ def local_file_path( product, path_template, collection, data_dir, tile, year, d
     path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
-    target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
+    target_file = f"{product}.A{timestr}.{tile}.{collection}.tif"
     return os.path.join( location_dir, path, target_file )
 
-def has_tile_data( product, path_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
+def has_tile_data( product, path_template, file_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
     logger = getLogger(False)
-    location_dir = get_tile_dir(data_dir, tile)
-    path = path_template.format( collection=collection, product=product, year=year, tile=tile )
-    target_file = f"{product}.A*.{tile}.{collection:03}.tif"
-    glob_str = os.path.join( location_dir, path, target_file )
-    files: List[str] = glob.glob( glob_str )
-    logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
-    return ( tile, ( len( files ) > 0 ) )
-
-def access_sample_tile( product, path_template, collection, token, data_dir, data_source_url, year, tile ) -> Tuple[str,bool]:
-    logger = getLogger(False)
+    if tile == 'h09v05':
+        print(".")
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
     day = day_of_year - 3
     location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product, year=year, tile=tile )
+    target_file = file_template.format( collection=collection, product=product, year=year, tile=tile, day=day )
+    glob_str = os.path.join( location_dir, path, target_file )
+    files: List[str] = glob.glob( glob_str )
+    logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
+    return ( tile, ( len( files ) > 0 ) )
+
+def access_sample_tile( product, path_template, file_template, collection, token, data_dir, data_source_url, day, year, tile ) -> Tuple[str,bool]:
+    logger = getLogger(False)
+    location_dir = get_tile_dir(data_dir, tile)
+    if tile == 'h09v05':
+        print(".")
+    path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
-    target_file = f"{product}.A{timestr}.{tile}.{collection:03}.tif"
+    target_file = file_template.format( collection=collection, product=product, year=year, tile=tile, day=day )
     target_file_path = os.path.join( location_dir, path, target_file )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
     logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
@@ -75,8 +81,10 @@ def access_sample_tile( product, path_template, collection, token, data_dir, dat
     else:
         if data_source_url.startswith("file:/"):
             data_file_path = data_source_url[5:] + f"/{path}/{target_file}"
-            logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
-            os.symlink(data_file_path, target_file_path)
+            if os.path.exists(data_file_path):
+                logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
+                os.makedirs( os.path.dirname(target_file_path), exist_ok=True )
+                os.symlink(data_file_path, target_file_path)
         else:
             target_url = data_source_url + f"/{path}/{target_file}"
             download( target_url, location_dir, token )
@@ -103,9 +111,11 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.setDefaults()
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
-            cls._instance.parms['day'] = source_spec.get('day',day0)
+            cls._instance.parms['parallel'] = s2b( source_spec.get( 'parallel', 'True' ) )
             cls._instance.parms['year'] = source_spec.get('year',year0)
+            cls._instance.parms['days'] = source_spec.get('days',[day0])
             cls._instance.parms['path'] = source_spec.get('path')
+            cls._instance.parms['file'] = source_spec.get('file')
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
@@ -115,15 +125,14 @@ class MWPDataManager(ConfigurableObject):
                 print(f" ---> valid_tiles[kwargs]: {cls._instance._valid_tiles}")
         return cls._instance
 
-    def set_day(self, day: int ):
-        self.parms['day'] = day
-
-    @classmethod
-    def target_date(cls) -> List[int]:
-        return [ cls.instance().parms[pid] for pid in ('year','day') ]
+    def target_date(self) -> List[int]:
+        days = self.parms['days']
+        year = self.parms['year']
+        return [ year, days[0] ]
 
     def get_target_date(self) -> str:
-        daystr = f"{self.parms['year']}-{self.parms['day']}"
+        days = self.parms['days']
+        daystr = f"{self.parms['year']}-{days[0]}"
         return datetime.strptime( daystr, "%Y-%j").strftime("%m-%d-%Y")
 
     def list_required_tiles(self, **kwargs) -> Optional[List[str]]:
@@ -156,14 +165,16 @@ class MWPDataManager(ConfigurableObject):
         if self._valid_tiles is None:
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
-            parallel = kwargs.get('parallel', True)
+            file_template = self.getParameter("file", "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs )
+            parallel = opSpecs.get( 'parallel', True )
             collection = self.getParameter("collection", **kwargs)
             year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
-            all_tiles = [ has_tile_data( product, path_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
+            days = self.getParameter("days", [ datetime.now().timetuple().tm_yday-1 ], **kwargs)
+            all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
             logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
             if not True in [valid for (tile, valid) in all_tiles]:
                 token = self.getParameter("token", **kwargs)
-                processor = partial( access_sample_tile, product, path_template, collection, token, self.data_dir, self.data_source_url, year )
+                processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
                 if parallel:
                     with get_context("spawn").Pool( processes=cpu_count() ) as p:
                         tiles = [ tile for (tile, valid) in all_tiles]
@@ -182,7 +193,8 @@ class MWPDataManager(ConfigurableObject):
         return ( day_of_year, today.year )
 
     def get_dstr(self, **kargs ) -> str:
-        return f"{self.parms['year']}{self.parms['day']:03}"
+        days = self.parms['days']
+        return f"{self.parms['year']}{days[0]:03}"
 
     def delete_if_empty( self, tile: str  ):
         ldir = get_tile_dir(self.data_dir, tile)
@@ -255,7 +267,7 @@ class MWPDataManager(ConfigurableObject):
                 location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
                 if os.path.exists( target_dir ):
-                    files = glob.glob(f"{target_dir}/{product}.A*.{tile}.{collection:03}.tif")
+                    files = glob.glob(f"{target_dir}/{product}.A*.{tile}.{collection}.tif")
                     for file in files:
                         dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
                         if dt.days > max_history_length: os.remove( file )
@@ -267,15 +279,16 @@ class MWPDataManager(ConfigurableObject):
         water_maps_opspec = opSpecs.get('water_map', {})
         history_length = self.getParameter( 'history_length', 30, **kwargs )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
-        this_day = self.getParameter( "day", day_of_year, **kwargs )
+        days = self.getParameter("days", [day_of_year], **kwargs)
         this_year = self.getParameter("year", now_year, **kwargs )
         product =   self.getParameter( "product",   **kwargs )
-        file_template = self.getParameter("file",  "{product}.A{year}{day:03}.{tile}.{collection:03}.tif", **kwargs)
+        file_template = self.getParameter("file",  "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()
+        this_day = days[0]
         days = range( this_day-history_length, this_day )
         dstrs, tstrs = [], []
         for iday in days:
@@ -291,8 +304,10 @@ class MWPDataManager(ConfigurableObject):
                     self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                     if self.data_source_url.startswith("file:/"):
                         data_file_path = self.data_source_url[5:] + f"/{path}/{target_file}"
-                        self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
-                        os.symlink( data_file_path, target_file_path )
+                        if os.path.exists( data_file_path ):
+                            self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
+                            os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
+                            os.symlink( data_file_path, target_file_path )
                     else:
                         target_url = self.data_source_url + f"/{path}/{target_file}"
                         download( target_url, tile_dir, token )
