@@ -22,7 +22,7 @@ defaults:
       product:  'simple'
       collection: 'MOD'
       year: 2021
-      days: [ 42 ]
+      day_range: [ 42 ]
       history_length: 30
 
     water_maps:

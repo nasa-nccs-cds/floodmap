@@ -180,7 +180,8 @@ class XGeo(XExtension):
         num_bands = 1
         nodata_value = self._obj.attrs.get('nodatavals',[None])[0]
         gdal_dtype = self.get_gtype( in_array )
-        proj = self._crs.ExportToWkt()
+        p4crs = self._obj.attrs.get('crs')
+        proj = self._crs.ExportToWkt() if (p4crs is None) else p4crs
 
         if in_array.ndim == 3:  num_bands, y_size, x_size = in_array.shape
         else:                   y_size, x_size = in_array.shape
@@ -206,7 +207,7 @@ class XGeo(XExtension):
         return dataset
 
     def to_gdalGrid(self) -> GDALGrid:
-        return GDALGrid( self.to_gdal())
+        return GDALGrid( self.to_gdal() )
 
     def to_tif(self, file_path: str ):
         gdalGrid = self.to_gdalGrid()

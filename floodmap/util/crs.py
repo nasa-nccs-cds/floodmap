@@ -30,3 +30,13 @@ class CRS(ConfigurableObject):
 
         sp_ref.AutoIdentifyEPSG()
         return sp_ref
+
+    @classmethod
+    def get_utm_proj4( cls, longitude: float, latitude: float, use_zone_letter: bool = False ) -> str:
+        utm_centroid_info = utm.from_latlon(latitude, longitude)
+        zone_number, zone_letter = utm_centroid_info[2:]
+        south_string = ', +south' if zone_letter < 'N' else ''
+        zone_letter_string = zone_letter if use_zone_letter else ''
+        proj4_utm_string = ('+proj=utm +zone={zone_number}{zone_letter} {south_string} +ellps=WGS84 +datum=WGS84  +units=m +no_defs') \
+            .format(zone_number=abs(zone_number), zone_letter=zone_letter_string, south_string=south_string)
+        return proj4_utm_string

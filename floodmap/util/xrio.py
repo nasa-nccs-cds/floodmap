@@ -1,5 +1,6 @@
 from typing import List, Union, Optional
 import pandas as pd
+from .crs import CRS
 from floodmap.util.xext import XExtension
 from geopandas import GeoDataFrame
 import os, ntpath
@@ -40,6 +41,10 @@ class XRio(XExtension):
             if mask is None:
                 result = raster
             elif isinstance( mask, list ):
+                transform = raster.xgeo.getTransform()
+                if transform[1] > 10:
+                    raster.attrs['crs'] = CRS.get_utm_proj4( mask[0], mask[2] )
+                    raster = raster.xgeo.gdal_reproject()
                 tile_bounds = TileLocator.get_bounds(raster)
                 invert_y = (tile_bounds[2] > tile_bounds[3])
                 if iFile == 0: logger.info(f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
@@ -98,7 +103,8 @@ class XRio(XExtension):
             data_array: xr.DataArray = cls.open( iF, file, **kwargs )
             if data_array is not None:
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
-                data_array = data_array.squeeze(drop=True).expand_dims( { 'time': time_values }, 0 )
+                data_array = data_array.squeeze(drop=True)
+                data_array = data_array.expand_dims( { 'time': time_values }, 0 )
                 result = data_array if result is None else cls.concat([result, data_array])
         return result
 

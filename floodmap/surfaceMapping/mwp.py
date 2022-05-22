@@ -107,13 +107,15 @@ class MWPDataManager(ConfigurableObject):
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
             day0, year0 = cls.today()
+            history_length = source_spec.get('history_length', 30, **kwargs)
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
             cls._instance.parms['parallel'] = s2b( source_spec.get( 'parallel', 'True' ) )
             cls._instance.parms['year'] = source_spec.get('year',year0)
-            cls._instance.parms['days'] = source_spec.get('days',[day0])
+            cls._instance.parms['history_length'] = history_length
+            cls._instance.parms['day_range'] = source_spec.get('day_range', [ day0-history_length, day0 ] )
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['file'] = source_spec.get('file')
             cls._instance.parms['collection'] = source_spec.get('collection')
@@ -126,13 +128,15 @@ class MWPDataManager(ConfigurableObject):
         return cls._instance
 
     def target_date(self) -> List[int]:
-        days = self.parms['days']
+        day_range = self.parms['day_range']
+        days = range(day_range[0], day_range[-1] + 1)
         year = self.parms['year']
-        return [ year, days[0] ]
+        return [ year, days[-1] ]
 
     def get_target_date(self) -> str:
-        days = self.parms['days']
-        daystr = f"{self.parms['year']}-{days[0]}"
+        day_range = self.parms['day_range']
+        days = range(day_range[0], day_range[-1] + 1)
+        daystr = f"{self.parms['year']}-{days[-1]}"
         return datetime.strptime( daystr, "%Y-%j").strftime("%m-%d-%Y")
 
     def list_required_tiles(self, **kwargs) -> Optional[List[str]]:
@@ -163,15 +167,18 @@ class MWPDataManager(ConfigurableObject):
     def get_valid_tiles(self, **kwargs) -> List[str]:
         logger = getLogger(False)
         if self._valid_tiles is None:
+            this_day = datetime.now().timetuple().tm_yday
             product = self.getParameter("product", **kwargs)
             path_template = self.getParameter("path", **kwargs)
             file_template = self.getParameter("file", "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs )
             parallel = opSpecs.get( 'parallel', True )
             collection = self.getParameter("collection", **kwargs)
+            history_length = self.getParameter('history_length', 30, **kwargs)
             year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
-            days = self.getParameter("days", [ datetime.now().timetuple().tm_yday-1 ], **kwargs)
+            day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
             all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
             logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
+            days = range(day_range[0], day_range[-1] + 1)
             if not True in [valid for (tile, valid) in all_tiles]:
                 token = self.getParameter("token", **kwargs)
                 processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
@@ -193,8 +200,9 @@ class MWPDataManager(ConfigurableObject):
         return ( day_of_year, today.year )
 
     def get_dstr(self, **kargs ) -> str:
-        days = self.parms['days']
-        return f"{self.parms['year']}{days[0]:03}"
+        day_range = self.parms['day_range']
+        days = range(day_range[0], day_range[-1] + 1)
+        return f"{self.parms['year']}{days[-1]:03}"
 
     def delete_if_empty( self, tile: str  ):
         ldir = get_tile_dir(self.data_dir, tile)
@@ -274,12 +282,12 @@ class MWPDataManager(ConfigurableObject):
 
     def get_tile(self, tile, **kwargs) -> OrderedDict:
         from floodmap.util.configuration import opSpecs
-        day_of_year = datetime.now().timetuple().tm_yday
+        this_day = datetime.now().timetuple().tm_yday
         now_year = datetime.now().timetuple().tm_year
         water_maps_opspec = opSpecs.get('water_map', {})
         history_length = self.getParameter( 'history_length', 30, **kwargs )
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
-        days = self.getParameter("days", [day_of_year], **kwargs)
+        day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
         this_year = self.getParameter("year", now_year, **kwargs )
         product =   self.getParameter( "product",   **kwargs )
         file_template = self.getParameter("file",  "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs)
@@ -288,35 +296,34 @@ class MWPDataManager(ConfigurableObject):
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()
-        this_day = days[0]
-        days = range( this_day-history_length, this_day )
         dstrs, tstrs = [], []
+        days = range( day_range[0], day_range[-1]+1 )
         for iday in days:
             (day,year) = (iday,this_year) if (iday > 0) else (365+iday,this_year-1)
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
-            target_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
+            data_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
+            target_file = "{product}.A{year}{day:03d}.{tile}.{collection}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
             dtime = np.datetime64( datetime.strptime( timestr, '%Y%j').date() )
             self.logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
             if not os.path.exists( target_file_path ):
-                if ( this_day - day ) <= bin_size:
-                    self.logger.info(f" Local NRT file does not exist: {target_file_path}")
-                    if self.data_source_url.startswith("file:/"):
-                        data_file_path = self.data_source_url[5:] + f"/{path}/{target_file}"
-                        if os.path.exists( data_file_path ):
-                            self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
-                            os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
-                            os.symlink( data_file_path, target_file_path )
-                    else:
-                        target_url = self.data_source_url + f"/{path}/{target_file}"
-                        download( target_url, tile_dir, token )
-                    if os.path.exists(target_file_path):
-                        self.logger.info(f" Downloaded NRT file: {target_file_path}")
-                        files[dtime] = target_file_path
-                        dstrs.append(timestr)
-                    else:
-                        self.logger.info( f" Can't access NRT file: {target_file_path}" )
+                self.logger.info(f" Local NRT file does not exist: {target_file_path}")
+                if self.data_source_url.startswith("file:/"):
+                    data_file_path = self.data_source_url[5:] + f"/{path}/{data_file}"
+                    if os.path.exists( data_file_path ):
+                        self.logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
+                        os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
+                        os.symlink( data_file_path, target_file_path )
+                else:
+                    target_url = self.data_source_url + f"/{path}/{target_file}"
+                    download( target_url, tile_dir, token )
+                if os.path.exists(target_file_path):
+                    self.logger.info(f" Downloaded NRT file: {target_file_path}")
+                    files[dtime] = target_file_path
+                    dstrs.append(timestr)
+                else:
+                    self.logger.info( f" Can't access NRT file: {target_file_path}" )
             else:
                 self.logger.info(f" Array[{len(files)}] -> Time[{year}:{day}]: {target_file_path}")
                 files[dtime] = target_file_path

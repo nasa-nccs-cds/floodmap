@@ -169,8 +169,8 @@ class LakeMaskProcessor:
         try:
             lake_mask_specs = cls.read_lake_mask( lake_index, lake_mask_bounds, **runSpecs )
             waterMapGenerator = WaterMapGenerator()
-            waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
-            return lake_index
+            patched_water_map = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
+            return None if (patched_water_map is None) else lake_index
         except Exception as err:
             msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
             logger.error(msg); print(msg)
