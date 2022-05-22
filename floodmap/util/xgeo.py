@@ -178,7 +178,7 @@ class XGeo(XExtension):
         logger  = getLogger(False)
         in_array: np.ndarray = self._obj.values
         num_bands = 1
-        nodata_value = self._obj.attrs.get('nodatavals',[None])[0]
+        nodata_value = self._obj.attrs.get('_FillValue',-9999.0)
         gdal_dtype = self.get_gtype( in_array )
         p4crs = self._obj.attrs.get('crs')
         proj = self._crs.ExportToWkt() if (p4crs is None) else p4crs
