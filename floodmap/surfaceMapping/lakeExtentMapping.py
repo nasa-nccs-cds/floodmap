@@ -1,5 +1,7 @@
 import geopandas as gpd
 import pandas as pd
+import rioxarray as rio
+from osgeo import osr
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
 import xarray, getpass
@@ -15,6 +17,11 @@ import numpy as np
 from datetime import datetime
 import os, time, collections
 from floodmap.util.xgeo import XGeo
+
+def get_spatial_ref( tile_raster: Optional[xr.DataArray] ):
+    if tile_raster is None: return None
+    for sref in [ 'spatial_ref', 'SpatialReference', 'spatial_reference' ]:
+        if sref in tile_raster.attrs: return tile_raster.attrs[sref]
 
 class WaterMapGenerator(ConfigurableObject):
 
@@ -179,8 +186,11 @@ class WaterMapGenerator(ConfigurableObject):
         else:
             water_map_dset:  xr.Dataset = self.compute_raw_water_map()
             if cache in [True,"update"]:
-                water_map_dset.to_netcdf(water_map_file)
-                self.logger.info(f"Cached water_map to {water_map_file}")
+                try:
+                    water_map_dset.to_netcdf(water_map_file)
+                    self.logger.info(f"Cached water_map to {water_map_file}")
+                except Exception as err:
+                    self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
         self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
         water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
@@ -243,7 +253,7 @@ class WaterMapGenerator(ConfigurableObject):
         sref = None
         t0 = time.time()
         dataMgr = MWPDataManager.instance(**kwargs)
-        tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask )
+        tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
         if tiles:
             print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, using tiles: {tiles}" )
             dataMgr.download_mpw_data( tiles=tiles, **source_specs )
@@ -259,7 +269,7 @@ class WaterMapGenerator(ConfigurableObject):
                     file_paths = list(tile_filespec.values())
                     time_values = list(tile_filespec.keys())
                     tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
-                    if sref is None: sref = tile_raster.spatial_ref
+                    if sref is None: sref = get_spatial_ref( tile_raster )
                     if (tile_raster is not None) and tile_raster.size > 0:
                         if self.lake_mask is None:
                             cropped_tiles[tile] = tile_raster
@@ -414,6 +424,7 @@ class WaterMapGenerator(ConfigurableObject):
 
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
         from  floodmap.surfaceMapping.mwp import MWPDataManager
+        from floodmap.util.crs import CRS
         dstr = MWPDataManager.instance().get_dstr( **kwargs )
         lake_index = kwargs.get('index',0)
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
@@ -436,17 +447,25 @@ class WaterMapGenerator(ConfigurableObject):
                 self.logger.warning( f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}" )
                 return None
             else:
-                times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
-                nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
-                water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
-                nrt_input_data.to_netcdf( water_data_file )
+                try:
+                    times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
+                    nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
+                    water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
+                    nrt_input_data.to_netcdf( water_data_file )
+                except Exception as err:
+                    self.logger.warn( f" Can't save nrt_input_data: {err} " )
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values, **kwargs )
             patched_water_map = self.patch_water_map( **kwargs )
+            sp_ref = osr.SpatialReference()
+            sp_ref.ImportFromEPSG(4326)
+            patched_water_map.rio.write_crs( sp_ref.ExportToWkt() )
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
-            utm_result = sanitize( patched_water_map.rio.reproject( patched_water_map.rio.estimate_utm_crs(), 250.0 ) )
+            [y,x] = [ patched_water_map.coords[c].values for c in patched_water_map.dims ]
+            sref = CRS.get_utm_sref( x[x.size//2], y[y.size//2] )
+            utm_result = sanitize( patched_water_map.rio.reproject( sref, 250.0 ) )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
             self.write_water_area_results( utm_result, stats_file )

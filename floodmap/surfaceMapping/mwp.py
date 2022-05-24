@@ -1,5 +1,6 @@
 import os, wget, sys, pprint, logging, glob
 from multiprocessing import cpu_count, get_context, Pool
+import rioxarray
 from functools import partial
 import geopandas as gpd
 from typing import List, Union, Tuple, Dict, Optional
@@ -63,11 +64,16 @@ def has_tile_data( product, path_template, file_template, collection, data_dir, 
     logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
     return ( tile, ( len( files ) > 0 ) )
 
-def access_sample_tile( product, path_template, file_template, collection, token, data_dir, data_source_url, day, year, tile ) -> Tuple[str,bool]:
+def get_roi( target_file_path: str ) -> Optional[List[Tuple[float,float]]]:
+    if os.path.exists( target_file_path ):
+        raster: xr.DataArray = rioxarray.open_rasterio(target_file_path).squeeze().xgeo.gdal_reproject()
+        if ('band' in raster.dims): raster = raster.isel(band=0, drop=True)
+        [ yc, xc ] = [ raster.coords[c].values for c in raster.dims ]
+        return [ (xc[0],yc[0]), (xc[0],yc[-1]), (xc[-1],yc[-1]), (xc[-1],yc[0]) ]
+
+def access_sample_tile( product, path_template, file_template, collection, token, data_dir, data_source_url, day, year, tile ) -> Tuple[str,List[Tuple[float,float]]]:
     logger = getLogger(False)
     location_dir = get_tile_dir(data_dir, tile)
-    if tile == 'h09v05':
-        print(".")
     path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
@@ -77,7 +83,6 @@ def access_sample_tile( product, path_template, file_template, collection, token
     logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
     if os.path.exists(target_file_path):
         logger.info(f" Local NRT file exists: {target_file_path}")
-        return (tile, True)
     else:
         if data_source_url.startswith("file:/"):
             data_file_path = data_source_url[5:] + f"/{path}/{target_file}"
@@ -88,7 +93,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
         else:
             target_url = data_source_url + f"/{path}/{target_file}"
             download( target_url, location_dir, token )
-        return (tile, os.path.exists( target_file_path ))
+    return (tile, get_roi( target_file_path ) )
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
@@ -98,7 +103,7 @@ class MWPDataManager(ConfigurableObject):
         self.data_dir = data_dir
         self.data_source_url = data_source_url
         self.logger = getLogger( False )
-        self._valid_tiles: List[str] = None
+        self._valid_tiles: Dict[str, List[Tuple[float, float]]] = None
 
     @classmethod
     def instance( cls, **kwargs ) -> "MWPDataManager":
@@ -121,10 +126,6 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
-        if cls._instance._valid_tiles is None:
-            cls._instance._valid_tiles = kwargs.get('tiles')
-            if cls._instance._valid_tiles is not None:
-                print(f" ---> valid_tiles[kwargs]: {cls._instance._valid_tiles}")
         return cls._instance
 
     def target_date(self) -> List[int]:
@@ -144,11 +145,11 @@ class MWPDataManager(ConfigurableObject):
         lake_mask = kwargs.get( 'lake_mask', None )
         roi_bounds = kwargs.get('roi', None)
         if lake_mask is not None:
-            required_tiles = TileLocator.infer_tiles_xa( lake_mask, **kwargs )
+            required_tiles = TileLocator.infer_tiles_xa( lake_mask, tiles=self._valid_tiles, **kwargs )
         elif roi_bounds is not None:
             if isinstance( roi_bounds, gpd.GeoSeries ):    rbnds = roi_bounds.geometry.boundary.bounds.values[0]
             else:                                          rbnds = roi_bounds
-            required_tiles = TileLocator.get_tiles( *rbnds, **kwargs )
+            required_tiles = TileLocator.get_tiles( *rbnds, tiles=self._valid_tiles, **kwargs )
             self.logger.info(f"Processing roi bounds (xmin, xmax, ymin, ymax): {rbnds}, tiles = {required_tiles}")
         else:
             raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
@@ -159,12 +160,12 @@ class MWPDataManager(ConfigurableObject):
 
     def download_mpw_data( self, **kwargs ) -> List[str]:
         self.logger.info( "downloading mpw data")
-        tiles = kwargs.get( 'tiles', self.get_valid_tiles() )
+        tiles = kwargs.get( 'tiles', self.get_valid_tiles().keys() )
         for tile in tiles:
             self.get_tile( tile, **kwargs )
         return tiles
 
-    def get_valid_tiles(self, **kwargs) -> List[str]:
+    def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
         logger = getLogger(False)
         if self._valid_tiles is None:
             this_day = datetime.now().timetuple().tm_yday
@@ -189,9 +190,13 @@ class MWPDataManager(ConfigurableObject):
                         all_tiles = p.map( processor, tiles )
                 else:
                     all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
-            self._valid_tiles = [ tile for (tile, valid) in all_tiles if valid ]
-            logger.info( f"Got {len(self._valid_tiles)} valid Tiles")
+            self._valid_tiles = { tile: roi for (tile, roi) in all_tiles if (roi is not None) }
+            logger.info( f"Got {len(self._valid_tiles)} valid Tiles:")
+            for tile,roi in self._valid_tiles.items():
+                logger.info(f" ** {tile}: {roi}")
         return self._valid_tiles
+
+
 
     @classmethod
     def today(cls) -> Tuple[int,int]:

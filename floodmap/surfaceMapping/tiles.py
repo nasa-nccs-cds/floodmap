@@ -66,9 +66,14 @@ class TileLocator:
 
     @classmethod
     def get_tiles( cls, xmin, xmax, ymin, ymax, **kwargs ) -> List[str]:
-        legacy = kwargs.get('legacy', False)
-        if legacy:  return TileLocator.get_tiles_legacy( xmin, xmax, ymin, ymax )
-        else:       return TileLocator.get_tiles_nrt( xmin, xmax, ymin, ymax )
+        from floodmap.util.geometry import intersects
+        logger = getLogger(False)
+        lid  =  kwargs.get( 'index', -1 )
+        tiles = kwargs.get('tiles', {})
+        bounds = [ (xmin,ymin), (xmin,ymax), (xmax,ymax), (xmax,ymin) ]
+        tiles = [ tid for (tid,roi) in tiles.items() if intersects( roi, bounds ) ]
+        logger.info( f'get_tiles[{lid}]: bounds={[bounds]}, tiles=[{tiles}]')
+        return tiles
 
     @classmethod
     def get_bounds(cls, array: xa.DataArray ) -> List:

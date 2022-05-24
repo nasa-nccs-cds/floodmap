@@ -33,18 +33,14 @@ class XRio(XExtension):
                 print( msg )
                 logger.info( msg )
                 return None
-            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs )
+            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).squeeze().xgeo.gdal_reproject()
             band = kwargs.pop( 'band', -1 )
-            if band >= 0:
+            if (band >= 0) and ('band' in raster.dims):
                 raster = raster.isel( band=band, drop=True )
             raster.encoding = dict( dtype = str(np.dtype('f4')) )
             if mask is None:
                 result = raster
             elif isinstance( mask, list ):
-                transform = raster.xgeo.getTransform()
-                if transform[1] > 10:
-                    raster.attrs['crs'] = CRS.get_utm_proj4( mask[0], mask[2] )
-                    raster = raster.xgeo.gdal_reproject()
                 tile_bounds = TileLocator.get_bounds(raster)
                 invert_y = (tile_bounds[2] > tile_bounds[3])
                 if iFile == 0: logger.info(f"Subsetting array with bounds {tile_bounds} by xbounds = {mask[:2]}, ybounds = {mask[2:]}")
