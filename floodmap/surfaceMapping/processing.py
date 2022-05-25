@@ -87,7 +87,7 @@ class LakeMaskProcessor:
         dataMgr = MWPDataManager.instance()
         tiles = dataMgr.download_mpw_data( **source_specs )
         dataMgr.delete_old_files( )
-        return tiles
+        return list(tiles)
 
     # def get_pct_nodata( self, **kwargs ):
     #     try:

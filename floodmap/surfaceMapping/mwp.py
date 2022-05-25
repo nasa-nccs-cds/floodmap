@@ -1,4 +1,5 @@
 import os, wget, sys, pprint, logging, glob
+import traceback
 from multiprocessing import cpu_count, get_context, Pool
 import rioxarray
 from functools import partial
@@ -50,8 +51,6 @@ def local_file_path( product, path_template, collection, data_dir, tile, year, d
 
 def has_tile_data( product, path_template, file_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
     logger = getLogger(False)
-    if tile == 'h09v05':
-        print(".")
     tt = datetime.now().timetuple()
     day_of_year = tt.tm_yday
     day = day_of_year - 3
@@ -122,7 +121,7 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['history_length'] = history_length
             cls._instance.parms['day_range'] = source_spec.get('day_range', [ day0-history_length, day0 ] )
             cls._instance.parms['path'] = source_spec.get('path')
-            cls._instance.parms['file'] = source_spec.get('file')
+            cls._instance.parms['file'] = source_spec.get( 'file', "{product}.A{year}{day:03d}.{tile}.{collection}.tif" )
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
@@ -167,33 +166,38 @@ class MWPDataManager(ConfigurableObject):
 
     def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
         logger = getLogger(False)
-        if self._valid_tiles is None:
-            this_day = datetime.now().timetuple().tm_yday
-            product = self.getParameter("product", **kwargs)
-            path_template = self.getParameter("path", **kwargs)
-            file_template = self.getParameter("file", "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs )
-            parallel = opSpecs.get( 'parallel', True )
-            collection = self.getParameter("collection", **kwargs)
-            history_length = self.getParameter('history_length', 30, **kwargs)
-            year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
-            day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
-            all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
-            logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
-            days = range(day_range[0], day_range[-1] + 1)
-            if not True in [valid for (tile, valid) in all_tiles]:
-                token = self.getParameter("token", **kwargs)
-                processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
-                if parallel:
-                    with get_context("spawn").Pool( processes=cpu_count() ) as p:
-                        tiles = [ tile for (tile, valid) in all_tiles]
-                        logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
-                        all_tiles = p.map( processor, tiles )
-                else:
-                    all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
-            self._valid_tiles = { tile: roi for (tile, roi) in all_tiles if (roi is not None) }
-            logger.info( f"Got {len(self._valid_tiles)} valid Tiles:")
-            for tile,roi in self._valid_tiles.items():
-                logger.info(f" ** {tile}: {roi}")
+        try:
+            if self._valid_tiles is None:
+                this_day = datetime.now().timetuple().tm_yday
+                product = self.getParameter("product", **kwargs)
+                path_template = self.getParameter( "path", **kwargs)
+                file_template = self.getParameter( "file", **kwargs )
+                parallel = opSpecs.get( 'parallel', False )
+                collection = self.getParameter("collection", **kwargs)
+                history_length = self.getParameter('history_length', 30, **kwargs)
+                year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
+                day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
+                all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
+                logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
+                days = range(day_range[0], day_range[-1] + 1)
+                if not True in [valid for (tile, valid) in all_tiles]:
+                    token = self.getParameter("token", **kwargs)
+                    processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
+                    if parallel:
+                        with get_context("spawn").Pool( processes=cpu_count() ) as p:
+                            tiles = [ tile for (tile, valid) in all_tiles]
+                            logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
+                            all_tiles = p.map( processor, tiles )
+                    else:
+                        all_tiles = [ processor(tile) for (tile, valid) in all_tiles ]
+                self._valid_tiles = { tile: roi for (tile, roi) in all_tiles if (roi is not None) }
+                logger.info( f"Got {len(self._valid_tiles)} valid Tiles:")
+                for tile,roi in self._valid_tiles.items():
+                    logger.info(f" ** {tile}: {roi}")
+        except Exception as err:
+            logger.error( f"Unable to get valid tiles: {err}")
+            logger.error( traceback.format_exc() )
+            self._valid_tiles = {}
         return self._valid_tiles
 
 
