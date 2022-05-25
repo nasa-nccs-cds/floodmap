@@ -10,7 +10,7 @@ import xarray as xr
 from glob import glob
 import functools, traceback
 from floodmap.util.xrio import XRio
-from ..util.configuration import sanitize, ConfigurableObject
+from ..util.configuration import sanitize, ConfigurableObject, sanitize_ds
 from .tiles import TileLocator
 from ..util.logs import getLogger
 import numpy as np
@@ -114,7 +114,7 @@ class WaterMapGenerator(ConfigurableObject):
         if cache in [ True, "update" ]:
             persistent_class_map_file = os.path.join(data_dir, f"lake_{lake_index}_persistent_class_map.nc")
             result = xr.Dataset(dict(persistent_class_map=sanitize(persistent_class_map)))
-            result.to_netcdf(persistent_class_map_file)
+            sanitize_ds(result).to_netcdf(persistent_class_map_file)
             msg = f"Saved persistent_class_map to {persistent_class_map_file}"
             self.logger.info(msg); print( msg )
         return persistent_class_map
@@ -142,7 +142,7 @@ class WaterMapGenerator(ConfigurableObject):
             water_probability.name = "water_probability"
             if cache in [True,"update"]:
                 result = xr.Dataset(dict(water_probability=sanitize(water_probability)))
-                result.to_netcdf(water_probability_file)
+                sanitize_ds(result).to_netcdf(water_probability_file)
                 msg = f"Saved water_probability to {water_probability_file}"
                 self.logger.info( msg ); print( msg )
         water_probability = water_probability.persist()
@@ -187,7 +187,7 @@ class WaterMapGenerator(ConfigurableObject):
             water_map_dset:  xr.Dataset = self.compute_raw_water_map()
             if cache in [True,"update"]:
                 try:
-                    water_map_dset.to_netcdf(water_map_file)
+                    sanitize_ds(water_map_dset).to_netcdf(water_map_file)
                     self.logger.info(f"Cached water_map to {water_map_file}")
                 except Exception as err:
                     self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
@@ -431,6 +431,7 @@ class WaterMapGenerator(ConfigurableObject):
         results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv').format( lake_index=lake_index )
         patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
         result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
+        result_geog_water_map_file = patched_water_map_file + "-geog.nc"
         if skip_existing and os.path.isfile(result_water_map_file):
             msg = f" Lake[{lake_index}]: Skipping already processed file: {result_water_map_file}"
             self.logger.info( msg ), print( msg )
@@ -444,7 +445,7 @@ class WaterMapGenerator(ConfigurableObject):
                     times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
                     nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
                     water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
-                    nrt_input_data.to_netcdf( water_data_file )
+                    sanitize( nrt_input_data ).to_netcdf( water_data_file )
                 except Exception as err:
                     self.logger.warn( f" Can't save nrt_input_data: {err} " )
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
@@ -461,12 +462,10 @@ class WaterMapGenerator(ConfigurableObject):
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
             self.write_water_area_results( utm_result, stats_file )
-            if format ==  'tif':
-                utm_result.xgeo.to_tif( result_water_map_file )
-            else:
-                dataset = xarray.Dataset( { latlon_result.name: latlon_result, utm_result.name: utm_result } )
-                dataset.to_netcdf( result_water_map_file )
-            msg = f"Saving results for lake {lake_index} to {stats_file} and {result_water_map_file}"
+            if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
+            else:                   utm_result.to_netcdf( result_water_map_file )
+            latlon_result.to_netcdf( result_geog_water_map_file )
+            msg = f"Saving results for lake {lake_index} to {stats_file} and {result_water_map_file} ({result_geog_water_map_file})"
             self.logger.info( msg ); print( msg )
             return patched_water_map.assign_attrs( roi = self.roi_bounds )
 

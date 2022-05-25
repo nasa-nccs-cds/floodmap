@@ -1,3 +1,4 @@
+import xarray
 from osgeo import osr
 from shapely.geometry import Point
 import xarray as xr
@@ -9,6 +10,10 @@ from typing import List, Dict
 def argfilter( args: Dict, **kwargs ) -> Dict:
     return { key: args.get(key,value) for key,value in kwargs.items() }
 
+def sanitize_ds( dset: xr.Dataset, squeeze=False ):
+    variables = { vid:sanitize(v,squeeze) for (vid,v) in dset.data_vars }
+    return xr.Dataset( variables, dset.coords, dset.attrs )
+
 def sanitize( array: xr.DataArray, squeeze=False ):
     for key, value in array.attrs.items():
         if key == "cmap" and not isinstance(value,str):
@@ -17,6 +22,11 @@ def sanitize( array: xr.DataArray, squeeze=False ):
             array.attrs[key] = str( value.ExportToPrettyWkt() )
         else:
             array.attrs[key] = value
+    if hasattr( array, 'spatial_ref' ):
+        if isinstance( array.spatial_ref, osr.SpatialReference ):
+            array['spatial_ref'] = array.spatial_ref.ExportToPrettyWkt()
+        elif isinstance( array.spatial_ref, xarray.DataArray ):
+            array['spatial_ref'] = array.spatial_ref.attrs.get('crs_wkt','')
     return array.squeeze( drop=True ) if squeeze else array
 
 class Region:

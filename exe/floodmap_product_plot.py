@@ -16,7 +16,7 @@ result_color_map = {
     5: (1, 1, 0.7)  # 'mask',
 }
 
-lake_index = 1279
+lake_index = 462
 type = "nc"
 day=41
 year = 2021

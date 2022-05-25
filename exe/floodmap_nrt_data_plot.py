@@ -16,7 +16,7 @@ result_color_map = {
     5: (1, 1, 0.7)  # 'mask',
 }
 
-lake_index = 179
+lake_index = 1604
 dataMgr = MWPDataManager.instance()
 cmap = result_color_map
 specs = opSpecs._defaults
@@ -25,12 +25,13 @@ floodmap_dset: xa.Dataset = xa.open_dataset(floodmap_data_file)
 mpw: xa.DataArray = floodmap_dset['mpw']
 center = ( mpw.x.values[mpw.x.size//2], mpw.y.values[mpw.y.size//2] )
 print( f"Lake {lake_index} location: {center}")
-jday = dataMgr.parms['day']
+nplots = mpw.shape[0]
 
-figure, ax = plt.subplots( 2, 4, sharex='all', sharey='all' )
-for day in range(8):
+figure, axs = plt.subplots( 1, nplots, sharex='all', sharey='all' )
+for day in range(nplots):
     ix,iy = day//4, day%4
-    plot_array( ax[ix,iy], mpw[day].squeeze(), title=f"WPW data: jday={jday-7+day}"  )
+    ax = axs[day] if nplots > 1 else axs
+    plot_array( ax, mpw[day].squeeze(), title=f"WPW data: jday={day}"  )
 plt.show()
 
 

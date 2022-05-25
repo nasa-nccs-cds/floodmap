@@ -1,6 +1,7 @@
 from typing import List, Union, Optional
 import pandas as pd
 from .crs import CRS
+from floodmap.util.xgeo import XGeo
 from floodmap.util.xext import XExtension
 from geopandas import GeoDataFrame
 import os, ntpath
@@ -33,7 +34,9 @@ class XRio(XExtension):
                 print( msg )
                 logger.info( msg )
                 return None
-            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs ).squeeze().xgeo.gdal_reproject()
+            raw_raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs )
+            fillval = raw_raster.attrs.get( "_FillValue", np.nan )
+            raster: xr.DataArray = raw_raster.squeeze().xgeo.gdal_reproject()
             band = kwargs.pop( 'band', -1 )
             if (band >= 0) and ('band' in raster.dims):
                 raster = raster.isel( band=band, drop=True )
@@ -49,6 +52,7 @@ class XRio(XExtension):
                 result = raster.xrio.clip( mask, **kwargs )
             else:
                 raise Exception( f"Unrecognized mask type: {mask.__class__.__name__}")
+            result.attrs['_FillValue'] = fillval
             return result
         except Exception as err:
             logger.error( f"XRio Error opening file {filename}: {err}")
@@ -111,9 +115,12 @@ class XRio(XExtension):
         if "." in basename:
             toks = basename.split(".")[1]
             result = datetime.strptime(toks[1:],'%Y%j').date()
-        else:
+        elif "_" in basename:
             toks = basename.split( "_")[1]
             result = datetime.strptime(toks, '%Y' ).date()
+        else:
+            toks = basename.split( "-")
+            result = datetime.strptime(f"{toks[0]}{toks[1]}", '%Y%j' ).date()
         return np.datetime64(result)
 
     @classmethod
