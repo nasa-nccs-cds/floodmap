@@ -16,15 +16,16 @@ result_color_map = {
     5: (1, 1, 0.7)  # 'mask',
 }
 
-lake_index = 179
-type = "tif"
-day=137
+lake_index = 1279
+type = "nc"
+day=41
+year = 2021
 plot_type = "patched_water" #  "water" "patched_water" "persistent_class"
+dstr =    f"{year}{day:03}"
 
-dataMgr = MWPDataManager.instance(day=day)
 cmap = result_color_map
 specs = opSpecs._defaults
-floodmap_result_file = f"{results_dir}/lake_{lake_index}_{plot_type}_map_{dataMgr.get_dstr()}.{type}"
+floodmap_result_file = f"{results_dir}/lake_{lake_index}_{plot_type}_map_{dstr}.{type}"
 
 if type=="tif":
     floodmap: xa.DataArray = rioxarray.open_rasterio( floodmap_result_file )
@@ -32,11 +33,11 @@ if type=="tif":
 else:
     floodmap_dset: xa.Dataset = xa.open_dataset(floodmap_result_file)
 #    print( floodmap_dset.attrs )
-    floodmap: xa.DataArray = floodmap_dset[ f"Lake-{lake_index}-utm" ]
+    floodmap: xa.DataArray = floodmap_dset[ f"Lake-{lake_index}" ]
 
-(xc,yc) = ( floodmap.x.values[floodmap.x.size//2], floodmap.y.values[floodmap.y.size//2] )
-center = floodmap.xgeo.project_to_geographic( xc, yc )
-print( f"Lake center: {center}")
+#(xc,yc) = ( floodmap.x.values[floodmap.x.size//2], floodmap.y.values[floodmap.y.size//2] )
+#center = floodmap.xgeo.project_to_geographic( xc, yc )
+#print( f"Lake center: {center}")
 figure, ax = plt.subplots()
 plot_array( ax, floodmap.squeeze(), title=f"Floodmap {plot_type} result"  )
 plt.show()

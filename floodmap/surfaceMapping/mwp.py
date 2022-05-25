@@ -27,7 +27,6 @@ def getStreamLogger( level ):
 
 def get_tile_dir(data_dir, tile: str) -> str:
     logger = getLogger(False)
-    logger.info( f" ---> get_tile_dir: data_dir={data_dir}, tile={tile}")
     loc_dir = os.path.join( data_dir, tile )
     if not os.path.exists(loc_dir): os.makedirs(loc_dir)
     return loc_dir
@@ -61,7 +60,9 @@ def has_tile_data( product, path_template, file_template, collection, data_dir, 
     target_file = file_template.format( collection=collection, product=product, year=year, tile=tile, day=day )
     glob_str = os.path.join( location_dir, path, target_file )
     files: List[str] = glob.glob( glob_str )
-    logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files = {len(files)}")
+    nfiles = len(files)
+    if nfiles > 0:
+        logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files={nfiles}")
     return ( tile, ( len( files ) > 0 ) )
 
 def get_roi( target_file_path: str ) -> Optional[List[Tuple[float,float]]]:
@@ -80,7 +81,6 @@ def access_sample_tile( product, path_template, file_template, collection, token
     target_file = file_template.format( collection=collection, product=product, year=year, tile=tile, day=day )
     target_file_path = os.path.join( location_dir, path, target_file )
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
-    logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
     if os.path.exists(target_file_path):
         logger.info(f" Local NRT file exists: {target_file_path}")
     else:
@@ -311,9 +311,7 @@ class MWPDataManager(ConfigurableObject):
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
             dtime = np.datetime64( datetime.strptime( timestr, '%Y%j').date() )
-            self.logger.info(f" Accessing MPW Tile[{day}] for {tile}:{dtime}")
             if not os.path.exists( target_file_path ):
-                self.logger.info(f" Local NRT file does not exist: {target_file_path}")
                 if self.data_source_url.startswith("file:/"):
                     data_file_path = self.data_source_url[5:] + f"/{path}/{data_file}"
                     if os.path.exists( data_file_path ):

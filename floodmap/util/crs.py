@@ -40,3 +40,9 @@ class CRS(ConfigurableObject):
         proj4_utm_string = ('+proj=utm +zone={zone_number}{zone_letter} {south_string} +ellps=WGS84 +datum=WGS84  +units=m +no_defs') \
             .format(zone_number=abs(zone_number), zone_letter=zone_letter_string, south_string=south_string)
         return proj4_utm_string
+
+    @classmethod
+    def get_geographic_proj4(cls):
+        sp_ref = osr.SpatialReference()
+        sp_ref.ImportFromEPSG(4326)
+        return sp_ref.ExportToProj4()

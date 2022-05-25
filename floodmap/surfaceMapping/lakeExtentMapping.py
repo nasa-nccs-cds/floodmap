@@ -248,7 +248,6 @@ class WaterMapGenerator(ConfigurableObject):
         from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         source_specs: Dict = opSpecs.get( 'source' )
-        self.logger.info( "reading mpw data")
         lake_id = kwargs.get('index')
         sref = None
         t0 = time.time()
@@ -296,10 +295,7 @@ class WaterMapGenerator(ConfigurableObject):
                 cropped_data.attrs.update( roi = self.roi_bounds )
                 cropped_data["spatial_ref"] = sref
                 cropped_data = cropped_data.persist()
-                self.logger.info(f"Done reading mpw data for lake {lake_id} in time {time.time()-t0}, nTiles = {nTiles}")
                 return self.update_classes( cropped_data ), time_values
-
-        self.logger.error( "NO TILES AVAILABLE.  ABORTING")
         return None, None
 
     @classmethod
@@ -409,11 +405,10 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info(msg), print(msg)
             return None
         else:
-            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
-                self.logger.warning(f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}")
                 return None
+            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             self.logger.info(f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             stats_file = f"{results_dir}/lake_{lake_index}_stats.txt"
@@ -441,10 +436,8 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( msg ), print( msg )
             return None
         else:
-            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
             if self.floodmap_data is None:
-                self.logger.warning( f"No water mapping data! ABORTING Lake[{lake_index}]: {opSpecs}" )
                 return None
             else:
                 try:
@@ -454,17 +447,16 @@ class WaterMapGenerator(ConfigurableObject):
                     nrt_input_data.to_netcdf( water_data_file )
                 except Exception as err:
                     self.logger.warn( f" Can't save nrt_input_data: {err} " )
+            self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
             self.get_raw_water_map( time=time_values, **kwargs )
             patched_water_map = self.patch_water_map( **kwargs )
-            sp_ref = osr.SpatialReference()
-            sp_ref.ImportFromEPSG(4326)
-            patched_water_map.rio.write_crs( sp_ref.ExportToWkt() )
+            patched_water_map.attrs['crs'] = CRS.get_geographic_proj4()
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
             [y,x] = [ patched_water_map.coords[c].values for c in patched_water_map.dims ]
-            sref = CRS.get_utm_sref( x[x.size//2], y[y.size//2] )
+            sref = CRS.get_utm_proj4( x[x.size//2], y[y.size//2] )
             utm_result = sanitize( patched_water_map.rio.reproject( sref, 250.0 ) )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
