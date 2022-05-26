@@ -175,11 +175,11 @@ class MWPDataManager(ConfigurableObject):
                 parallel = opSpecs.get( 'parallel', False )
                 collection = self.getParameter("collection", **kwargs)
                 history_length = self.getParameter('history_length', 30, **kwargs)
-                year = self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs)
+                year = int( self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs) )
                 day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
                 all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
                 logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
-                days = range(day_range[0], day_range[-1] + 1)
+                days = range( int(day_range[0]), int(day_range[-1]) + 1)
                 if not True in [valid for (tile, valid) in all_tiles]:
                     token = self.getParameter("token", **kwargs)
                     processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )

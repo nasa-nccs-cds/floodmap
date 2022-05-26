@@ -20,7 +20,7 @@ defaults:
       file: '{year}-{day}-{tile}-{collection}-{product}.tif'
       product:  'simple'
       collection: 'MOD'
-      year: '2021'
+      year: 2021
       day_range: [ 0, 365 ]
       history_length: 50
 
