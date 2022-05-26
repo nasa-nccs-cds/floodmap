@@ -23,7 +23,7 @@ defaults:
       collection: 'MOD'
       year: 2021
       day_range: [ 41 ]
-      history_length: 30
+      history_length: 50
 
     water_maps:
         threshold: 0.5
