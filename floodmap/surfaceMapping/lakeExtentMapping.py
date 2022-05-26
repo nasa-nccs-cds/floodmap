@@ -310,7 +310,7 @@ class WaterMapGenerator(ConfigurableObject):
     def update_classes(cls, mpw_data: xr.DataArray ) -> xr.DataArray:
         water = mpw_data.isin([1, 2, 3])
         land = ( mpw_data == 0 )
-        nodata = ( mpw_data > 200 )
+        nodata = ( mpw_data > 200 ) or (  mpw_data < 0 )
         result =  xr.where( nodata, np.uint8(0), xr.where( water, np.uint8(2), xr.where(land, np.uint8(1), mpw_data ) ) )
         result['spatial_ref'] = mpw_data.spatial_ref
         return result
