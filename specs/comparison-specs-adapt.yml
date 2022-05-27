@@ -18,7 +18,7 @@ defaults:
       url: 'file:/adapt/nobackup/people/zwwillia/MODIS_water/model_outputs/BirketCompare/'
       path: '{product}/{year}/{tile}_v2/'
       file: '{year}-{day:03d}-{tile}-{collection}-{product}.tif'
-      product:  'simple'
+      product:  'randomforest'
       collection: 'MOD'
       year: 2021
       day_range: [ 1, 365 ]
