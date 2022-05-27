@@ -21,17 +21,20 @@ def get_color_map( colors: Dict ) -> Tuple[Normalize,LinearSegmentedColormap]:
     color_map = LinearSegmentedColormap.from_list("lake-map", colors, N=nc)
     return (norm, color_map)
 
-full_tile = True
+full_tile = False
+plot_subtiles = False
+tile_comparison = False
 target_file_path = '/Users/tpmaxwel/GDrive/Tom/Data/Birkitt/simple/2021/h09v05_v2/2021-041-h09v05-MOD-simple.tif'
+result_path = "/Volumes/Shared/Data/floodmap/comparison/randomforest"
 tile_raster: Optional[xa.DataArray] =  XRio.load( target_file_path ).squeeze( drop=True )
+lake_ids = [ 453, 462 ] # [368, 453, 461, 462, 468]  # 1261, 1273, 1278, 1279, 1602, 1603, 1604]
 
 if full_tile:
     figure, axs = plt.subplots()
     tile_raster.squeeze( drop=True ).plot.imshow( ax=axs )
-else:
+elif plot_subtiles:
     lakeMaskProcessor = LakeMaskProcessor()
     lake_masks: Dict[int, Union[str, List[float]]] = lakeMaskProcessor.getLakeMasks()
-    lake_ids = [368, 453, 461, 462, 468, 1261, 1273, 1278, 1279, 1602, 1603, 1604]
     idr = [8, 12]
     lakes = {lake_id: lakeMaskProcessor.read_lake_mask(lake_id, lake_masks[lake_id]) for lake_id in lake_ids[idr[0]:idr[1]]}
 
@@ -43,5 +46,25 @@ else:
     for iax, (lid, lspec) in enumerate(lakes.items()):
         subset( tile_raster, lspec['roi'] ).plot.imshow( ax=axs[iax,0] )
         lspec['mask'].squeeze( drop=True ).plot.imshow( ax=axs[iax,1] )
+elif tile_comparison:
+    day = 100
+    figure, axs = plt.subplots(len(lake_ids), 2)
+    for iax, lake_id in enumerate(lake_ids):
+        result_file = f"{result_path}/lake_{lake_id}_patched_water_map_2021365.nc"
+        data_file = f"{result_path}/lake_{lake_id}_nrt_input_data.nc"
+        result_dset: xa.Dataset = xa.open_dataset(result_file)
+        data_dset: xa.Dataset = xa.open_dataset(data_file)
+        result_raster: Optional[xa.DataArray] = result_dset[f'Lake-{lake_id}']
+        data_raster: Optional[xa.DataArray] = data_dset['mpw'][day].squeeze( drop=True )
+        data_raster.plot.imshow( ax=axs[iax,0] )
+        result_raster.plot.imshow(ax=axs[iax, 1])
+else:
+    day = 100
+    lake_id = 462
+    figure, axs = plt.subplots()
+    result_file = f"{result_path}/lake_{lake_id}_patched_water_map_2021365.nc"
+    result_dset: xa.Dataset = xa.open_dataset(result_file)
+    result_raster: Optional[xa.DataArray] = result_dset[f'Lake-{lake_id}']
+    result_raster.plot.imshow( ax=axs )
 
 plt.show()

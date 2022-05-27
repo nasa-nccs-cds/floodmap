@@ -167,6 +167,11 @@ class MWPDataManager(ConfigurableObject):
             self.get_tile( tile, **kwargs )
         return tiles
 
+    def get_day_range( self, **kwargs ):
+        this_day = datetime.now().timetuple().tm_yday
+        history_length = self.getParameter('history_length', 30, **kwargs)
+        return self.getParameter("day_range", [this_day - history_length, this_day], **kwargs)
+
     def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
         logger = getLogger(False)
         try:

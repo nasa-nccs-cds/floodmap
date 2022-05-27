@@ -164,10 +164,14 @@ class LakeMaskProcessor:
     @classmethod
     def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int,Union[str,List[float]]]):
         from .lakeExtentMapping import WaterMapGenerator
+        from floodmap.surfaceMapping.mwp import MWPDataManager
+        water_maps_opspec = opSpecs.get('water_map', {})
+        dataMgr = MWPDataManager.instance()
+        bin_size = water_maps_opspec.get( 'bin_size', 8 )
         logger = getLogger(False, logging.DEBUG)
         ( lake_index, lake_mask_bounds ) = lake_info
         try:
-            lake_mask_specs = cls.read_lake_mask( lake_index, lake_mask_bounds, **runSpecs )
+            lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
             waterMapGenerator = WaterMapGenerator()
             patched_water_map = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
             return None if (patched_water_map is None) else lake_index
