@@ -17,13 +17,12 @@ defaults:
         water: 1
 
     source:
-      url: 'file:/Users/tpmaxwel/GDrive/Tom/Data/Birkitt/'
+      url: 'file:/Volumes/archive/data/'
       path: '{product}/{year}/{tile}_v2/'
       file: '{year}-{day:03d}-{tile}-{collection}-{product}.tif'
-      product:  'simple'
+      product:  'randomforest'
       collection: 'MOD'
       year: 2021
-      day_range: [ 41 ]
       history_length: 50
 
     water_maps:

@@ -167,14 +167,25 @@ class LakeMaskProcessor:
         from floodmap.surfaceMapping.mwp import MWPDataManager
         water_maps_opspec = opSpecs.get('water_map', {})
         dataMgr = MWPDataManager.instance()
-        bin_size = water_maps_opspec.get( 'bin_size', 8 )
+        op_range = dataMgr.parms.get( 'op_range' )
+        history_length = dataMgr.parms.get('history_length')
         logger = getLogger(False, logging.DEBUG)
         ( lake_index, lake_mask_bounds ) = lake_info
+        patched_water_maps = []
         try:
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
             waterMapGenerator = WaterMapGenerator()
-            patched_water_map = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
-            return None if (patched_water_map is None) else lake_index
+            if op_range is None:
+                result = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
+                if result is not None: patched_water_maps.append( result )
+            else:
+                for jday in range( *op_range ):
+                    dataMgr.parms['day'] = jday
+                    dataMgr.parms['day_range'] = [ jday-history_length, jday ]
+                    result = waterMapGenerator.generate_lake_water_map(**lake_mask_specs)
+                    if result is not None: patched_water_maps.append(result)
+
+            return None if (len(patched_water_maps) == 0) else lake_index
         except Exception as err:
             msg = f"Skipping lake {lake_index} due to error: {err}\n {traceback.format_exc()} "
             logger.error(msg); print(msg)

@@ -111,18 +111,24 @@ class MWPDataManager(ConfigurableObject):
     def instance( cls, **kwargs ) -> "MWPDataManager":
         if cls._instance is None:
             results_dir = opSpecs.get('results_dir')
+            op_range = opSpecs.get('op_range', None )
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
-            day0, year0 = cls.today()
+            today, this_year = cls.today()
             history_length = source_spec.get('history_length', 30, **kwargs)
+            day0 = source_spec.get('day', today, **kwargs)
+            year0 = source_spec.get('year', this_year, **kwargs)
+            default_day_range = [day0 - history_length, day0] if op_range is None else op_range[:2]
             cls._instance = MWPDataManager(results_dir, data_url)
             cls._instance.setDefaults()
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')
             cls._instance.parms['parallel'] = s2b( source_spec.get( 'parallel', 'True' ) )
-            cls._instance.parms['year'] = source_spec.get('year',year0)
+            cls._instance.parms['year'] = year0
+            cls._instance.parms['day'] = day0
+            cls._instance.parms['op_range'] = op_range
             cls._instance.parms['history_length'] = history_length
-            cls._instance.parms['day_range'] = source_spec.get('day_range', [ day0-history_length, day0 ] )
+            cls._instance.parms['day_range'] = source_spec.get('day_range', default_day_range )
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['file'] = source_spec.get( 'file', "{product}.A{year}{day:03d}.{tile}.{collection}.tif" )
             cls._instance.parms['collection'] = source_spec.get('collection')
@@ -168,9 +174,7 @@ class MWPDataManager(ConfigurableObject):
         return tiles
 
     def get_day_range( self, **kwargs ):
-        this_day = datetime.now().timetuple().tm_yday
-        history_length = self.getParameter('history_length', 30, **kwargs)
-        return self.getParameter("day_range", [this_day - history_length, this_day], **kwargs)
+        return self.parms['day_range']
 
     def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
         logger = getLogger(False)
@@ -298,14 +302,8 @@ class MWPDataManager(ConfigurableObject):
                         if dt.days > max_history_length: os.remove( file )
 
     def get_tile(self, tile, **kwargs) -> OrderedDict:
-        from floodmap.util.configuration import opSpecs
-        this_day = datetime.now().timetuple().tm_yday
-        now_year = datetime.now().timetuple().tm_year
-        water_maps_opspec = opSpecs.get('water_map', {})
-        history_length = self.getParameter( 'history_length', 30, **kwargs )
-        bin_size = water_maps_opspec.get( 'bin_size', 8 )
-        day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
-        this_year = self.getParameter("year", now_year, **kwargs )
+        day_range = self.parms['day_range']
+        iyear = self.parms['year']
         product =   self.getParameter( "product",   **kwargs )
         file_template = self.getParameter("file",  "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
@@ -316,7 +314,7 @@ class MWPDataManager(ConfigurableObject):
         dstrs, tstrs = [], []
         days = range( day_range[0], day_range[-1]+1 )
         for iday in days:
-            (day,year) = (iday,this_year) if (iday > 0) else (365+iday,this_year-1)
+            (day,year) = (iday,iyear) if (iday > 0) else (365+iday,iyear-1)
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
             data_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file = "{product}.A{year}{day:03d}.{tile}.{collection}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
@@ -343,7 +341,7 @@ class MWPDataManager(ConfigurableObject):
                 self.logger.info(f" Array[{len(files)}] -> Time[{year}:{day}]: {target_file_path}")
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
-        if len(dstrs): self.logger.info( f"Downloading MWP data for dates, day range = [{this_day-history_length, this_day}]: {dstrs}" )
+        if len(dstrs): self.logger.info( f"Downloading MWP data for dates, day range = [{day_range}]: {dstrs}" )
         if len(tstrs): self.logger.info( f"Reading MWP data for dates: {tstrs}" )
         return files
 

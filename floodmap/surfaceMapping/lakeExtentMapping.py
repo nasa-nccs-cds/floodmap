@@ -250,11 +250,10 @@ class WaterMapGenerator(ConfigurableObject):
         source_specs: Dict = opSpecs.get( 'source' )
         lake_id = kwargs.get('index')
         sref = None
-        t0 = time.time()
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
         if tiles:
-            print( f"\nProcessing lake {lake_id}: ROI={self.roi_bounds}, using tiles: {tiles}" )
+            print( f"\nProcessing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}" )
             dataMgr.download_mpw_data( tiles=tiles, **source_specs )
             cropped_tiles: Dict[str,xr.DataArray] = {}
             time_values = None
