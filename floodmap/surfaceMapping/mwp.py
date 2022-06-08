@@ -7,7 +7,7 @@ import geopandas as gpd
 from typing import List, Union, Tuple, Dict, Optional
 from collections import OrderedDict
 import time, numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
 from ..util.logs import getLogger, getLogFile
@@ -301,7 +301,7 @@ class MWPDataManager(ConfigurableObject):
                         dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
                         if dt.days > max_history_length: os.remove( file )
 
-    def get_tile(self, tile, **kwargs) -> OrderedDict:
+    def get_tile(self, tile, **kwargs) -> OrderedDict[date,str]:
         day_range = self.parms['day_range']
         iyear = self.parms['year']
         product =   self.getParameter( "product",   **kwargs )
@@ -320,7 +320,7 @@ class MWPDataManager(ConfigurableObject):
             target_file = "{product}.A{year}{day:03d}.{tile}.{collection}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
-            dtime = np.datetime64( datetime.strptime( timestr, '%Y%j').date() )
+            dtime: date = datetime.strptime( timestr, '%Y%j').date()
             if not os.path.exists( target_file_path ):
                 if self.data_source_url.startswith("file:/"):
                     data_file_path = self.data_source_url[5:] + f"/{path}/{data_file}"

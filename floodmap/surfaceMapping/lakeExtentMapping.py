@@ -1,6 +1,7 @@
 import geopandas as gpd
 import pandas as pd
 import rioxarray as rio
+from datetime import date
 from osgeo import osr
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
@@ -169,14 +170,14 @@ class WaterMapGenerator(ConfigurableObject):
         result.attrs['masks'] = masks
         return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
-    def get_raw_water_map(self, **kwargs):
+    def get_raw_water_map(self, dstr: str, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
         # this method computes land & water pixels over bins of {bin_size} days using thresholds
         self.logger.info("       ** Executing get_water_map ** ")
         t0 = time.time()
         data_dir = opSpecs.get('results_dir')
         lake_index = kwargs.get( 'index', 0 )
-        water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map.nc")
+        water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map_{dstr}.nc")
 #        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
 #        self.floodmap_data.to_netcdf(water_data_file)
 #        print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
@@ -243,7 +244,7 @@ class WaterMapGenerator(ConfigurableObject):
         result: xr.DataArray =  xr.concat( data_arrays, dim=merge_coord )
         return result
 
-    def get_mwp_data(self, **kwargs) -> Tuple[Optional[xr.DataArray], Optional[ np.array]]:
+    def get_mwp_data(self, **kwargs) -> Tuple[Optional[xr.DataArray], Optional[ List[date] ]]:
         from .mwp import MWPDataManager
         from floodmap.util.configuration import opSpecs
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
@@ -265,8 +266,9 @@ class WaterMapGenerator(ConfigurableObject):
                     self.logger.info( f"Reading Tile {tile}" )
                     tile_filespec: OrderedDict = dataMgr.get_tile(tile)
                     file_paths = list(tile_filespec.values())
-                    time_values = list(tile_filespec.keys())
-                    tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0, mask_value=self.mask_value, index=time_values )
+                    time_values: List[date] = list(tile_filespec.keys())
+                    tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0,
+                                    mask_value=self.mask_value, index=[np.datetime64(t) for t in time_values] )
                     if sref is None: sref = get_spatial_ref( tile_raster )
                     if (tile_raster is not None) and tile_raster.size > 0:
                         if self.lake_mask is None:
@@ -419,7 +421,6 @@ class WaterMapGenerator(ConfigurableObject):
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
         from  floodmap.surfaceMapping.mwp import MWPDataManager
         from floodmap.util.crs import CRS
-        dstr = MWPDataManager.instance().get_dstr( **kwargs )
         lake_index = kwargs.get('index',0)
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
@@ -428,29 +429,27 @@ class WaterMapGenerator(ConfigurableObject):
         results_dir = os.path.join( opSpecs.get('results_dir'), getpass.getuser() )
         os.makedirs( results_dir, exist_ok=True )
         results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv').format( lake_index=lake_index )
-        patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
-        result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
-        result_geog_water_map_file = patched_water_map_file + "-geog.nc"
-        if skip_existing and os.path.isfile(result_water_map_file):
-            msg = f" Lake[{lake_index}]: Skipping already processed file: {result_water_map_file}"
-            self.logger.info( msg ), print( msg )
-            return None
-        else:
-            (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
+        (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
+        if time_values is not None:
+            dtime: date = time_values[-1]
+            dstr = f"{dtime.month:02}{dtime.day:02}{dtime.year}"
+            patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
+            result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
+            result_geog_water_map_file = patched_water_map_file + "-geog.nc"
             if self.floodmap_data is None:
                 return None
             else:
                 try:
                     times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
                     nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
-                    water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data.nc")
+                    water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data_{dstr}.nc")
                     sanitize( nrt_input_data ).to_netcdf( water_data_file )
                 except Exception as err:
                     self.logger.warn( f" Can't save nrt_input_data: {err} " )
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
-            self.get_raw_water_map( time=time_values, **kwargs )
+            self.get_raw_water_map( dstr, **kwargs )
             patched_water_map = self.patch_water_map( **kwargs )
             patched_water_map.attrs['crs'] = CRS.get_geographic_proj4()
             patched_water_map.name = f"Lake-{lake_index}"
@@ -460,7 +459,7 @@ class WaterMapGenerator(ConfigurableObject):
             utm_result = sanitize( patched_water_map.rio.reproject( sref, 250.0 ) )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
-            self.write_water_area_results( utm_result, stats_file )
+            self.write_water_area_results( dtime, utm_result, stats_file )
             if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
             else:                   utm_result.to_netcdf( result_water_map_file )
             latlon_result.to_netcdf( result_geog_water_map_file )
@@ -490,9 +489,7 @@ class WaterMapGenerator(ConfigurableObject):
             outfile.write( f"{sdate} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
             self.logger.info( f"Wrote results to file {outfile_path}")
 
-    def write_water_area_results(self, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
-        from floodmap.surfaceMapping.mwp import MWPDataManager
-        sdate = MWPDataManager.instance().get_target_date()
+    def write_water_area_results(self, rdate: date, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
         interp_water_class = kwargs.get( 'interp_water_class', 4 )
         water_classes = kwargs.get('water_classes', [2,4] )
         water_counts, class_proportion = self.get_class_proportion(patched_water_map, interp_water_class, water_classes)
@@ -502,7 +499,7 @@ class WaterMapGenerator(ConfigurableObject):
                 outfile.write( "date water_area_km2 percent_interploated\n")
             percent_interp = class_proportion.values
             num_water_pixels = water_counts.values
-            outfile.write( f"{sdate} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
+            outfile.write( f"{rdate.month:02}-{rdate.day:02}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
             self.logger.info( f"Wrote results to file {outfile_path}")
 
     def get_class_counts( self, array: np.ndarray )-> Dict:
