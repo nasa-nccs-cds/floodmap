@@ -419,12 +419,10 @@ class WaterMapGenerator(ConfigurableObject):
             print(msg)
 
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
-        from  floodmap.surfaceMapping.mwp import MWPDataManager
         from floodmap.util.crs import CRS
         lake_index = kwargs.get('index',0)
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
-        skip_existing = opSpecs.get( 'skip_existing', True )
         format = opSpecs.get('format','tif')
         results_dir = os.path.join( opSpecs.get('results_dir'), getpass.getuser() )
         os.makedirs( results_dir, exist_ok=True )
@@ -432,7 +430,7 @@ class WaterMapGenerator(ConfigurableObject):
         (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
         if time_values is not None:
             dtime: date = time_values[-1]
-            dstr = f"{dtime.month:02}{dtime.day:02}{dtime.year}"
+            dstr = f"{dtime.month:02d}{dtime.day:02d}{dtime.year}"
             patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
             result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
             result_geog_water_map_file = patched_water_map_file + "-geog.nc"
@@ -499,7 +497,7 @@ class WaterMapGenerator(ConfigurableObject):
                 outfile.write( "date water_area_km2 percent_interploated\n")
             percent_interp = class_proportion.values
             num_water_pixels = water_counts.values
-            outfile.write( f"{rdate.month:02}-{rdate.day:02}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
+            outfile.write( f"{rdate.month:02d}-{rdate.day:02d}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
             self.logger.info( f"Wrote results to file {outfile_path}")
 
     def get_class_counts( self, array: np.ndarray )-> Dict:
