@@ -8,6 +8,7 @@ defaults:
     skip_existing: False
     download_only: False
     format: 'nc'
+    op_range: [ 1, 365, 8 ]
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
@@ -21,7 +22,6 @@ defaults:
       product:  'randomforest'
       collection: 'MOD'
       year: 2021
-      day_range: [ 1, 365 ]
       history_length: 50
 
     water_maps:
