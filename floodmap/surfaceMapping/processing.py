@@ -167,7 +167,7 @@ class LakeMaskProcessor:
         from floodmap.surfaceMapping.mwp import MWPDataManager
         water_maps_opspec = opSpecs.get('water_map', {})
         dataMgr = MWPDataManager.instance()
-        op_range = dataMgr.parms.get( 'op_range' )
+        op_range = dataMgr.parms.get( 'op_range', None )
         history_length = dataMgr.parms.get('history_length')
         logger = getLogger(False, logging.DEBUG)
         ( lake_index, lake_mask_bounds ) = lake_info
@@ -175,7 +175,7 @@ class LakeMaskProcessor:
         try:
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
             waterMapGenerator = WaterMapGenerator()
-            if op_range is None:
+            if (len(op_range)==0):
                 result = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
                 if result is not None: patched_water_maps.append( result )
             else:

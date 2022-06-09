@@ -1,6 +1,5 @@
 from floodmap.util.configuration import opSpecs
 from floodmap.util.anim import ArrayAnimation
-from  floodmap.surfaceMapping.mwp import MWPDataManager
 from typing import Dict, List, Tuple
 import os, glob, getpass
 import xarray as xr, numpy as np

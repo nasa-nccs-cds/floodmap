@@ -1,0 +1,28 @@
+defaults:
+    results_dir: "/Volumes/Shared/Data/floodmap/Results"
+    water_class_thresholds: [ 0.02, 0.93 ]
+    log_dir: "/Volumes/Shared/Data/floodmap/Logs"
+    ncores: 1
+    skip_existing: False
+    download_only: False
+    format: 'tif'
+    lake_masks:
+        basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"
+        file: "{lake_index}_2020.tif"
+        lake_index: 462
+        mask: 3
+        water: 1
+
+    source:
+      url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
+      path: 'allData/{collection}/{product}/Recent'
+      product:  'MCDWD_L3_F2_NRT'
+      collection: 61
+      token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
+      archive_tiles: 'current'
+      history_length: 30
+
+    water_maps:
+        threshold: 0.5
+        bin_size: 8
+

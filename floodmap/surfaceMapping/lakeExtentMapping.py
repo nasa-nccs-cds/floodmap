@@ -419,8 +419,11 @@ class WaterMapGenerator(ConfigurableObject):
             print(msg)
 
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
+        from floodmap.surfaceMapping.mwp import MWPDataManager
         from floodmap.util.crs import CRS
+        dataMgr = MWPDataManager.instance()
         lake_index = kwargs.get('index',0)
+        self.logger.info(f"\n ** generate_lake_water_map[{lake_index}]: parms={dataMgr.parms}")
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
         format = opSpecs.get('format','tif')
