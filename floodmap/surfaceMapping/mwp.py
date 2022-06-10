@@ -35,7 +35,7 @@ def get_tile_dir(data_dir, tile: str) -> str:
 def download( target_url: str, result_dir: str, token: str ):
     logger = getLogger(False)
     (lname,log_file) = getLogFile( False )
-    print( f"Downloading Tile: {target_url}", flush=True )
+    print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
     cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     stream = os.popen(cmd)
     output = stream.read()
@@ -129,6 +129,7 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['op_range'] = op_range
             cls._instance.parms['history_length'] = history_length
             cls._instance.parms['day_range'] = source_spec.get('day_range', default_day_range )
+            cls._instance.logger.info( f"DR: Setting day range: {cls._instance.parms['day_range']}, default={default_day_range}, today={today}, kwargs={kwargs}")
             cls._instance.parms['path'] = source_spec.get('path')
             cls._instance.parms['file'] = source_spec.get( 'file', "{product}.A{year}{day:03d}.{tile}.{collection}.tif" )
             cls._instance.parms['collection'] = source_spec.get('collection')
@@ -318,7 +319,7 @@ class MWPDataManager(ConfigurableObject):
             (day,year) = (iday,iyear) if (iday > 0) else (365+iday,iyear-1)
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
             data_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
-            target_file = "{product}.A{year}{day:03d}.{tile}.{collection}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
+            target_file = "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
             dtime: date = datetime.strptime( timestr, '%Y%j').date()
