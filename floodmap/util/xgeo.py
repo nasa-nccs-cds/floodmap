@@ -199,10 +199,13 @@ class XGeo(XExtension):
                 if nodata_value is not None:
                     rband.SetNoDataValue(nodata_value)
         else:
-            rband = dataset.GetRasterBand(1)
+            rband: gdal.Band = dataset.GetRasterBand(1)
             rband.WriteArray(in_array)
-            if nodata_value is not None:
-                rband.SetNoDataValue(nodata_value)
+            try:
+                if nodata_value is not None:
+                    rband.SetNoDataValue(nodata_value)
+            except Exception as err:
+                logger.error( f"Error setting nodata value in gdal conversion, nodata value={nodata_value}, gdal band dtype={rband.DataType}, err={err}" )
 
         return dataset
 

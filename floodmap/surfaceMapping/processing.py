@@ -113,6 +113,7 @@ class LakeMaskProcessor:
             lake_masks: Dict[int,Union[str,List[float]]] = self.getLakeMasks()
             parallel = opSpecs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
+            download_all = opSpecs.get( 'download_all', True )
             download_only = opSpecs.get('download_only', False)
             lake_specs: List[Tuple[int,Union[str,List[float]]]] = list(lake_masks.items())
             tiles = self.update_floodmap_archive()

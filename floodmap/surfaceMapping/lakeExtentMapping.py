@@ -264,7 +264,7 @@ class WaterMapGenerator(ConfigurableObject):
                 try:
                     lake_mask_value =  lakeMaskSpecs.get('mask',0)
                     self.logger.info( f"Reading Tile {tile}" )
-                    tile_filespec: OrderedDict = dataMgr.get_tile(tile)
+                    tile_filespec: Dict = dataMgr.get_tile(tile)
                     file_paths = list(tile_filespec.values())
                     time_values: List[date] = list(tile_filespec.keys())
                     tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0,
