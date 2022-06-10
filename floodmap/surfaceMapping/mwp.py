@@ -46,7 +46,7 @@ def local_file_path( product, path_template, collection, data_dir, tile, year, d
     path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
     timestr = f"{iY}{iD:03}"
-    target_file = f"{product}.A{timestr}.{tile}.{collection}.tif"
+    target_file = self.default_file_template
     return os.path.join( location_dir, path, target_file )
 
 def has_tile_data( product, path_template, file_template, collection, data_dir, tile, year ) -> Tuple[str,bool]:
@@ -99,6 +99,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
+    default_file_template = "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
 
     def __init__(self, data_dir: str, data_source_url: str, **kwargs ) :
         ConfigurableObject.__init__( self, **kwargs )
@@ -131,7 +132,7 @@ class MWPDataManager(ConfigurableObject):
             cls._instance.parms['day_range'] = source_spec.get('day_range', default_day_range )
             cls._instance.logger.info( f"DR: Setting day range: {cls._instance.parms['day_range']}, default={default_day_range}, today={today}, kwargs={kwargs}")
             cls._instance.parms['path'] = source_spec.get('path')
-            cls._instance.parms['file'] = source_spec.get( 'file', "{product}.A{year}{day:03d}.{tile}.{collection}.tif" )
+            cls._instance.parms['file'] = source_spec.get( 'file', cls.default_file_template )
             cls._instance.parms['collection'] = source_spec.get('collection')
             cls._instance.parms['max_history_length'] = source_spec.get( 'max_history_length', 300 )
             cls._instance.parms.update( kwargs )
@@ -298,7 +299,7 @@ class MWPDataManager(ConfigurableObject):
                 location_dir = get_tile_dir(self.data_dir, tile)
                 target_dir = os.path.join(location_dir, path )
                 if os.path.exists( target_dir ):
-                    files = glob.glob(f"{target_dir}/{product}.A*.{tile}.{collection}.tif")
+                    files = glob.glob(f"{target_dir}/{product}.A*.{tile}.*.tif")
                     for file in files:
                         dt: timedelta = datetime.now() - self.get_date_from_filepath(file)
                         if dt.days > max_history_length: os.remove( file )
@@ -307,7 +308,7 @@ class MWPDataManager(ConfigurableObject):
         day_range = self.parms['day_range']
         iyear = self.parms['year']
         product =   self.getParameter( "product",   **kwargs )
-        file_template = self.getParameter("file",  "{product}.A{year}{day:03d}.{tile}.{collection}.tif", **kwargs)
+        file_template = self.getParameter("file",  self.default_file_template, **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
         token=        self.getParameter( "token", **kwargs )
@@ -319,7 +320,7 @@ class MWPDataManager(ConfigurableObject):
             (day,year) = (iday,iyear) if (iday > 0) else (365+iday,iyear-1)
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
             data_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
-            target_file = "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif".format( collection=collection, product=product, year=year, day=day, tile=tile )
+            target_file = default_file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
             dtime: date = datetime.strptime( timestr, '%Y%j').date()
