@@ -11,7 +11,7 @@ def argfilter( args: Dict, **kwargs ) -> Dict:
     return { key: args.get(key,value) for key,value in kwargs.items() }
 
 def sanitize_ds( dset: xr.Dataset, squeeze=False ):
-    variables = { vid:sanitize(v,squeeze) for (vid,v) in dset.data_vars }
+    variables = { vid:sanitize(v,squeeze) for (vid,v) in dset.data_vars.items() }
     return xr.Dataset( variables, dset.coords, dset.attrs )
 
 def sanitize( array: xr.DataArray, squeeze=False ):

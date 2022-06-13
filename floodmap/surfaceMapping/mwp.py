@@ -17,6 +17,10 @@ from floodmap.util.configuration import ConfigurableObject
 
 def s2b( sval: str ): return sval.lower().startswith('t')
 
+def parse_collection( collection: Union[int,str]):
+    try: return f"{int(collection):03d}"
+    except: return collection
+
 def getStreamLogger( level ):
     logger = logging.getLogger (__name__ )
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -93,7 +97,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
 
 class MWPDataManager(ConfigurableObject):
     _instance: "MWPDataManager" = None
-    default_file_template = "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+    default_file_template = "{product}.A{year}{day:03d}.{tile}.{collection}.tif"
 
     def __init__(self, data_dir: str, data_source_url: str, **kwargs ) :
         ConfigurableObject.__init__( self, **kwargs )
@@ -315,7 +319,7 @@ class MWPDataManager(ConfigurableObject):
         product =   self.getParameter( "product",   **kwargs )
         file_template = self.getParameter("file",  self.default_file_template, **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
-        collection= self.getParameter( "collection", **kwargs )
+        collection= parse_collection( self.getParameter( "collection", **kwargs ) )
         download_length = self.getParameter("download_length", **kwargs)
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)
