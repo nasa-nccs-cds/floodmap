@@ -18,8 +18,10 @@ from floodmap.util.configuration import ConfigurableObject
 def s2b( sval: str ): return sval.lower().startswith('t')
 
 def parse_collection( collection: Union[int,str]):
-    try: return f"{int(collection):03d}"
-    except: return collection
+    try:
+        return f"{int(collection):03d}"
+    except Exception as err:
+        return collection
 
 def getStreamLogger( level ):
     logger = logging.getLogger (__name__ )
@@ -319,7 +321,7 @@ class MWPDataManager(ConfigurableObject):
         product =   self.getParameter( "product",   **kwargs )
         file_template = self.getParameter("file",  self.default_file_template, **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
-        collection= parse_collection( self.getParameter( "collection", **kwargs ) )
+        collection= self.getParameter( "collection", **kwargs )
         download_length = self.getParameter("download_length", **kwargs)
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)

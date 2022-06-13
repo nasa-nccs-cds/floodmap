@@ -18,6 +18,7 @@ defaults:
     source:
       url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
       path: 'allData/{collection}/{product}/Recent'
+      file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
       product:  'MCDWD_L3_F2_NRT'
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
