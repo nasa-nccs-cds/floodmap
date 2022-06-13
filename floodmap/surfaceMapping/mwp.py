@@ -333,7 +333,7 @@ class MWPDataManager(ConfigurableObject):
             (day,year) = (iday,iyear) if (iday > 0) else (365+iday,iyear-1)
             path = path_template.format( collection=collection, product=product, year=year, tile=tile )
             data_file = file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
-            target_file = self.default_file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
+            target_file = data_file # file_template.format( collection=collection, product=product, year=year, day=day, tile=tile )
             target_file_path = os.path.join( tile_dir, path, target_file )
             timestr = f"{year}{day:03}"
             dtime: date = datetime.strptime( timestr, '%Y%j').date()
@@ -347,8 +347,8 @@ class MWPDataManager(ConfigurableObject):
                 else:
                     if (nday-idx) <= download_length:
                         print(f"Local tile does not exist (downloading): {target_file_path}")
-                        target_url = self.data_source_url + f"/{path}/{target_file}"
-                        download( target_url, tile_dir, token )
+                        data_url = self.data_source_url + f"/{path}/{data_file}"
+                        download( data_url, tile_dir, token )
                 if os.path.exists(target_file_path):
                     self.logger.info(f" Downloaded NRT file: {target_file_path}")
                     files[dtime] = target_file_path
