@@ -2,7 +2,7 @@ defaults:
     results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/comparison"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs"
+    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/comparison"
     ncores: 8
     parallel: False
     skip_existing: False
