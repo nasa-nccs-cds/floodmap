@@ -17,7 +17,7 @@ defaults:
         water: 1
 
     source:
-      url: 'file:/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"'
+      url: 'file:/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results'
       path: "{tile}/allData/{collection}/{product}/Recent"
       file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
       product: "MCDWD_L3_F2_NRT"
