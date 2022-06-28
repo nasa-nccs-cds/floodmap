@@ -12,9 +12,9 @@ def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     ftoks = fName.split('.')
     tile, dstr = ftoks[2], ftoks[1][1:]
     outpath =   f"{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Recent"
-    result_file = f"MCDWD_L3_F2_NRT.A{dstr}.{tile}.{collection}.tif"
+    result_file = f"MCDWD_L3_F2_NRT.A{dstr}.{tile}.{collection:03d}.tif"
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
-    product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
+    product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
     result_path = f"{archive_dir}/{outpath}/{result_file}"
     if os.path.isfile( result_path ):
         rv = 0
