@@ -3,7 +3,7 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/Volumes/Shared/Data/floodmap/Logs"
     ncores: 1
-    skip_existing: False
+    skip_existing: True
     download_only: False
     format: 'tif'
     lake_masks:
