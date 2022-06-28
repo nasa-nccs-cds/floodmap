@@ -61,6 +61,8 @@ def has_tile_data( product, path_template, file_template, collection, data_dir, 
     roi = None if (nfiles==0) else get_roi( files[0] )
     if nfiles > 0:
         logger.info( f" --> has_tile_data: glob_str='{glob_str}', #files={nfiles}")
+    else:
+        logger.info(f" --> NO data for tile {tile}: glob_str='{glob_str}'")
     return ( tile, roi )
 
 def get_roi( target_file_path: str ) -> Optional[List[Tuple[float,float]]]:
@@ -176,6 +178,7 @@ class MWPDataManager(ConfigurableObject):
             raise Exception( "Must supply either source.tile, roi, or lake masks in order to locate region")
         for tile in required_tiles:
             if tile not in valid_tiles:
+                self.logger.info( f"Required tile {tile} is not valid, required_tiles = {required_tiles}, valid_tiles = {valid_tiles}")
                 return None
         return required_tiles
 
