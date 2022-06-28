@@ -18,8 +18,9 @@ defaults:
 
     source:
       url: 'file:/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"'
-      path: "{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Recent"
-      file: "MCDWD_L3_F2_NRT.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+      path: "{tile}/allData/{collection}/{product}/Recent"
+      file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+      product: "MCDWD_L3_F2_NRT"
       collection: 61
       year: 2021
       history_length: 50
