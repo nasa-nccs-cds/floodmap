@@ -423,7 +423,7 @@ class WaterMapGenerator(ConfigurableObject):
         from floodmap.util.crs import CRS
         dataMgr = MWPDataManager.instance()
         lake_index = kwargs.get('index',0)
-        self.logger.info(f"\n ** generate_lake_water_map[{lake_index}]: parms={dataMgr.parms}")
+        self.logger.info(f" ** generate_lake_water_map[{lake_index}]: parms={dataMgr.parms}")
         self.lake_mask: Optional[xr.DataArray] = kwargs.get('mask',None)
         self.roi_bounds = kwargs.get('roi', None)
         format = opSpecs.get('format','tif')
@@ -431,13 +431,16 @@ class WaterMapGenerator(ConfigurableObject):
         os.makedirs( results_dir, exist_ok=True )
         results_file = opSpecs.get('results_file', f'lake_{lake_index}_stats.csv').format( lake_index=lake_index )
         (self.floodmap_data, time_values) = self.get_mwp_data(**kwargs)
-        if time_values is not None:
+        if time_values is None:
+            self.logger.warn(f" No time values! ")
+        else:
             dtime: date = time_values[-1]
             dstr = f"{dtime.month:02d}{dtime.day:02d}{dtime.year}"
             patched_water_map_file = f"{results_dir}/lake_{lake_index}_patched_water_map_{dstr}"
             result_water_map_file = patched_water_map_file + ".tif" if format ==  'tif' else patched_water_map_file + ".nc"
             result_geog_water_map_file = patched_water_map_file + "-geog.nc"
             if self.floodmap_data is None:
+                self.logger.warn(f" No floodamp data! ")
                 return None
             else:
                 try:
