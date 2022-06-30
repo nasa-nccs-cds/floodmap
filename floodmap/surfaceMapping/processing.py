@@ -71,6 +71,9 @@ class LakeMaskProcessor:
                     lake_masks[iLake] = file_path
                     logger.info(f"  Retreiving Lake-{iLake} using lake file: {file_path}")
                     print('.', end='', flush=True)
+                else:
+                    msg = f" \n\tLake Mask for Lake-{iLake} does not exist: {file_path}"
+                    logger.info(msg); print( msg )
         elif files_spec != "UNDEF":
             raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:
