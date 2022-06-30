@@ -81,7 +81,7 @@ class LakeMaskProcessor:
         print(f"\nRetrieved {len(lake_masks)} Lake masks ")
         return lake_masks
 
-    def update_floodmap_archive( self ) -> List[str]:
+    def update_floodmap_archive( self, **kwargs ) -> List[str]:
         from .mwp import MWPDataManager
         source_specs = opSpecs.get( 'source' )
         dataMgr = MWPDataManager.instance()
@@ -113,13 +113,13 @@ class LakeMaskProcessor:
             lake_masks: Dict[int,Union[str,List[float]]] = self.getLakeMasks()
             parallel = opSpecs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
-            download_all = opSpecs.get( 'download_all', True )
             download_only = opSpecs.get('download_only', False)
             lake_specs: List[Tuple[int,Union[str,List[float]]]] = list(lake_masks.items())
-            tiles = self.update_floodmap_archive()
+            tiles = self.update_floodmap_archive(**kwargs)
             pspecs = dict( tiles=tiles, **kwargs )
             if not download_only:
-                print( f"\nProcessing Lakes (parallel={parallel}): {list(lake_masks.keys())}" )
+                msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"
+                self.logger.info( msg ); print( msg )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p

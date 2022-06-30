@@ -184,6 +184,7 @@ class MWPDataManager(ConfigurableObject):
 
     def download_mpw_data( self, **kwargs ) -> List[str]:
         self.logger.info( "downloading mpw data")
+        download_all = opSpecs.get('download_all', True)
         print( "Downloading mpw data" )
         tiles = kwargs.get( 'tiles', self.get_valid_tiles().keys() )
         for tile in tiles:
@@ -363,7 +364,7 @@ class MWPDataManager(ConfigurableObject):
                 files[dtime] = target_file_path
                 tstrs.append(timestr)
         if len(dstrs): self.logger.info( f"Downloading MWP data for dates, day range = [{day_range}]: {dstrs}" )
-        if len(tstrs): self.logger.info( f"Reading MWP data for dates: {tstrs}" )
+        if len(tstrs): self.logger.info( f"Reading MWP data for dates: {tstrs}, nfiles = {len(files)}" )
         return files
 
     def get_array_data(self, files: List[str], merge=False ) ->  Union[xr.DataArray,List[xr.DataArray]]:

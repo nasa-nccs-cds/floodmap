@@ -253,8 +253,10 @@ class WaterMapGenerator(ConfigurableObject):
         sref = None
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
-        if tiles:
-            print( f"\nProcessing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}" )
+        if len(tiles) == 0:
+            print( f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, mask = {self.lake_mask}: NO TILES!")
+        else:
+            print( f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}" )
             dataMgr.download_mpw_data( tiles=tiles, **source_specs )
             cropped_tiles: Dict[str,xr.DataArray] = {}
             time_values = None
