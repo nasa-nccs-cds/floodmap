@@ -12,7 +12,7 @@ defaults:
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
-        lake_index: 462
+        lake_index: 226
         mask: 3
         water: 1
 
