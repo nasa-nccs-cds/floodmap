@@ -43,6 +43,7 @@ def download( target_url: str, result_dir: str, token: str ):
     (lname,log_file) = getLogFile( False )
     print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
     cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+    logger.info(f"Using download command: '{cmd}'")
     stream = os.popen(cmd)
     output = stream.read()
     logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")

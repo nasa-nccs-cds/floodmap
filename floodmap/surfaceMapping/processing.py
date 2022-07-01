@@ -121,8 +121,7 @@ class LakeMaskProcessor:
             tiles = self.update_floodmap_archive(**kwargs)
             pspecs = dict( tiles=tiles, **kwargs )
             if not download_only:
-                msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"
-                self.logger.info( msg ); print( msg )
+                msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"; self.logger.info( msg ); print( msg )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p
@@ -175,6 +174,7 @@ class LakeMaskProcessor:
         history_length = dataMgr.parms.get('history_length')
         logger = getLogger(False, logging.DEBUG)
         ( lake_index, lake_mask_bounds ) = lake_info
+        msg = f"Processing Lake {lake_index}"; logger.info(msg); print( msg )
         patched_water_maps = []
         try:
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
