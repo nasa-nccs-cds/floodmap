@@ -1,8 +1,8 @@
 defaults:
-    results_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/results-98"
+    results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/new_lakes"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/logs-98"
+    log_dir:  "/adapt/nobackup/projects/ilab/cache/floodmap/logs/new_lakes"
     ncores: 8
     skip_existing: False
     download_only: False
