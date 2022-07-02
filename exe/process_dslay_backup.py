@@ -14,13 +14,14 @@ def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     outpath =   f"{tile}/allData/{collection}/MCDWD_L3_F2_NRT/Recent"
     result_file = f"MCDWD_L3_F2_NRT.A{dstr}.{tile}.{collection:03d}.tif"
     os.makedirs(f'{archive_dir}/{outpath}', exist_ok=True)
-    product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}.hdf:Grid_Water_Composite:'Flood 2-Day 250m'"
+    product = f"HDF4_EOS:EOS_GRID:MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}"
+    if ftoks[4] != "hdf": product = f"{product}.{ftoks[4]}"
     result_path = f"{archive_dir}/{outpath}/{result_file}"
     if os.path.isfile( result_path ):
         rv = 0
         print( f" *** SKIPPING EXISTING {outpath}: {result_file}" )
     else:
-        command = f"cd {fdir}; gdal_translate {product} {result_path} -q -co 'COMPRESS=DEFLATE'"
+        command = f"cd {fdir}; gdal_translate {product}.hdf:Grid_Water_Composite:'Flood 2-Day 250m' {result_path} -q -co 'COMPRESS=DEFLATE'"
         rv = os.system(command)
         print( f" *** [{rv}]->      {outpath}:  {result_file}" )
     return rv
