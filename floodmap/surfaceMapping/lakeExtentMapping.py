@@ -254,9 +254,11 @@ class WaterMapGenerator(ConfigurableObject):
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
         if len(tiles) == 0:
-            print( f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, mask = {self.lake_mask}: NO TILES!")
+            msg = f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, mask = {self.lake_mask}: NO TILES!"
+            self.logger.error( msg ); print( msg )
         else:
-            print( f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}" )
+            msg = f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}"
+            self.logger.info(msg); print(msg)
             dataMgr.download_mpw_data( tiles=tiles, **source_specs )
             cropped_tiles: Dict[str,xr.DataArray] = {}
             time_values = None
@@ -299,6 +301,8 @@ class WaterMapGenerator(ConfigurableObject):
                 cropped_data["spatial_ref"] = sref
                 cropped_data = cropped_data.persist()
                 return self.update_classes( cropped_data ), time_values
+            else:
+                self.logger.error(f"NO Tiles avaialble!")
         return None, None
 
     @classmethod

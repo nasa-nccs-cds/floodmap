@@ -41,8 +41,8 @@ class LakeMaskProcessor:
     @classmethod
     def getLakeMasks( cls ) -> Dict[int,Union[str,List[float]]]:
         from floodmap.util.configuration import opSpecs
-        print("Retreiving Lake masks ", end='', flush=True )
         logger = getLogger(True)
+        logger.info("Retreiving Lake masks " )
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         data_dir: str = lakeMaskSpecs.get("basedir", None)
         data_roi: str = lakeMaskSpecs.get( "roi", None )
@@ -70,18 +70,17 @@ class LakeMaskProcessor:
                 if os.path.isfile(file_path):
                     lake_masks[iLake] = file_path
                     logger.info(f"  Retreiving Lake-{iLake} using lake file: {file_path}")
-                    print('.', end='', flush=True)
                 else:
                     msg = f" \n\tLake Mask for Lake-{iLake} does not exist: {file_path}"
                     logger.info(msg); print( msg )
         elif files_spec != "UNDEF":
-            raise Exception( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
+            logger.error( f"Unrecognized 'file' specification in 'lake_masks' config: '{files_spec}'")
         elif data_roi is not None:
             index = 0 if lake_index is None else lake_index
             lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
         else:
-            print( "No lakes configured in specs file." )
-        print(f"Retrieved {len(lake_masks)} Lake masks:\n\t {lake_masks} ")
+            logger.info( "No lakes configured in specs file." )
+        logger.info(f"Retrieved {len(lake_masks)} Lake masks:\n\t {lake_masks} ")
         return lake_masks
 
     def update_floodmap_archive( self, current_lakes: Dict[int,Union[str,List[float]]] ) -> List[str]:
@@ -167,15 +166,14 @@ class LakeMaskProcessor:
     def process_lake_mask( cls, runSpecs: Dict, lake_info: Tuple[int,Union[str,List[float]]]):
         from .lakeExtentMapping import WaterMapGenerator
         from floodmap.surfaceMapping.mwp import MWPDataManager
-        water_maps_opspec = opSpecs.get('water_map', {})
-        dataMgr = MWPDataManager.instance()
-        op_range = dataMgr.parms.get( 'op_range', None )
-        history_length = dataMgr.parms.get('history_length')
         logger = getLogger(False, logging.DEBUG)
-        ( lake_index, lake_mask_bounds ) = lake_info
-        msg = f"Processing Lake {lake_index}"; logger.info(msg); print( msg )
-        patched_water_maps = []
+        (lake_index, lake_mask_bounds) = lake_info
+        dataMgr = MWPDataManager.instance()
         try:
+            op_range = dataMgr.parms.get('op_range', None)
+            history_length = dataMgr.parms.get('history_length')
+            msg = f"Processing Lake {lake_index}"; logger.info(msg); print(msg)
+            patched_water_maps = []
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
             waterMapGenerator = WaterMapGenerator()
             if (len(op_range)==0):
