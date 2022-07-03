@@ -9,7 +9,7 @@ defaults:
     download_only: False
     download_all: False
     format: 'nc'
-    op_range: [ 75, 150, 8 ]
+    op_range: [ 75, 150, 4 ]
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
@@ -25,7 +25,7 @@ defaults:
       collection: 61
       year: 2022
       history_length: 50
-      download_length: 1
+      download_length: 8
 
     water_maps:
         threshold: 0.5
