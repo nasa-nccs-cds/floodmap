@@ -7,6 +7,7 @@ defaults:
     parallel: False
     skip_existing: False
     download_only: False
+    download_current_only: True
     op_range: [ 1, 365, 8 ]
     format: 'nc'
     lake_masks:
@@ -24,6 +25,7 @@ defaults:
       collection: 'MOD'
       year: 2021
       day_range: [ 41 ]
+      current_tiles_only: True
       history_length: 50
 
     water_maps:

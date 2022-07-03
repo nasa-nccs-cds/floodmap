@@ -42,7 +42,7 @@ def download( target_url: str, result_dir: str, token: str ):
     logger = getLogger(False)
     (lname,log_file) = getLogFile( False )
     print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
-    cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+    cmd = f'wget "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     logger.info(f"Using download command: '{cmd}'")
     stream = os.popen(cmd)
     output = stream.read()
@@ -185,9 +185,10 @@ class MWPDataManager(ConfigurableObject):
 
     def download_mpw_data( self, **kwargs ) -> List[str]:
         self.logger.info( "downloading mpw data")
-        download_all = opSpecs.get('download_all', True)
+        current_tiles_only = opSpecs.get('current_tiles_only', False)
+        if not current_tiles_only: kwargs['current_lakes'] = None
         print( "Downloading mpw data" )
-        tiles = kwargs.get( 'tiles', self.get_valid_tiles().keys() )
+        tiles = kwargs.get( 'tiles', self.get_valid_tiles(**kwargs).keys() )
         for tile in tiles:
             self.get_tile( tile, **kwargs )
         return tiles
@@ -195,11 +196,17 @@ class MWPDataManager(ConfigurableObject):
     def get_day_range( self, **kwargs ):
         return self.parms['day_range']
 
+    def filter_current_tiles(self, all_tiles: List[Tuple[ str, Optional[List[Tuple[float,float]]]]], current_lakess: Optional[Dict[int, Union[str, List[float]]]]):
+        rois = []
+        current_tiles = []
+        return current_tiles
+
     def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
         logger = getLogger(False)
         try:
             if self._valid_tiles is None:
                 this_day = datetime.now().timetuple().tm_yday
+                current_lakes: Optional[Dict[int, Union[str, List[float]]]] = kwargs.get('current_lakes')
                 product = self.getParameter("product", **kwargs)
                 path_template = self.getParameter( "path", **kwargs)
                 file_template = self.getParameter( "file", **kwargs )
@@ -208,7 +215,10 @@ class MWPDataManager(ConfigurableObject):
                 history_length = self.getParameter('history_length', 30, **kwargs)
                 year = int( self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs) )
                 day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
-                all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in self.global_tile_list() ]
+                possible_tiles = self.global_tile_list()
+                all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in possible_tiles ]
+                # if current_lakes is not None:
+                #     all_tiles = self.filter_current_tiles( all_tiles, current_lakes )
                 logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
                 days = range( int(day_range[0]), int(day_range[-1]) + 1)
                 if not True in [ (valid!=None) for (tile, valid) in all_tiles]:

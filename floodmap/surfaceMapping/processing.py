@@ -84,11 +84,11 @@ class LakeMaskProcessor:
         print(f"\nRetrieved {len(lake_masks)} Lake masks ")
         return lake_masks
 
-    def update_floodmap_archive( self, **kwargs ) -> List[str]:
+    def update_floodmap_archive( self, current_lakes: Dict[int,Union[str,List[float]]] ) -> List[str]:
         from .mwp import MWPDataManager
         source_specs = opSpecs.get( 'source' )
         dataMgr = MWPDataManager.instance()
-        tiles = dataMgr.download_mpw_data( **source_specs )
+        tiles = dataMgr.download_mpw_data( **source_specs, current_lakes=current_lakes )
         dataMgr.delete_old_files( )
         return list(tiles)
 
@@ -117,17 +117,16 @@ class LakeMaskProcessor:
             parallel = opSpecs.get( 'parallel', True )
             nproc = opSpecs.get( 'ncores', cpu_count() )
             download_only = opSpecs.get('download_only', False)
-            lake_specs: List[Tuple[int,Union[str,List[float]]]] = list(lake_masks.items())
-            tiles = self.update_floodmap_archive(**kwargs)
+            tiles = self.update_floodmap_archive( lake_masks )
             pspecs = dict( tiles=tiles, **kwargs )
             if not download_only:
                 msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"; self.logger.info( msg ); print( msg )
                 if parallel:
                     with get_context("spawn").Pool(processes=nproc) as p:
                         self.pool = p
-                        results = p.map( partial( LakeMaskProcessor.process_lake_mask, pspecs ), lake_specs )
+                        results = p.map( partial( LakeMaskProcessor.process_lake_mask, pspecs ), lake_masks.items() )
                 else:
-                    results = [ LakeMaskProcessor.process_lake_mask( pspecs, lake_spec ) for lake_spec in lake_specs ]
+                    results = [ LakeMaskProcessor.process_lake_mask( pspecs, lake_spec ) for lake_spec in lake_masks.items() ]
                 self.logger.info( f"Processes completed- exiting.\n\n Processed lakes: {list(filter(None, results))}")
         except Exception as err:
             self.logger.error(f"Exception: {err}")
