@@ -81,7 +81,7 @@ class LakeMaskProcessor:
             lake_masks[ index ] = [ float(v) for v in data_roi.split(",") ]
         else:
             print( "No lakes configured in specs file." )
-        print(f"\nRetrieved {len(lake_masks)} Lake masks ")
+        print(f"Retrieved {len(lake_masks)} Lake masks:\n\t {lake_masks} ")
         return lake_masks
 
     def update_floodmap_archive( self, current_lakes: Dict[int,Union[str,List[float]]] ) -> List[str]:

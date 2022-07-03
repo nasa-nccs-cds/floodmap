@@ -270,7 +270,7 @@ class WaterMapGenerator(ConfigurableObject):
                     file_paths = list(tile_filespec.values())
                     time_values: List[date] = list(tile_filespec.keys())
                     tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0,
-                                    mask_value=self.mask_value, index=[np.datetime64(t) for t in time_values] )
+                                            mask_value=self.mask_value, index=[np.datetime64(t) for t in time_values] )
                     if sref is None: sref = get_spatial_ref( tile_raster )
                     if (tile_raster is not None) and tile_raster.size > 0:
                         if self.lake_mask is None:
