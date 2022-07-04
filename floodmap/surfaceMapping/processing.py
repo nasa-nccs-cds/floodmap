@@ -138,8 +138,9 @@ class LakeMaskProcessor:
             lake_mask: xr.DataArray = rio.open_rasterio(lake_mask).astype(np.dtype('f4'))
             lake_mask.attrs.update( kwargs )
             lake_mask.name = f"Lake {lake_index} Mask"
-            rv['mask'] = lake_mask
-            rv['roi'] = lake_mask.xgeo.extent()
+            geomask: xr.DataArray = lake_mask.xgeo.gdal_reproject()
+            rv['mask'] = geomask
+            rv['roi'] = geomask.xgeo.extent()
         else:
             rv['roi'] = lake_mask
         return rv
