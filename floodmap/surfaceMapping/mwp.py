@@ -42,7 +42,7 @@ def download( target_url: str, result_dir: str, token: str ):
     logger = getLogger(False)
     (lname,log_file) = getLogFile( False )
     print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
-    cmd = f'wget "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
+    cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     logger.info(f"Using download command: '{cmd}'")
     stream = os.popen(cmd)
     output = stream.read()
@@ -197,7 +197,7 @@ class MWPDataManager(ConfigurableObject):
         return self.parms['day_range']
 
     def filter_current_tiles(self, all_tiles: List[Tuple[ str, Optional[List[Tuple[float,float]]]]], current_lakess: Optional[Dict[int, Union[str, List[float]]]]):
-        rois = []
+        rois = [ ]
         current_tiles = []
         return current_tiles
 
