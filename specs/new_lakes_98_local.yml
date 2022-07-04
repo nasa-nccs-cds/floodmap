@@ -1,0 +1,28 @@
+defaults:
+    results_dir: "/Volumes/Shared/Data/floodmap/Results"
+    results_file: 'lake_{lake_index}_stats.csv'
+    water_class_thresholds: [ 0.02, 0.93 ]
+    log_dir: "/Volumes/Shared/Data/floodmap/Logs"
+    ncores: 8
+    parallel: False
+    skip_existing: False
+    download_only: False
+    format: 'nc'
+    lake_masks:
+        basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2019"
+        lake_index: 98
+        file: "lake{lake_index}_MOD44W_2019_C6.tif"
+
+    source:
+      url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
+      path: 'allData/{collection}/{product}/Recent'
+      file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+      product:  'MCDWD_L3_F2_NRT'
+      collection: 61
+      token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
+      archive_tiles: 'global'
+      history_length: 8
+
+    water_maps:
+        threshold: 0.5
+        bin_size: 8

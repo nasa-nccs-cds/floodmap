@@ -69,8 +69,9 @@ class TileLocator:
         from floodmap.util.geometry import intersects
         tiles = kwargs.get('tiles', {})
         bounds = [ (xmin,ymin), (xmin,ymax), (xmax,ymax), (xmax,ymin) ]
-        tiles = [ tid for (tid,roi) in tiles.items() if intersects( roi, bounds ) ]
-        return tiles
+        itiles = [ tid for (tid,roi) in tiles.items() if intersects( roi, bounds ) ]
+        getLogger(False).log( f" *** TileLocator.getTiles: bounds={bounds}, #available tiles: {len(tiles)}, #intersecting tiles: {len(itiles)}")
+        return itiles
 
     @classmethod
     def get_bounds(cls, array: xa.DataArray ) -> List:
