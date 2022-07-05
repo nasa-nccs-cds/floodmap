@@ -254,7 +254,7 @@ class WaterMapGenerator(ConfigurableObject):
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
         if len(tiles) == 0:
-            msg = f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, mask = {self.lake_mask}:\n ----> NO TILES!"
+            msg = f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}:\n\n ----> NO TILES!\n"
             self.logger.error( msg ); print( msg )
         else:
             msg = f"Processing lake {lake_id}: days={dataMgr.parms['day_range']}, ROI={self.roi_bounds}, using tiles: {tiles}"
