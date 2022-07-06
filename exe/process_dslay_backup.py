@@ -4,7 +4,7 @@ from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
 
 collection = 61
-archive_dir = "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
+archive_dir = "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
 
 def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     fName = os.path.basename(hdfFilepath)
