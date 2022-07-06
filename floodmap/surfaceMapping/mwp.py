@@ -115,7 +115,8 @@ class MWPDataManager(ConfigurableObject):
     @classmethod
     def instance( cls, **kwargs ) -> "MWPDataManager":
         if cls._instance is None:
-            data_dir = opSpecs.get('data_dir')
+            results_dir = opSpecs.get('results_dir')
+            data_dir = opSpecs.get('data_dir',results_dir)
             op_range = opSpecs.get('op_range', [] )
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
