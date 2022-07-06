@@ -47,6 +47,7 @@ def download( target_url: str, result_dir: str, token: str ):
     proc = subprocess.Popen(cmd, shell=True, stdout=getLogFileObject(False), stderr=subprocess.STDOUT, bufsize=-1 )
     logger.info(f"Downloading url {target_url} to dir {result_dir}")
     proc.wait()
+    logger.info(f"  **FINISHED Downloading url {target_url} **** ")
 
 def has_tile_data( product, path_template, file_template, collection, data_dir, tile, year ) -> Tuple[ str, Optional[List[Tuple[float,float]]] ]:
     logger = getLogger(False)
