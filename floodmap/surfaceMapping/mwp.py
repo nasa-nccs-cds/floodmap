@@ -115,7 +115,7 @@ class MWPDataManager(ConfigurableObject):
     @classmethod
     def instance( cls, **kwargs ) -> "MWPDataManager":
         if cls._instance is None:
-            results_dir = opSpecs.get('results_dir')
+            data_dir = opSpecs.get('data_dir')
             op_range = opSpecs.get('op_range', [] )
             source_spec = opSpecs.get('source')
             data_url = source_spec.get('url')
@@ -125,7 +125,7 @@ class MWPDataManager(ConfigurableObject):
             day0 = source_spec.get('day', today, **kwargs)
             year0 = source_spec.get('year', this_year, **kwargs)
             default_day_range = [day0 - history_length, day0] if (len(op_range)==0) else op_range[:2]
-            cls._instance = MWPDataManager(results_dir, data_url)
+            cls._instance = MWPDataManager(data_dir, data_url)
             cls._instance.setDefaults()
             cls._instance.parms['product'] = source_spec.get('product')
             cls._instance.parms['token'] = source_spec.get('token')

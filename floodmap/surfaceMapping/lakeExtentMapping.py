@@ -98,7 +98,7 @@ class WaterMapGenerator(ConfigurableObject):
         # Computes perm water and perm land using occurrence thresholds over available history
         water_probability: xr.DataArray = self.get_water_probability(opspec, **kwargs)
         self.logger.info(f"Executing get_persistent_classes")
-        data_dir = opspec.get('results_dir')
+        results_dir = opspec.get('results_dir')
         lake_index = opspec.get('lake_index')
         t0 = time.time()
         cache = kwargs.get('cache', "update")
@@ -113,7 +113,7 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info(f"Done get_persistent_classes in time {time.time() - t0}")
         persistent_class_map = result.assign_attrs( cmap = dict( colors=self.get_water_map_colors() ) )
         if cache in [ True, "update" ]:
-            persistent_class_map_file = os.path.join(data_dir, f"lake_{lake_index}_persistent_class_map.nc")
+            persistent_class_map_file = os.path.join(results_dir, f"lake_{lake_index}_persistent_class_map.nc")
             result = xr.Dataset(dict(persistent_class_map=sanitize(persistent_class_map)))
             sanitize_ds(result).to_netcdf(persistent_class_map_file)
             msg = f"Saved persistent_class_map to {persistent_class_map_file}"
