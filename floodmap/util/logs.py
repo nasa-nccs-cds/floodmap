@@ -8,6 +8,12 @@ def getLogFile( master: bool ):
     os.makedirs( log_dir, exist_ok=True )
     return (lname, f"{log_dir}/floodmap.{lname}.log")
 
+def getLogFileObject( master: bool ):
+    logger = getLogger( master )
+    for handler in logger.handlers:
+        if type(handler) ==  logging.FileHandler:
+            return handler.stream
+
 def getLogger( master: bool, level = logging.DEBUG ):
     (lname,log_file) = getLogFile( master )
     logger = logging.getLogger( lname )

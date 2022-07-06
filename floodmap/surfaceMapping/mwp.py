@@ -1,7 +1,7 @@
 import os, wget, sys, pprint, logging, glob
 import traceback
 from multiprocessing import cpu_count, get_context, Pool
-import rioxarray
+import rioxarray, subprocess
 from functools import partial
 import geopandas as gpd
 from typing import List, Union, Tuple, Dict, Optional
@@ -10,7 +10,7 @@ import time, numpy as np
 from datetime import datetime, timedelta, date
 from floodmap.util.configuration import opSpecs
 from floodmap.util.xgeo import XGeo
-from ..util.logs import getLogger, getLogFile
+from ..util.logs import getLogger, getLogFile, getLogFileObject
 import xarray as xr
 pp = pprint.PrettyPrinter(depth=4).pprint
 from floodmap.util.configuration import ConfigurableObject
@@ -44,9 +44,9 @@ def download( target_url: str, result_dir: str, token: str ):
     print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
     cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     logger.info(f"Using download command: '{cmd}'")
-    stream = os.popen(cmd)
-    output = stream.read()
-    logger.info(f"Downloading url {target_url} to dir {result_dir}: result = {output}")
+    proc = subprocess.Popen(cmd, shell=True, stdout=getLogFileObject(False), stderr=subprocess.STDOUT, bufsize=-1 )
+    logger.info(f"Downloading url {target_url} to dir {result_dir}")
+    proc.wait()
 
 def has_tile_data( product, path_template, file_template, collection, data_dir, tile, year ) -> Tuple[ str, Optional[List[Tuple[float,float]]] ]:
     logger = getLogger(False)
