@@ -89,7 +89,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
         if data_source_url.startswith("file:/"):
             data_file_path = data_source_url[5:] + f"/{path}/{target_file}"
             files_exist = os.path.exists(data_file_path)
-            if files_exist:
+            if files_exist and (data_file_path != target_file_path):
                 logger.info(f" Creating symlink: {target_file_path} -> {data_file_path} ")
                 os.makedirs( os.path.dirname(target_file_path), exist_ok=True )
                 os.symlink(data_file_path, target_file_path)
