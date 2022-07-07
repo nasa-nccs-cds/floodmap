@@ -11,7 +11,7 @@ defaults:
     format: 'nc'
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/test_lakes/lakes_2019"
-        lake_index: 1435
+        lake_index: 3962
         file: "lake{lake_index}_MOD44W_2019_C6.tif"
 
     source:
