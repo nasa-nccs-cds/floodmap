@@ -1,5 +1,5 @@
 defaults:
-    data_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/test_data"
+    data_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
     results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
