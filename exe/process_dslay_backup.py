@@ -32,7 +32,7 @@ if __name__ == '__main__':
     dstr = f"2021*"
     tile = "h*v*" # "h*v*" "h20v09"
     source_dir = f"/adapt/nobackup/people/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
-    gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}.*.hdf"
+    gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}.hdf"
     infiles = glob.glob( gfstr )
     print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )
     print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
