@@ -1,0 +1,45 @@
+defaults:
+    results_dir: "/MOD44W/results"
+    results_file: 'lake_{lake_index}_stats.csv'
+    water_class_thresholds: [ 0.02, 0.93 ]
+    log_dir: "/MOD44W/logs"
+    ncores: 4
+    # turn on/off the multiprocessing
+    parallel: True
+    # False: overwrite the existing lake_x_patched_water_map_[doy].nc
+    skip_existing: True
+    # downloader always runs, turn off/on the processors
+    # Hunter: note, the downloader is disabled by comment out 'token', see below
+    # for reprocessing runs, we don't want the downloader to run
+    download_only: False
+    format: 'nc'
+
+    # defines the lake mask file location, mask values
+    # used by processing.LakeMaskProcessor, and
+    # by lakeExtentMapping
+    lake_masks:
+        basedir: "/MOD44W/lakes_lat_lon"
+        file: "{lake_index}_2019.tif"
+        lake_index_range: [0,10]
+        mask: 3
+        water: 1
+
+    # used by the downloader (mwp.MWPDataManager)
+    # note, download is done through external scripts
+    # the floodmap code processes local files only
+    # 'token' is deleted, no longer needed
+    source:
+      url: 'file:/remote'
+      path: 'Recent'
+      file: '{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif'
+      product:  'MCDWD_L3_F2_NRT'
+      collection: 61
+      archive_tiles: 'global'
+      history_length: 30
+      max_history_length: -1 # do not delete old files
+
+    # used by lakeExtentMapping.WaterMapGenerator
+    water_maps:
+        threshold: 0.5
+        bin_size: 8
+
