@@ -11,7 +11,7 @@ defaults:
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/test_lakes/lakes_2019"
         lake_index: 4
-        file: "lake{lake_index}_MOD44W_2019_C6.tif "
+        file: "lake{lake_index}_MOD44W_2019_C6.tif"
 
     source:
       url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
