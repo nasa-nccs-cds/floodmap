@@ -1,6 +1,7 @@
 import math, utm, os
 from osgeo import gdal, gdalconst, ogr, osr
 from .configuration import ConfigurableObject
+from ..util.logs import getLogger
 
 class CRS(ConfigurableObject):
 
@@ -39,6 +40,8 @@ class CRS(ConfigurableObject):
         zone_letter_string = zone_letter if use_zone_letter else ''
         proj4_utm_string = ('+proj=utm +zone={zone_number}{zone_letter} {south_string} +ellps=WGS84 +datum=WGS84  +units=m +no_defs') \
             .format(zone_number=abs(zone_number), zone_letter=zone_letter_string, south_string=south_string)
+        logger = getLogger(False)
+        logger.info( f"get_utm_proj4[{latitude:.2f},{longitude:.2f}]: '{proj4_utm_string}'")
         return proj4_utm_string
 
     @classmethod
