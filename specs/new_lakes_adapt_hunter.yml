@@ -4,8 +4,8 @@ defaults:
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/hunter"
     ncores: 4
-    parallel: True
-    skip_existing: True
+    parallel: False
+    skip_existing: False
     download_only: False
     format: 'nc'
     lake_masks:
