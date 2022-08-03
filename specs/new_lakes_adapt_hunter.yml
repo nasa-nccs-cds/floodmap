@@ -9,7 +9,7 @@ defaults:
     download_only: False
     format: 'nc'
     lake_masks:
-        basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/test_lakes/lakes_2019"
+        basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_2019"
         lake_index: 4
         file: "lake{lake_index}_MOD44W_2019_C6.tif"
 
