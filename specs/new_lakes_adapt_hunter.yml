@@ -1,27 +1,31 @@
-defaults:
-    results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
+ defaults:
+    data_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/Data/Hunter"
+    results_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/Results/Hunter/"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/hunter"
+    log_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/Logs/Hunter/"
     ncores: 4
-    parallel: False
-    skip_existing: False
+    parallel: True
+    skip_existing: True
     download_only: False
     format: 'nc'
+
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_2019"
         lake_index: 4
         file: "lake{lake_index}_MOD44W_2019_C6.tif"
+        mask: 3
+        water: 1
 
     source:
       url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
-      path: 'allData/{collection}/{product}/Recent'
-      file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+      path: '{tile}/allData/{collection}/{product}/Recent'
+      file: '{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif'
       product:  'MCDWD_L3_F2_NRT'
-      collection: 61
-      token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
+      collection: '61'
       archive_tiles: 'global'
-      history_length: 8
+      history_length: 30
+      max_history_length: -1  # do not delete old files
 
     water_maps:
         threshold: 0.5
