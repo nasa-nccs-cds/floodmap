@@ -3,7 +3,7 @@
     results_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/Results/Hunter/"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/ilab_testing/Birkett/Logs/Hunter/"
+    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/hunter"
     ncores: 4
     parallel: True
     skip_existing: True
