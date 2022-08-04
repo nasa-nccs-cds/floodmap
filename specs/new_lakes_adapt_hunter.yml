@@ -22,7 +22,7 @@
       path: '{tile}/allData/{collection}/{product}/Recent'
       file: '{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif'
       product:  'MCDWD_L3_F2_NRT'
-      collection: '61'
+      collection: 61
       archive_tiles: 'global'
       history_length: 30
       max_history_length: -1  # do not delete old files
