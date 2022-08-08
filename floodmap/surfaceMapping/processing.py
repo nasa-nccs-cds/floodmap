@@ -1,6 +1,6 @@
 from typing import Tuple, Dict, Optional, Union, List
 from floodmap.util.xrio import XRio
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, get_context, Pool
 from functools import partial
 import rioxarray as rio
 from ..util.configuration import opSpecs
@@ -100,7 +100,7 @@ class LakeMaskProcessor:
     #         self.update_floodmap_archive()
     #         self.logger.info( f"Processing Lakes: {list(lake_masks.keys())}" )
     #         if parallel:
-    #             with Pool(processes=nproc) as p:
+    #             with get_context("spawn").Pool(processes=nproc) as p:
     #                 self.pool = p
     #                 results = p.map( partial( LakeMaskProcessor.compute_pct_nodata, kwargs ), lake_specs )
     #         else:
@@ -121,7 +121,8 @@ class LakeMaskProcessor:
             if not download_only:
                 msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"; self.logger.info( msg ); print( msg )
                 if parallel:
-                    with Pool(processes=nproc) as p:
+                    if type(parallel) == bool: parallel = "fork"
+                    with get_context(parallel).Pool(processes=nproc) as p:
                         self.pool = p
                         results = p.map( partial( LakeMaskProcessor.process_lake_mask, pspecs ), lake_masks.items() )
                 else:
