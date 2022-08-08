@@ -39,8 +39,8 @@ def get_tile_dir(data_dir, tile: str) -> str:
     return loc_dir
 
 def download( target_url: str, result_dir: str, token: str ):
-    logger = getLogger(False)
-    (lname,log_file) = getLogFile( False )
+    logger = getLogger(True)
+    (lname,log_file) = getLogFile( True )
     print( f"Downloading Tile: {target_url} -> {result_dir}", flush=True )
     cmd = f'wget -e robots=off -m -np -R .html,.tmp -nH --no-check-certificate -a {log_file} --cut-dirs=4 "{target_url}" --header "Authorization: Bearer {token}" -P "{result_dir}"'
     logger.info(f"Using download command: '{cmd}'")
@@ -75,7 +75,7 @@ def get_roi( target_file_path: str ) -> Optional[List[Tuple[float,float]]]:
         return [ (xc[0],yc[0]), (xc[0],yc[-1]), (xc[-1],yc[-1]), (xc[-1],yc[0]) ]
 
 def access_sample_tile( product, path_template, file_template, collection, token, data_dir, data_source_url, day, year, tile ) -> Tuple[str,List[Tuple[float,float]]]:
-    logger = getLogger(False)
+    logger = getLogger(True)
     location_dir = get_tile_dir(data_dir, tile)
     path = path_template.format( collection=collection, product=product, year=year, tile=tile )
     (iD,iY) = (day,year) if (day > 0) else (365+day,year-1)
