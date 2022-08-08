@@ -1,6 +1,6 @@
 import glob, os, time
 from functools import partial
-from multiprocessing import cpu_count, get_context, Pool, freeze_support
+from multiprocessing import cpu_count,  Pool, freeze_support
 nproc = cpu_count()
 
 collection = 61
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     print( f"Converting {len(infiles)} hdf files, saving to location: {archive_dir}:")
     processor = partial( process_file, archive_dir, collection )
 
-    with get_context("spawn").Pool(processes=nproc) as p:
+    with Pool(processes=nproc) as p:
         results = p.map( processor, infiles )
     p.join()
 
