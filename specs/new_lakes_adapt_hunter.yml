@@ -5,14 +5,14 @@
     water_class_thresholds: [ 0.02, 0.93 ]
     log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/hunter"
     ncores: 4
-    parallel: False
+    parallel: True
     skip_existing: True
     download_only: False
     format: 'nc'
 
     lake_masks:
         basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_2019"
-        lake_index_range: [1,50]
+        lake_index: 4
         file: "lake{lake_index}_MOD44W_2019_C6.tif"
         mask: 3
         water: 1
