@@ -121,7 +121,8 @@ class LakeMaskProcessor:
             if not download_only:
                 msg = f"Processing Lakes (parallel={parallel}): {list(lake_masks.keys())}"; self.logger.info( msg ); print( msg )
                 if parallel:
-                    with get_context("spawn").Pool(processes=nproc) as p:
+ #                   with get_context("spawn").Pool(processes=nproc) as p:
+                    with Pool(processes=nproc) as p:
                         self.pool = p
                         results = p.map( partial( LakeMaskProcessor.process_lake_mask, pspecs ), lake_masks.items() )
                 else:

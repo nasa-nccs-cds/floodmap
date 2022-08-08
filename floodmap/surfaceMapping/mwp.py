@@ -227,7 +227,8 @@ class MWPDataManager(ConfigurableObject):
                     token = self.getParameter("token", **kwargs)
                     processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
                     if parallel:
-                        with get_context("spawn").Pool( processes=cpu_count() ) as p:
+ #                       with get_context("spawn").Pool( processes=cpu_count() ) as p:
+                        with Pool(processes=cpu_count()) as p:
                             tiles = [ tile for (tile, roi) in all_tiles]
                             logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
                             all_tiles = p.map( processor, tiles )
