@@ -238,6 +238,8 @@ class MWPDataManager(ConfigurableObject):
                 logger.info( f"Got {len(self._valid_tiles)} valid Tiles:")
                 for tile,roi in self._valid_tiles.items():
                     logger.info(f" ** {tile}: {roi}")
+            else:
+                logger.info(f" **get_valid_tiles: valid_tiles={self._valid_tiles}")
         except Exception as err:
             logger.error( f"Unable to get valid tiles: {err}")
             logger.error( traceback.format_exc() )
