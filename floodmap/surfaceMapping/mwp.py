@@ -109,7 +109,7 @@ class MWPDataManager(ConfigurableObject):
         ConfigurableObject.__init__( self, **kwargs )
         self.data_dir = data_dir
         self.data_source_url = data_source_url
-        self.logger = getLogger( False )
+        self.logger = getLogger( True )
         self._valid_tiles: Dict[str, List[Tuple[float, float]]] = None
 
     @classmethod
@@ -204,7 +204,7 @@ class MWPDataManager(ConfigurableObject):
         return current_tiles
 
     def get_valid_tiles(self, **kwargs) -> Dict[str,List[Tuple[float,float]]]:
-        logger = getLogger(False)
+        logger = getLogger(True)
         try:
             if self._valid_tiles is None:
                 this_day = datetime.now().timetuple().tm_yday
@@ -239,7 +239,7 @@ class MWPDataManager(ConfigurableObject):
                 for tile,roi in self._valid_tiles.items():
                     logger.info(f" ** {tile}: {roi}")
             else:
-                logger.info(f" **get_valid_tiles: valid_tiles={self._valid_tiles}")
+                logger.info(f" **get_valid_tiles: existing valid tiles={self._valid_tiles}")
         except Exception as err:
             logger.error( f"Unable to get valid tiles: {err}")
             logger.error( traceback.format_exc() )
