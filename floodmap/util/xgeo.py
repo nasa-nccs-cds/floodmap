@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 from floodmap.util.logs import getLogger
 import xarray as xr
 from .xext import XExtension
-import rasterio
+import rasterio, utm
 from rasterio.warp import reproject, Resampling, transform, calculate_default_transform
 
 @xr.register_dataarray_accessor('xgeo')
@@ -159,6 +159,15 @@ class XGeo(XExtension):
 
     def project_to_geographic( self, x_coord: float, y_coord: float ) -> Tuple[float,float]:
         return self.project_coords( x_coord, y_coord, self.geographic_sref )
+
+    @classmethod
+    def project_to_utm( cls, longitude: float, latitude: float ) -> Tuple[Tuple[float,float],int,str]:
+        geographic_sref = osr.SpatialReference()
+        geographic_sref.ImportFromEPSG(4326)
+        utm_centroid_info = utm.from_latlon(latitude, longitude)
+        zone_number, zone_letter = utm_centroid_info[2:]
+        trans = osr.CoordinateTransformation( geographic_sref, CRS.get_utm_sref( longitude, latitude ) )
+        return ( trans.TransformPoint( [longitude, latitude, 0.0] )[:2], zone_number, zone_letter )
 
     def project_coords( self, x_coord: float, y_coord: float, sref: osr.SpatialReference ) -> Tuple[float,float]:
         trans = osr.CoordinateTransformation( self._crs, sref )

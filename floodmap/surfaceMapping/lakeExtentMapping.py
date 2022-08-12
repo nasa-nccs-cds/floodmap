@@ -267,13 +267,14 @@ class WaterMapGenerator(ConfigurableObject):
             for tile in tiles:
                 try:
                     lake_mask_value =  lakeMaskSpecs.get('mask',0)
-                    self.logger.info( f"Reading Tile {tile}" )
                     tile_filespec: Dict = dataMgr.get_tile(tile)
                     file_paths = list(tile_filespec.values())
                     time_values: List[date] = list(tile_filespec.keys())
                     tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0,
                                             mask_value=self.mask_value, index=[np.datetime64(t) for t in time_values] )
                     if sref is None: sref = get_spatial_ref( tile_raster )
+                    self.logger.info( f"Reading Tile {tile}, file_paths={file_paths}" )
+                    self.logger.info(f" --> roi = {self.roi_bounds}, mask_value={self.mask_value}, time_values={time_values}, sref={sref}")
                     if (tile_raster is not None) and tile_raster.size > 0:
                         if self.lake_mask is None:
                             cropped_tiles[tile] = tile_raster
