@@ -174,9 +174,10 @@ class LakeMaskProcessor:
         try:
             op_range = dataMgr.parms.get('op_range', None)
             history_length = dataMgr.parms.get('history_length')
-            msg = f"Processing Lake {lake_index}"; logger.info(msg); print(msg)
+
             patched_water_maps = []
             lake_mask_specs = cls.read_lake_mask(lake_index, lake_mask_bounds, **runSpecs)
+            msg = f"Processing Lake {lake_index}, roi = {lake_mask_specs['roi']}"; logger.info(msg); print(msg)
             waterMapGenerator = WaterMapGenerator()
             if (len(op_range)==0):
                 result = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )

@@ -6,7 +6,7 @@ from floodmap.util.plot import plot_array, floodmap_colors, plot_arrays
 
 day_range = [ 120, 121 ]
 year = 2021
-tile = "h18v02"
+tile = "h07v05"
 rasters = {}
 data_dir= "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
 
