@@ -29,10 +29,10 @@ def get_color_bounds( color_values: List[float] ) -> List[float]:
     color_bounds.append( color_values[-1] + 0.5 )
     return color_bounds
 
-def create_cmap( colors ):
+def create_cmap( colors: List[Tuple] ):
     from matplotlib.colors import ListedColormap
     import matplotlib as mpl
-    rgbs = [cval[2] for cval in colors]
+    rgbs = [ cval[2] for cval in colors ]
     cmap: ListedColormap = ListedColormap(rgbs)
     tick_labels = [cval[1] for cval in colors]
     color_values = [float(cval[0]) for cval in colors]
