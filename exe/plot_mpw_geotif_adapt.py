@@ -21,6 +21,7 @@ for day in range( *day_range ):
     if os.path.isfile( input_file ):
         raster: xa.DataArray = rxr.open_rasterio( input_file ).squeeze( drop=True )
         print( f"*RASTER: day={day}, attrs={raster.attrs}")
+        print( raster.__dict__.keys() )
         rasters[day] = raster  # .where( raster < 10, 4 )
 
 #figure, ax = plt.subplots()
