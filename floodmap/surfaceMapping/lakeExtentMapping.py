@@ -174,6 +174,7 @@ class WaterMapGenerator(ConfigurableObject):
         reliability = visible / float(binSize)
         prob_h20 = water / visible
         water_mask = prob_h20 >= threshold
+        self.logger.info( f"compute_raw_water_map: land_values={land_values}, water_values={water_values}, #land={np.count_nonzero(land.values)}, #water={np.count_nonzero(water.values)}, total={water.values.size}")
         result =  xr.where( masked, da0, xr.where( water_mask, np.uint8(2) , xr.where( land, np.uint8(1), np.uint8(0) ) ) )
         result.attrs['nodata'] = 0
         result.attrs['masks'] = masks
