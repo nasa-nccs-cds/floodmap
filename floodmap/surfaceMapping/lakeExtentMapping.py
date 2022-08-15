@@ -158,6 +158,7 @@ class WaterMapGenerator(ConfigurableObject):
         return ma
 
     def compute_raw_water_map(self)-> xr.Dataset:
+        self.logger.info(f"compute_raw_water_map")
         water_maps_opspec = opSpecs.get('water_map', {})
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         threshold = water_maps_opspec.get('threshold', 0.5 )
@@ -194,12 +195,15 @@ class WaterMapGenerator(ConfigurableObject):
             print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
         except Exception as err:
             self.logger.info( f"Unable to cache water_data to {water_data_file}: {err}" )
+
         water_map_dset:  xr.Dataset = self.compute_raw_water_map()
+
         try:
             sanitize_ds(water_map_dset).to_netcdf(water_map_file)
             self.logger.info(f"Cached water_map to {water_map_file}")
         except Exception as err:
             self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
+
         self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
         water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
