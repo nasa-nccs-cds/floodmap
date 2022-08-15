@@ -4,10 +4,16 @@ import rioxarray as rio
 import matplotlib.pyplot as plt
 from floodmap.util.xgeo import XGeo
 import xarray as xa
-from floodmap.util.plot import plot_array, floodmap_colors, plot_arrays
+from floodmap.util.plot import plot_array, plot_arrays
+
+floodmap_colors = [ ( 0, 'land',         (0, 1, 0)),
+                    ( 1, 'perm water',   (0, 0, 1)),
+                    ( 2, 'flood water',  (0, 0, 0.5)),
+                    ( 3, 'flood water',  (0, 0, 0.7)),
+                    ( 4, 'nodata',       (0, 0, 0)) ]
 
 year = 2021
-day_range = [ 119, 121 ]
+day_range = [ 119, 120 ]
 tile =  "h06v05"
 rasters = {}
 data_dir= "/Users/tpmaxwel/Development/Data/floodmap"

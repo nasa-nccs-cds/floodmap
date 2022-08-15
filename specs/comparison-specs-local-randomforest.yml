@@ -1,13 +1,13 @@
 defaults:
-    results_dir: "/Volumes/Shared/Data/floodmap/Results"
+    results_dir: "/Volumes/Shared/Data/floodmap/caleb"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/Volumes/Shared/Data/floodmap/Log"
+    log_dir: "/Volumes/Shared/Data/floodmap/Logs/caleb"
     ncores: 8
     parallel: False
     skip_existing: False
     download_only: False
-    op_range: [ 1, 365, 8 ]
+    op_range: [ 112, 137, 8 ]
     format: 'nc'
     lake_masks:
         basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"

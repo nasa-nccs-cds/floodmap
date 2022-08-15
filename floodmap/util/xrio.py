@@ -105,6 +105,7 @@ class XRio(XExtension):
                 time_values = np.array([ cls.get_date_from_filename(os.path.basename(file)) ], dtype='datetime64[ns]')
                 data_array = data_array.squeeze(drop=True)
                 data_array = data_array.expand_dims( { 'time': time_values }, 0 )
+                range = [ data_array.min(), data_array.max() ]
                 result = data_array if result is None else cls.concat([result, data_array])
         return result
 

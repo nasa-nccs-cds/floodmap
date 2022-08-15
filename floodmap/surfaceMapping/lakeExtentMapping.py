@@ -150,17 +150,26 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info(f"Done get_water_probability in time {time.time() - t0}")
         return water_probability
 
+    def count_class_occurrences(self, da: xr.DataArray, class_values: List[int], axis=0 ) -> xr.DataArray:
+        ma: Optional[xr.DataArray] = None
+        for cval in class_values:
+            ccount = (da == cval).sum(axis=axis)
+            ma = ccount if ma is None else ma + ccount
+        return ma
+
     def compute_raw_water_map(self)-> xr.Dataset:
         water_maps_opspec = opSpecs.get('water_map', {})
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         threshold = water_maps_opspec.get('threshold', 0.5 )
+        land_values = water_maps_opspec.get('land_values', [1] )
+        water_values = water_maps_opspec.get('water_values', [2,3] )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
         masks = [ self.mask_value, self.mask_value+1, self.mask_value+2  ]
         da0 = da[0].drop_vars( self.floodmap_data.dims[0] )
         masked = da0.isin( masks )
-        land = ( da == 1 ).sum( axis=0 )
-        water =  ( da == 2 ).sum( axis=0 )
+        land = self.count_class_occurrences( da, land_values )
+        water =  self.count_class_occurrences( da, water_values )
         visible = ( water + land )
         reliability = visible / float(binSize)
         prob_h20 = water / visible
@@ -178,20 +187,18 @@ class WaterMapGenerator(ConfigurableObject):
         data_dir = opSpecs.get('results_dir')
         lake_index = kwargs.get( 'index', 0 )
         water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map_{dstr}.nc")
-#        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
-#        self.floodmap_data.to_netcdf(water_data_file)
-#        print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
-        cache = kwargs.get( "cache", "update" )
-        if cache==True and os.path.isfile( water_map_file ):
-            water_map_dset: xr.Dataset = xr.open_dataset(water_map_file)
-        else:
-            water_map_dset:  xr.Dataset = self.compute_raw_water_map()
-            if cache in [True,"update"]:
-                try:
-                    sanitize_ds(water_map_dset).to_netcdf(water_map_file)
-                    self.logger.info(f"Cached water_map to {water_map_file}")
-                except Exception as err:
-                    self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
+        water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
+        try:
+            self.floodmap_data.to_netcdf(water_data_file)
+            print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
+        except Exception as err:
+            self.logger.info( f"Unable to cache water_data to {water_data_file}: {err}" )
+        water_map_dset:  xr.Dataset = self.compute_raw_water_map()
+        try:
+            sanitize_ds(water_map_dset).to_netcdf(water_map_file)
+            self.logger.info(f"Cached water_map to {water_map_file}")
+        except Exception as err:
+            self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
         self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
         water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
