@@ -184,7 +184,7 @@ class WaterMapGenerator(ConfigurableObject):
     def get_raw_water_map(self, dstr: str, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
         # this method computes land & water pixels over bins of {bin_size} days using thresholds
-        self.logger.info("       ** Executing get_water_map ** ")
+        self.logger.info(" -------> Executing get_water_map ")
         t0 = time.time()
         data_dir = opSpecs.get('results_dir')
         lake_index = kwargs.get( 'index', 0 )
@@ -204,7 +204,7 @@ class WaterMapGenerator(ConfigurableObject):
         except Exception as err:
             self.logger.info( f"Unable to cache water_map to {water_map_file}: {err}" )
 
-        self.logger.info( f" Completed get_water_map in {time.time()-t0:.3f} seconds" )
+        self.logger.info( f" ***** Completed get_water_map in {time.time()-t0:.3f} seconds" )
         water_map_array: xr.DataArray = water_map_dset.water_map
         # class_counts = self.get_class_counts( water_maps_array.values[0] )
         # for tI in range(water_maps_array.shape[0]):
