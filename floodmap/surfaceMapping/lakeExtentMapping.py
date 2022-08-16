@@ -496,8 +496,11 @@ class WaterMapGenerator(ConfigurableObject):
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
             self.write_water_area_results( dtime, utm_result, stats_file )
-            if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
-            else:                   utm_result.to_netcdf( result_water_map_file )
+            try:
+                if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
+                else:                   utm_result.to_netcdf( result_water_map_file )
+            except Exception as err:
+                self.logger.info( f"Error writing UTM result: {err}")
             latlon_result.to_netcdf( result_geog_water_map_file )
             msg = f"Saving results for lake {lake_index} to {stats_file} and {result_water_map_file} ({result_geog_water_map_file})"
             self.logger.info( msg ); print( msg )
