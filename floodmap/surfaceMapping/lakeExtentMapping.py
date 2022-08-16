@@ -170,9 +170,9 @@ class WaterMapGenerator(ConfigurableObject):
         water_maps_opspec = opSpecs.get('water_map', {})
         bin_size = water_maps_opspec.get( 'bin_size', 8 )
         threshold = water_maps_opspec.get('threshold', 0.5 )
-        land_values = water_maps_opspec.get('land_values', [1] )
-        water_values = water_maps_opspec.get('water_values', [2,3] )
-        nodata = water_maps_opspec.get('nodata', 0 )
+        land_values = water_maps_opspec.get('land_values', [0] )
+        water_values = water_maps_opspec.get('water_values', [1,2,3] )
+        nodata = water_maps_opspec.get('nodata', 255 )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
         masks = [ nodata, self.mask_value, self.mask_value+1, self.mask_value+2  ]
@@ -255,7 +255,7 @@ class WaterMapGenerator(ConfigurableObject):
     def temporal_ffill(self, water_map: xr.DataArray ) -> xr.DataArray:
         t0 = time.time()
         water_maps_opspec = opSpecs.get('water_map', {})
-        nodata = water_maps_opspec.get( 'nodata', 0 )
+        nodata = water_maps_opspec.get( 'nodata', 255 )
         water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != nodata, np.nan )
         interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] ).bfill( water_history_data.dims[0] ).astype( np.uint8 )
         interp_water_map: xr.DataArray = interp_water_history[-1,:,:].squeeze( drop = True )
@@ -289,7 +289,6 @@ class WaterMapGenerator(ConfigurableObject):
             cropped_tiles: Dict[str,xr.DataArray] = {}
             time_values = None
             file_paths = None
-            cropped_data = None
             for tile in tiles:
                 try:
                     lake_mask_value =  lakeMaskSpecs.get('mask',0)
@@ -327,7 +326,7 @@ class WaterMapGenerator(ConfigurableObject):
                 cropped_data.attrs.update( roi = self.roi_bounds )
                 cropped_data["spatial_ref"] = sref
                 cropped_data = cropped_data.persist()
-                return self.update_classes( cropped_data ), time_values
+                return cropped_data, time_values
             else:
                 self.logger.error(f"NO Tiles avaialble!")
         return None, None

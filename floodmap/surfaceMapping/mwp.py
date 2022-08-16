@@ -122,7 +122,7 @@ class MWPDataManager(ConfigurableObject):
             data_url = source_spec.get('url')
             today, this_year = cls.today()
             history_length = source_spec.get('history_length', 30, **kwargs)
-            download_length = source_spec.get('download_length', history_length, **kwargs)
+            download_length = source_spec.get('download_length', 8, **kwargs)
             day0 = source_spec.get('day', today, **kwargs)
             year0 = source_spec.get('year', this_year, **kwargs)
             default_day_range = [day0 - history_length, day0] if (len(op_range)==0) else op_range[:2]
@@ -340,7 +340,7 @@ class MWPDataManager(ConfigurableObject):
         file_template = self.getParameter("file",  self.default_file_template, **kwargs)
         path_template =  self.getParameter( "path", **kwargs)
         collection= self.getParameter( "collection", **kwargs )
-        download_length = self.getParameter("download_length", **kwargs)
+        download_length = self.getParameter("download_length", 8, **kwargs)
         token=        self.getParameter( "token", **kwargs )
         tile_dir = get_tile_dir(self.data_dir, tile)
         files = OrderedDict()

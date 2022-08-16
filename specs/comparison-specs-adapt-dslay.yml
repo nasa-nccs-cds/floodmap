@@ -25,8 +25,6 @@ defaults:
       product: "MCDWD_L3_F2_NRT"
       collection: 61
       year: 2022
-      history_length: 50
-      download_length: 8
 
     water_maps:
         threshold: 0.5

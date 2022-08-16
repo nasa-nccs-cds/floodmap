@@ -20,9 +20,6 @@ defaults:
       product:  'MCDWD_L3_F2_NRT'
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
-      archive_tiles: 'current'
-      history_length: 7
-      download_length: 7
 
     water_maps:
         threshold: 0.5
