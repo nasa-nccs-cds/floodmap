@@ -498,7 +498,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.write_water_area_results( dtime, utm_result, stats_file )
             try:
                 if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
-                else:                   utm_result.to_netcdf( result_water_map_file )
+                else:                   utm_result.astype(np.int).to_netcdf( result_water_map_file )
             except Exception as err:
                 self.logger.info( f"Error writing UTM result: {err}")
             latlon_result.to_netcdf( result_geog_water_map_file )
