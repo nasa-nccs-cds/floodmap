@@ -50,6 +50,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+scrap/
 
 # Translations
 *.mo
@@ -127,3 +128,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/specs/scrap/
