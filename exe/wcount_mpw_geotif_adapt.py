@@ -5,9 +5,11 @@ import xarray as xa
 day_range = [ 5, 200 ]
 year = 2021
 tile = "h06v05"
+w = 0.3
 data_dir= "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
 xbnds = [ -111.6, -110.4 ]
 ybnds = [ 37.8, 36.9 ]
+rave = None
 
 for day in range( *day_range ):
     fname = f"MCDWD_L3_F2_NRT.A{year}{day:03}.{tile}"
@@ -17,5 +19,6 @@ for day in range( *day_range ):
         raster = raster.sel( x=slice(*xbnds), y=slice(*ybnds) )
         water_mask: xa.DataArray = raster.isin([1, 2, 3])
         nwater = np.count_nonzero( water_mask )
-        print( f"Day-{day}: #water={nwater}")
+        rave = nwater if (rave is None) else (1-w)*rave + w*nwater
+        print( f"Day-{day}: #water={nwater}, rave={rave}")
 
