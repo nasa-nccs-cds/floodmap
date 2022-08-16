@@ -14,13 +14,13 @@ result_color_map = [
 ]
 
 lake_index = 462
-date = "04292021"
-version = "dslay-new"
+date = "0516"
+year = 2021
 rasters = {}
 data_dir= "/Users/tpmaxwel/Development/Data/floodmap"
 data_layer = f"Lake-{lake_index}"
 
-fname = f"lake_{lake_index}_patched_water_map_{date}_{version}"
+fname = f"lake_{lake_index}_patched_water_map_{date}{year}-geog"
 input_file = f"{data_dir}/{fname}.nc"
 dataset: xa.Dataset = xa.open_dataset( input_file )
 raster: xa.DataArray = dataset.data_vars[ data_layer ]

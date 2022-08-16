@@ -13,15 +13,15 @@ floodmap_colors = [ ( 0, 'land',         (0, 1, 0)),
                     ( 4, 'nodata',       (0, 0, 0)) ]
 
 year = 2021
-day_range = [ 119, 120 ]
+day_range = [ 1, 100 ]
 tile =  "h06v05"
 rasters = {}
-data_dir= "/Users/tpmaxwel/Development/Data/floodmap"
+data_dir= "/Users/tpmaxwel/Development/Data/floodmap/h06v05"
 xbnds = [ -111.6, -110.4 ]
 ybnds = [ 37.8, 36.9 ]
 
 for day in range( *day_range ):
-    fname = f"MCDWD_L3_F2_NRT.A{year}{day}.{tile}.061"
+    fname = f"MCDWD_L3_F2_NRT.A{year}{day:03d}.{tile}.061"
     input_file = f"{data_dir}/{fname}.tif"
     if os.path.isfile( input_file ):
         raster: xa.DataArray = rio.open_rasterio( input_file ).squeeze( drop=True )
