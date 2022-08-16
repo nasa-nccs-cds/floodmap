@@ -17,4 +17,6 @@ defaults:
     water_maps:
         threshold: 0.5
         bin_size: 240
-
+        land_values: [0]
+        water_values: [1,2,3]
+        nodata: 255
