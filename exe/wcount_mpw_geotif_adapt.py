@@ -5,7 +5,7 @@ import xarray as xa
 day_range = [ 5, 200 ]
 year = 2021
 tile = "h06v05"
-w = 0.3
+w = 0.1
 data_dir= "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
 xbnds = [ -111.6, -110.4 ]
 ybnds = [ 37.8, 36.9 ]
