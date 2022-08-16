@@ -14,8 +14,8 @@ result_color_map = [
 ]
 
 lake_index = 462
-date = "04302021"
-version = "dslay"
+date = "04292021"
+version = "dslay-new"
 rasters = {}
 data_dir= "/Users/tpmaxwel/Development/Data/floodmap"
 data_layer = f"Lake-{lake_index}"
@@ -29,3 +29,6 @@ tick_labels, cmap_specs = create_cmap( result_color_map )
 figure, ax = plt.subplots()
 raster.plot.imshow( ax=ax, **cmap_specs )
 plt.show()
+
+#> cd /Users/tpmaxwel/Development/Data/floodmap
+#> scp tpmaxwel@adaptlogin.nccs.nasa.gov:/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results-mary-dslay/tpmaxwel/lake_462_patched_water_map_04292021-geog.nc ./lake_462_patched_water_map_04292021_dslay-new.nc

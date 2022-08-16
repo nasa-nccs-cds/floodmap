@@ -8,9 +8,9 @@ This project computes surface water extents from lake shapefile boundary maps.  
 If Anaconda is not yet installed in your environment, see: https://www.anaconda.com/products/individual for installation instructions.
    
 ```
->> conda create --name floodmap
->> conda activate floodmap
-(floodmap)>> conda install -c conda-forge xarray numpy zlib rioxarray shapely pandas bottleneck geopandas utm gdal pyyaml
+>> conda create --name floodmap python=3.10 ipython
+>> conda activate floodmap; conda install -c conda-forge mamba
+(floodmap)>> mamba install -c conda-forge xarray numpy zlib rioxarray shapely pandas bottleneck geopandas utm gdal pyyaml
 (floodmap)>> pip install wget
 ```
 

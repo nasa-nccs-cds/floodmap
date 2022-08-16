@@ -157,6 +157,9 @@ class WaterMapGenerator(ConfigurableObject):
             ma = ccount if ma is None else ma + ccount
         return ma
 
+    def total_class_occurrences(self, da: xr.DataArray, cval: int ) -> int:
+        return np.count_nonzero( da.values == cval )
+
     def compute_raw_water_map(self)-> xr.Dataset:
         self.logger.info(f"compute_raw_water_map")
         water_maps_opspec = opSpecs.get('water_map', {})
@@ -171,6 +174,8 @@ class WaterMapGenerator(ConfigurableObject):
         masked = da0.isin( masks )
         land = self.count_class_occurrences( da, land_values )
         water =  self.count_class_occurrences( da, water_values )
+        for cval in range(4):
+            self.logger.info( f" --> class count({cval}): {self.total_class_occurrences(da,cval)}" )
         visible = ( water + land )
         reliability = visible / float(binSize)
         prob_h20 = water / visible
