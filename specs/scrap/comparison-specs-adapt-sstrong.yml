@@ -1,9 +1,9 @@
 defaults:
-    data_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
-    results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/new_lakes"
+    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
+    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/new_lakes"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/comparison"
+    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/comparison"
     ncores: 8
     parallel: False
     skip_existing: False
@@ -12,14 +12,14 @@ defaults:
     format: 'nc'
     op_range: [ 75, 150, 4 ]
     lake_masks:
-        basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
+        basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
         lake_index: 462
         mask: 3
         water: 1
 
     source:
-      url: 'file:/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/data'
+      url: 'file:/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data'
       path: "{tile}/allData/{collection}/{product}/Recent"
       file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
       product: "MCDWD_L3_F2_NRT"

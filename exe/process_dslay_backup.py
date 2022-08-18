@@ -4,7 +4,7 @@ from multiprocessing import cpu_count, get_context, Pool, freeze_support
 nproc = cpu_count()
 
 collection = 61
-archive_dir = "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
+archive_dir = "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
 
 def process_file( archive_dir: str, collection: str, hdfFilepath: str ) -> int:
     fName = os.path.basename(hdfFilepath)
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     t0 = time.time()
     dstr = f"2021*"
     tile = "h*v*" # "h*v*" "h20v09"
-    source_dir = f"/adapt/nobackup/people/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
+    source_dir = f"/explore/nobackup/people/dslaybac/MCDWD_NRT/MCDWD_L3_NRT_{dstr}"
     gfstr = f"{source_dir}/MCDWD_L3_NRT.A{dstr}.{tile}.{collection:03d}.hdf"
     infiles = glob.glob( gfstr )
     print( f"Processing HDF files for [{dstr}]: '{gfstr}'" )

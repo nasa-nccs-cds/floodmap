@@ -1,9 +1,9 @@
  defaults:
-    data_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
-    results_dir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
+    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
+    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/adapt/nobackup/projects/ilab/cache/floodmap/logs/hunter"
+    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/hunter"
     ncores: 4
     parallel: True
     skip_existing: True
@@ -11,7 +11,7 @@
     format: 'nc'
 
     lake_masks:
-        basedir: "/adapt/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_2019"
+        basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_2019"
         lake_index: 4
         file: "lake{lake_index}_MOD44W_2019_C6.tif"
         mask: 3
