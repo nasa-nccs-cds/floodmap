@@ -28,4 +28,3 @@ defaults:
         bin_size: 8
         land_values: [0]
         water_values: [1,2,3]
-        nodata: 255
