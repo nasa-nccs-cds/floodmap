@@ -14,10 +14,10 @@ result_color_map = [
 ]
 
 lake_index = 462
-date = "0516"
+date = "0126"
 year = 2021
 rasters = {}
-data_dir= "/Users/tpmaxwel/Development/Data/floodmap"
+data_dir= "/Users/tpmaxwel/Development/Data/floodmap/water_maps1"
 data_layer = f"Lake-{lake_index}"
 
 fname = f"lake_{lake_index}_patched_water_map_{date}{year}-geog"

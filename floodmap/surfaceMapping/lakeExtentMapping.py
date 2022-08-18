@@ -172,10 +172,9 @@ class WaterMapGenerator(ConfigurableObject):
         threshold = water_maps_opspec.get('threshold', 0.5 )
         land_values = water_maps_opspec.get('land_values', [0] )
         water_values = water_maps_opspec.get('water_values', [1,2,3] )
-        nodata = water_maps_opspec.get('nodata', 255 )
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
-        masks = [ nodata, self.mask_value, self.mask_value+1, self.mask_value+2  ]
+        masks = [ self.mask_value, self.mask_value+1, self.mask_value+2  ]
         da0 = da[0].drop_vars( self.floodmap_data.dims[0] )
         masked = da0.isin( masks )
         class_cnts = [ self.total_class_occurrences(da,cval) for cval in range(4) ]
@@ -252,11 +251,9 @@ class WaterMapGenerator(ConfigurableObject):
         self.logger.info(f"Done spatial interpolate in time {time.time() - t0}")
         return result
 
-    def temporal_ffill(self, water_map: xr.DataArray ) -> xr.DataArray:
+    def temporal_ffill(self, water_map: xr.DataArray, **kwargs ) -> xr.DataArray:
         t0 = time.time()
-        water_maps_opspec = opSpecs.get('water_map', {})
-        nodata = water_maps_opspec.get( 'nodata', 255 )
-        water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != nodata, np.nan )
+        water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != 0, np.nan )
         interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] ).bfill( water_history_data.dims[0] ).astype( np.uint8 )
         interp_water_map: xr.DataArray = interp_water_history[-1,:,:].squeeze( drop = True )
         self.logger.info( f"Done temporal interpolate in time {time.time() - t0}, history data shape = {water_history_data.shape}" )
