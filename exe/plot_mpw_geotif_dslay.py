@@ -12,13 +12,13 @@ floodmap_colors = [ ( 0, 'land',         (0, 1, 0)),
                     ( 3, 'flood water',  (0, 0, 0.7)),
                     ( 4, 'nodata',       (0, 0, 0)) ]
 
-year = 2021
-day_range = [ 1, 100 ]
-tile =  "h06v05"
+year = 2022
+day_range = [ 224, 231 ]
+tile =  "h21v10"
 rasters = {}
-data_dir= "/Users/tpmaxwel/Development/Data/floodmap/h06v05"
-xbnds = [ -111.6, -110.4 ]
-ybnds = [ 37.8, 36.9 ]
+data_dir= f"/Volumes/Shared/Data/floodmap/Results/{tile}/allData/61/MCDWD_L3_F2_NRT/Recent/"
+ybnds = [ -9.47, -14.44 ]
+xbnds = [ 33.68, 35.39 ]
 
 for day in range( *day_range ):
     fname = f"MCDWD_L3_F2_NRT.A{year}{day:03d}.{tile}.061"
@@ -28,7 +28,7 @@ for day in range( *day_range ):
         print(f" ROI: x=[{raster.x.values[0]},{raster.x.values[-1]}]  y=[{raster.y.values[0]},{raster.y.values[-1]}]")
         raster = raster.sel( x=slice(*xbnds), y=slice(*ybnds) )
         nwater = np.count_nonzero( raster == 1 )
-        print( f" #water={nwater} size={raster.size} %water={(nwater/raster.size)%100.0}")
+        print( f" DAY-{day}: #water={nwater}, area={nwater/16} km2")
         rasters[day] = raster
 
 figure, ax = plt.subplots()

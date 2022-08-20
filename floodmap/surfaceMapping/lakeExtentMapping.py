@@ -190,6 +190,7 @@ class WaterMapGenerator(ConfigurableObject):
         result =  xr.where( masked, da0, xr.where( water_mask, np.uint8(2) , xr.where( land, np.uint8(1), np.uint8(0) ) ) )
         result.attrs['nodata'] = 0
         result.attrs['masks'] = masks
+        result.attrs['transform'] = da.attrs['transform']
         return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
     def get_raw_water_map(self, dstr: str, **kwargs):
@@ -447,6 +448,11 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info(msg)
             print(msg)
 
+    def class_counts( self, label: str, raster: xarray.DataArray ):
+        print(f" --------------------- {label} class counts: shape={raster.shape} size={raster.size} --------------------- ")
+        for iclass in range(0, 8):
+            print(f" ** [{iclass}]: {np.count_nonzero(raster.isin([iclass]))}")
+
     def generate_lake_water_map(self, **kwargs) -> Optional[xr.DataArray]:
         from floodmap.surfaceMapping.mwp import MWPDataManager
         from floodmap.util.crs import CRS
@@ -479,6 +485,9 @@ class WaterMapGenerator(ConfigurableObject):
                     sanitize( nrt_input_data ).to_netcdf( water_data_file )
                 except Exception as err:
                     self.logger.warn( f" Can't save nrt_input_data: {err} " )
+            for iT in range( self.floodmap_data.shape[0] ):
+                raster = self.floodmap_data[ iT, :, : ].squeeze( drop=True )
+                self.class_counts( f"floodmap_data[{iT}]", raster )
             self.logger.info(f" --------------------->> Generating result file: {result_water_map_file}")
             self.logger.info( f"process_yearly_lake_masks: water_mapping_data shape = {self.floodmap_data.shape}")
             self.logger.info(f"yearly_lake_masks roi_bounds = {self.roi_bounds}")
@@ -487,9 +496,11 @@ class WaterMapGenerator(ConfigurableObject):
             patched_water_map.attrs['crs'] = CRS.get_geographic_proj4()
             patched_water_map.name = f"Lake-{lake_index}"
             print( f"LAKE[{lake_index}]: Generated patched_water_map{patched_water_map.dims}, shape = {patched_water_map.shape}", flush=True )
+            self.class_counts( 'patched_water_map', patched_water_map )
             [y,x] = [ patched_water_map.coords[c].values for c in patched_water_map.dims ]
             sref = CRS.get_utm_proj4( x[x.size//2], y[y.size//2] )
             utm_result = sanitize( patched_water_map.rio.reproject( sref, 250.0 ) )
+            self.class_counts('utm_result', utm_result )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
             self.write_water_area_results( dtime, utm_result, stats_file )
