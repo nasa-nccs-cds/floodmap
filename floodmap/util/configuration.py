@@ -22,11 +22,11 @@ def sanitize( array: xr.DataArray, squeeze=False ):
             array.attrs[key] = str( value.ExportToPrettyWkt() )
         else:
             array.attrs[key] = value
-    if hasattr( array, 'spatial_ref' ):
-        if isinstance( array.spatial_ref, osr.SpatialReference ):
-            array['spatial_ref'] = array.spatial_ref.ExportToPrettyWkt()
-        elif isinstance( array.spatial_ref, xarray.DataArray ):
-            array['spatial_ref'] = array.spatial_ref.attrs.get('crs_wkt','')
+    # if hasattr( array, 'spatial_ref' ):
+    #     if isinstance( array.spatial_ref, osr.SpatialReference ):
+    #         array['spatial_ref'] = array.spatial_ref.ExportToPrettyWkt()
+    #     elif isinstance( array.spatial_ref, xarray.DataArray ):
+    #         array['spatial_ref'] = array.spatial_ref.attrs.get('crs_wkt','')
     return array.squeeze( drop=True ) if squeeze else array
 
 class Region:

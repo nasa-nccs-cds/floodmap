@@ -16,7 +16,9 @@ year = 2022
 day_range = [ 224, 231 ]
 tile =  "h21v10"
 rasters = {}
+coords = None
 data_dir= f"/Volumes/Shared/Data/floodmap/Results/{tile}/allData/61/MCDWD_L3_F2_NRT/Recent/"
+test_file = f"/Volumes/Shared/Data/floodmap/test/Tile-{tile}-test1.nc"
 ybnds = [ -9.47, -14.44 ]
 xbnds = [ 33.68, 35.39 ]
 
@@ -30,6 +32,12 @@ for day in range( *day_range ):
         nwater = np.count_nonzero( raster == 1 )
         print( f" DAY-{day}: #water={nwater}, area={nwater/16} km2")
         rasters[day] = raster
+        if coords is None: coords = dict( x = raster.x, y = raster.y )
+
+data_vars = { f"mpw-{day}{year}": v for day,v in rasters.items() }
+test_dataset = xa.Dataset( data_vars, coords )
+test_dataset.to_netcdf( test_file )
+print( f"Writing test file: {test_file}" )
 
 figure, ax = plt.subplots()
 plot_arrays( ax, rasters, title=f"Floodmap: tile={tile}", colors=floodmap_colors )

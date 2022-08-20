@@ -24,11 +24,6 @@ def class_sum( class_cnts: List[int], class_vals: List[int] ) -> int:
     for cval in class_vals: csum = csum + class_cnts[cval]
     return csum
 
-def get_spatial_ref( tile_raster: Optional[xr.DataArray] ):
-    if tile_raster is None: return None
-    for sref in [ 'spatial_ref', 'SpatialReference', 'spatial_reference' ]:
-        if sref in tile_raster.attrs: return tile_raster.attrs[sref]
-
 class WaterMapGenerator(ConfigurableObject):
 
     def __init__( self, **kwargs ):
@@ -183,14 +178,16 @@ class WaterMapGenerator(ConfigurableObject):
         land = self.count_class_occurrences( da, land_values )
         water =  self.count_class_occurrences( da, water_values )
         visible = ( water + land )
-        reliability = visible / float(binSize)
+        reliability_data = visible / float(binSize)
         prob_h20 = water / visible
         water_mask = prob_h20 >= threshold
+        land_mask = land > 0
         self.logger.info( f"compute_raw_water_map: land_values={land_values}, water_values={water_values}, #land={np.count_nonzero(land.values)}, #water={np.count_nonzero(water.values)}, total={water.values.size}")
-        result =  xr.where( masked, da0, xr.where( water_mask, np.uint8(2) , xr.where( land, np.uint8(1), np.uint8(0) ) ) )
+        class_data = xr.where( masked, np.uint8(6), xr.where( water_mask, np.uint8(2), xr.where( land_mask, np.uint8(1), np.uint8(0) ) ) )
+        result = da0.copy( data=class_data.values )
         result.attrs['nodata'] = 0
         result.attrs['masks'] = masks
-        result.attrs['transform'] = da.attrs['transform']
+        reliability = da0.copy( data=reliability_data.values )
         return xr.Dataset( { "water_map": result,  "reliability": reliability } )
 
     def get_raw_water_map(self, dstr: str, **kwargs):
@@ -203,7 +200,7 @@ class WaterMapGenerator(ConfigurableObject):
         water_map_file = os.path.join(data_dir, f"lake_{lake_index}_water_map_{dstr}.nc")
         water_data_file = os.path.join(data_dir, f"lake_{lake_index}_floodmap_data.nc")
         try:
-            self.floodmap_data.to_netcdf(water_data_file)
+            self.floodmap_data.to_netcdf( water_data_file, compat='override' )
             print( f"Saving floodmap data for lake {lake_index} to {water_data_file}")
         except Exception as err:
             self.logger.info( f"Unable to cache water_data to {water_data_file}: {err}" )
@@ -232,9 +229,9 @@ class WaterMapGenerator(ConfigurableObject):
     def interpolate( self, opspec: Dict, **kwargs ) -> xr.DataArray:
         highlight = kwargs.get( "highlight", True )
         ffill =  kwargs.get( "ffill", True )
-        remove_anomalies = kwargs.get( "remove_anomalies", False )
-        init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
-        pwmap: xr.DataArray = self.temporal_ffill(init_water_map) if ffill else init_water_map
+#        remove_anomalies = kwargs.get( "remove_anomalies", False )
+#         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
+        pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
         valid_mask = (pwmap == self.water_map)
         patched_result: xr.DataArray = pwmap.where( valid_mask, pwmap + 2 ) if highlight else pwmap
         pct_interp =  (valid_mask.size - np.count_nonzero( valid_mask )) * 100.0 / valid_mask.size
@@ -274,7 +271,6 @@ class WaterMapGenerator(ConfigurableObject):
         lakeMaskSpecs: Dict = opSpecs.get("lake_masks", None)
         source_specs: Dict = opSpecs.get( 'source' )
         lake_id = kwargs.get('index')
-        sref = None
         dataMgr = MWPDataManager.instance(**kwargs)
         tiles = dataMgr.list_required_tiles( roi=self.roi_bounds, lake_mask = self.lake_mask, id=lake_id )
         if len(tiles) == 0:
@@ -295,9 +291,8 @@ class WaterMapGenerator(ConfigurableObject):
                     time_values: List[date] = list(tile_filespec.keys())
                     tile_raster: Optional[xr.DataArray] =  XRio.load( file_paths, mask=self.roi_bounds, band=0,
                                             mask_value=self.mask_value, index=[np.datetime64(t) for t in time_values] )
-                    if sref is None: sref = get_spatial_ref( tile_raster )
                     self.logger.info( f"Reading Tile[{tile}], file_paths={file_paths}" )
-                    self.logger.info(f" --> roi = {self.roi_bounds}, mask_value={self.mask_value}, time_values={time_values}, sref={sref}")
+                    self.logger.info(f" --> roi = {self.roi_bounds}, mask_value={self.mask_value}, time_values={time_values}")
                     if (tile_raster is not None) and tile_raster.size > 0:
                         if self.lake_mask is None:
                             cropped_tiles[tile] = tile_raster
@@ -320,9 +315,8 @@ class WaterMapGenerator(ConfigurableObject):
             nTiles = len( cropped_tiles.keys() )
             if nTiles > 0:
                 self.logger.info( f"Merging {nTiles} Tiles ")
-                cropped_data = self.merge_tiles( cropped_tiles)
+                cropped_data = self.merge_tiles(cropped_tiles)
                 cropped_data.attrs.update( roi = self.roi_bounds )
-                cropped_data["spatial_ref"] = sref
                 cropped_data = cropped_data.persist()
                 return cropped_data, time_values
             else:
@@ -480,9 +474,9 @@ class WaterMapGenerator(ConfigurableObject):
             else:
                 try:
                     times = [ np.datetime64(timestr) for timestr in time_values ]  # datetime.strptime(f"{timestr}", '%Y%j').date()
-                    nrt_input_data = self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') )
+                    nrt_input_data = sanitize( self.floodmap_data.assign_coords( time = np.array( times, dtype='datetime64') ) )
                     water_data_file = os.path.join( results_dir, f"lake_{lake_index}_nrt_input_data_{dstr}.nc")
-                    sanitize( nrt_input_data ).to_netcdf( water_data_file )
+                    nrt_input_data.to_netcdf( water_data_file )
                 except Exception as err:
                     self.logger.warn( f" Can't save nrt_input_data: {err} " )
             for iT in range( self.floodmap_data.shape[0] ):
@@ -578,7 +572,6 @@ class WaterMapGenerator(ConfigurableObject):
         patched_water_map: xr.DataArray = self.interpolate( opSpecs, **kwargs ).assign_attrs(**self.water_map.attrs)
         patched_water_map.attrs['cmap'] = dict( colors=self.get_water_map_colors() )
         rv = patched_water_map.fillna( self.mask_value )
-        rv['spatial_ref'] = self.floodmap_data.spatial_ref
         return rv
 
     def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:

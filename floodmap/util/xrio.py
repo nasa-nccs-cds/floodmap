@@ -34,9 +34,10 @@ class XRio(XExtension):
                 print( msg )
                 logger.info( msg )
                 return None
-            raw_raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs )
-            fillval = raw_raster.attrs.get( "_FillValue", np.nan )
-            raster: xr.DataArray = raw_raster.squeeze().xgeo.gdal_reproject()
+            raster: xr.DataArray = rioxarray.open_rasterio( filename, **oargs )
+            fillval = raster.attrs.get( "_FillValue", np.nan )
+            if raster.spatial_ref.attrs.get('grid_mapping_name','') != 'latitude_longitude':
+                raster: xr.DataArray = raster.squeeze().xgeo.gdal_reproject()
             band = kwargs.pop( 'band', -1 )
             if (band >= 0) and ('band' in raster.dims):
                 raster = raster.isel( band=band, drop=True )
