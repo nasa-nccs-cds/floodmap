@@ -10,11 +10,11 @@ defaults:
     download_only: False
     download_all: False
     format: 'nc'
-    op_range: [ 75, 150, 4 ]
+    op_range: [ 10, 200, 4 ]
     lake_masks:
         basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
-        lake_index: 226
+        lake_index_range: [310,400]
         mask: 3
         water: 1
 
@@ -24,7 +24,7 @@ defaults:
       file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
       product: "MCDWD_L3_F2_NRT"
       collection: 61
-      year: 2022
+      year: 2021
 
     water_maps:
         threshold: 0.5
