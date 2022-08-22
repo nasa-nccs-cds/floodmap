@@ -11,7 +11,7 @@ defaults:
       lake_index: 4
 
     source:
-      url: 'https://nrt4.modaps.eosdis.nasa.gov/api/v2/content/archives/'
+      url: 'https://nrt3.modaps.eosdis.nasa.gov/api/v2/content/archives/'
       path: 'allData/{collection}/{product}/Recent'
       product:  'MCDWD_L3_F2_NRT'
       collection: 61
