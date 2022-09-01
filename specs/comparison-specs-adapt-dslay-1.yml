@@ -1,0 +1,37 @@
+defaults:
+    data_dir: '/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data'
+    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/comparison"
+    results_file: 'lake_{lake_index}_stats.csv'
+    water_class_thresholds: [ 0.02, 0.93 ]
+    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/comparison"
+    ncores: 8
+    parallel: False
+    skip_existing: False
+    download_only: False
+    format: 'nc'
+    #op_range: [ 1, 365, 8 ]
+    op_range: [ 8, 365, 8 ]
+    lake_masks:
+        basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
+        file: "{lake_index}_2019.tif"
+        lake_index: 462
+        mask: 3
+        water: 1
+
+    source:
+      url: 'file:/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data'
+      path: "{tile}/allData/{collection}/{product}/Recent"
+      file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
+      product: "MCDWD_L3_F2_NRT"
+      collection: 61
+      year: 2021
+      history_length: 50
+      download_length: 8
+
+
+    water_maps:
+        threshold: 0.5
+        bin_size: 8
+        #land_values and water_values new in floodmap_4.0.0sif
+        land_values: [0]
+        water_values: [1,2,3]

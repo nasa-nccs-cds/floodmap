@@ -12,9 +12,9 @@ result_color_map = [
     (4, 'int-water', (0, 0, 0.6)),  #
     (5, 'mask', (1, 1, 0.7))  #
 ]
-
-lake_index = 317
-date = "0820"
+# /Volumes/Shared/Data/floodmap/Results/tpmaxwel/lake_462_patched_water_map_08292022.tif
+lake_index = 462
+date = "0829"
 use_utm = True
 use_input = False
 year = 2022
@@ -27,6 +27,7 @@ else:          fname = f"lake_{lake_index}_patched_water_map_{date}{year}{ext}"
 input_file = f"{data_dir}/{fname}"
 rioplot = True
 
+print( f"Plotting result: {input_file}")
 if use_utm:
     raster: xa.DataArray = rxr.open_rasterio( input_file ).squeeze( drop=True )
 else:

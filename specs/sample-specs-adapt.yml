@@ -8,10 +8,11 @@ defaults:
     skip_existing: False
     download_only: False
     format: 'nc'
+    op_range: [ 243, 244, 8 ]
     lake_masks:
         basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
-        lake_index: 317
+        lake_index: 462
         mask: 3
         water: 1
 
@@ -19,9 +20,10 @@ defaults:
       url: 'https://nrt3.modaps.eosdis.nasa.gov/api/v2/content/archives/'
       path: 'allData/{collection}/{product}/Recent'
       file: "{product}.A{year}{day:03d}.{tile}.{collection:03d}.tif"
-      product:  'MCDWD_L3_F1_NRT'
+      product:  'MCDWD_L3_F2_NRT'
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
+      history_length: 8
 
     water_maps:
         threshold: 0.5
