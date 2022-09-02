@@ -71,7 +71,8 @@ class TileLocator:
         tiles = kwargs.get('tiles', {})
         bounds = [ (xmin,ymin), (xmin,ymax), (xmax,ymax), (xmax,ymin) ]
         itiles = [ tid for (tid,roi) in tiles.items() if intersects( roi, bounds ) ]
-        logger.info( f" *** TileLocator.getTiles: xbnds=[{xmin:.2f},{xmax:.2f}], ybnds=[{ymin:.2f},{ymax:.2f}], #available tiles: {len(tiles)}, #intersecting tiles: {len(itiles)}")
+        nrt_tiles = cls.get_tiles_nrt( xmin, xmax, ymin, ymax )
+        logger.info( f" *** TileLocator.getTiles: xbnds=[{xmin:.2f},{xmax:.2f}], ybnds=[{ymin:.2f},{ymax:.2f}], nrt_tiles={nrt_tiles}, #available tiles: {len(tiles)}, #intersecting tiles: {len(itiles)}")
         return itiles
 
     @classmethod
