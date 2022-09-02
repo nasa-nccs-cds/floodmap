@@ -1,15 +1,14 @@
 defaults:
-    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/data"
-    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results"
+    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/test/tpmaxwel"
+    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results/test/tpmaxwel"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/lake_462"
+    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/test/"
     ncores: 1
     parallel: False
     skip_existing: False
     download_only: False
     format: 'nc'
-    op_range: [ 243, 244, 8 ]
     lake_masks:
         basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
         file: "{lake_index}_2019.tif"
