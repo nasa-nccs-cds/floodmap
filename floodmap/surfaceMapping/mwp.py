@@ -82,6 +82,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
     timestr = f"{iY}{iD:03}"
     target_file = file_template.format( collection=collection, product=product, year=year, tile=tile, day=day )
     target_file_path = os.path.join( location_dir, path, target_file )
+    logger.info(f" access_sample_tile: {data_source_url} -> {target_file_path}")
     dtime = np.datetime64( datetime.strptime( f"{timestr}", '%Y%j').date() )
     if os.path.exists(target_file_path):
         logger.info(f" Local NRT file exists: {target_file_path}")
@@ -95,7 +96,7 @@ def access_sample_tile( product, path_template, file_template, collection, token
                 os.symlink(data_file_path, target_file_path)
             logger.info(f"TILE {tile}: files_exist= {files_exist}, Source_file_path= {data_file_path}")
         else:
-            print( f"Local file does not exist (downloading): {target_file_path}")
+            logger.info( f"Local file does not exist (downloading): {target_file_path}")
             target_url = data_source_url + f"/{path}/{target_file}"
             download( target_url, location_dir, token )
     roi = get_roi( target_file_path )
@@ -186,11 +187,11 @@ class MWPDataManager(ConfigurableObject):
         return required_tiles
 
     def download_mpw_data( self, **kwargs ) -> List[str]:
-        self.logger.info( "downloading mpw data")
         current_tiles_only = opSpecs.get('current_tiles_only', False)
         if not current_tiles_only: kwargs['current_lakes'] = None
         print( "Downloading mpw data" )
         tiles = kwargs.get( 'tiles', self.get_valid_tiles(**kwargs).keys() )
+        self.logger.info(f"Downloading mpw data, tiles = {tiles}")
         for tile in tiles:
             self.get_tile( tile, **kwargs )
         return tiles
@@ -218,22 +219,22 @@ class MWPDataManager(ConfigurableObject):
                 year = int( self.getParameter("year", datetime.now().timetuple().tm_year, **kwargs) )
                 day_range = self.getParameter("day_range", [ this_day-history_length, this_day ], **kwargs)
                 possible_tiles = self.global_tile_list()
-                all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in possible_tiles ]
+                #  all_tiles = [ has_tile_data( product, path_template, file_template, collection, self.data_dir, tile, year ) for tile in possible_tiles ]
                 # if current_lakes is not None:
                 #     all_tiles = self.filter_current_tiles( all_tiles, current_lakes )
-                logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={all_tiles}")
+                logger.info(f" **get_valid_tiles(parallel={parallel}): all_tiles={possible_tiles}")
                 days = range( int(day_range[0]), int(day_range[-1]) + 1)
-                if not True in [ (valid!=None) for (tile, valid) in all_tiles]:
-                    token = self.getParameter("token", **kwargs)
-                    processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
-                    if parallel:
- #                       with get_context("spawn").Pool( processes=cpu_count() ) as p:
-                        with Pool(processes=cpu_count()) as p:
-                            tiles = [ tile for (tile, roi) in all_tiles]
-                            logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
-                            all_tiles = p.map( processor, tiles )
-                    else:
-                        all_tiles = [ processor(tile) for (tile, roi) in all_tiles ]
+                token = self.getParameter("token", **kwargs)
+                processor = partial( access_sample_tile, product, path_template, file_template, collection, token, self.data_dir, self.data_source_url, days[0], year )
+                all_tiles = [ processor(tile) for tile in possible_tiles ]
+#                    if parallel:
+ # #                       with get_context("spawn").Pool( processes=cpu_count() ) as p:
+ #                        with Pool(processes=cpu_count()) as p:
+ #                            tiles = [ tile for (tile, roi) in all_tiles]
+ #                            logger.info(f" ---> process[PARALLEL]: tiles={tiles}")
+ #                            all_tiles = p.map( processor, tiles )
+ #                    else:
+ #                       all_tiles = [ processor(tile) for (tile, roi) in all_tiles ]
                 self._valid_tiles = { tile: roi for (tile, roi) in all_tiles if (roi is not None) }
                 logger.info( f"Got {len(self._valid_tiles)} valid Tiles:")
                 for tile,roi in self._valid_tiles.items():
