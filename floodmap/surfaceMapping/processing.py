@@ -183,7 +183,7 @@ class LakeMaskProcessor:
                 result = waterMapGenerator.generate_lake_water_map( **lake_mask_specs )
                 if result is not None: patched_water_maps.append( result )
             else:
-                for jday in range( *op_range ):
+                for jday in range( op_range[0], op_range[1]+1 ):
                     dataMgr.parms['day'] = jday
                     dataMgr.parms['day_range'] = [ jday-history_length, jday ]
                     result = waterMapGenerator.generate_lake_water_map(**lake_mask_specs)
