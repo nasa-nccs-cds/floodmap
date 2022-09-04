@@ -1,9 +1,9 @@
 defaults:
-    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/test/sstrong"
-    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results/test/sstrong"
+    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/test/sstrong1"
+    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results/test/sstrong1"
     results_file: 'lake_{lake_index}_stats.csv'
     water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/test/"
+    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/test/sstrong1/"
     ncores: 1
     parallel: False
     skip_existing: False
