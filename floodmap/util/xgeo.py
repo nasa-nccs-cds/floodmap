@@ -12,6 +12,14 @@ from .xext import XExtension
 import rasterio, utm
 from rasterio.warp import reproject, Resampling, transform, calculate_default_transform
 
+def set_nodata_value( rband, nodata_value ):
+    try:
+        if nodata_value is not None:
+            rband.SetNoDataValue(nodata_value)
+    except Exception as err:
+        logger = getLogger(False)
+        logger.error( f"Error setting nodata value in gdal conversion, nodata value={nodata_value}, gdal band dtype={rband.DataType}, err={err}")
+
 @xr.register_dataarray_accessor('xgeo')
 class XGeo(XExtension):
     """  This is an extension for xarray to provide an interface to GDAL capabilities """
@@ -205,18 +213,14 @@ class XGeo(XExtension):
             for band in range(1, num_bands + 1):
                 rband = dataset.GetRasterBand(band)
                 rband.WriteArray(in_array[band - 1])
-                if nodata_value is not None:
-                    rband.SetNoDataValue(nodata_value)
+                set_nodata_value( rband, nodata_value )
         else:
             rband: gdal.Band = dataset.GetRasterBand(1)
             rband.WriteArray(in_array)
-            try:
-                if nodata_value is not None:
-                    rband.SetNoDataValue(nodata_value)
-            except Exception as err:
-                logger.error( f"Error setting nodata value in gdal conversion, nodata value={nodata_value}, gdal band dtype={rband.DataType}, err={err}" )
+            set_nodata_value( rband, nodata_value )
 
         return dataset
+
 
     def to_gdalGrid(self) -> GDALGrid:
         return GDALGrid( self.to_gdal() )
