@@ -13,8 +13,8 @@ result_color_map = [
     (5, 'mask', (1, 1, 0.7))  #
 ]
 # /Volumes/Shared/Data/floodmap/Results/tpmaxwel/lake_462_patched_water_map_08292022.tif
-lake_index = 462
-date = "0829"
+lake_index = 316
+date = "1007"
 use_utm = True
 use_input = False
 year = 2022

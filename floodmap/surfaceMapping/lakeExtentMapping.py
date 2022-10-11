@@ -178,17 +178,19 @@ class WaterMapGenerator(ConfigurableObject):
         land = self.count_class_occurrences( da, land_values )
         water =  self.count_class_occurrences( da, water_values )
         visible = ( water + land )
-        reliability_data = visible / float(binSize)
         prob_h20 = water / visible
-        water_mask = prob_h20 >= threshold
+        water_inference = prob_h20 >= threshold
         land_mask = land > 0
+        water_mask = water > 0
+        mixed_class_data = land_mask & water_mask
         self.logger.info( f"compute_raw_water_map: land_values={land_values}, water_values={water_values}, #land={np.count_nonzero(land.values)}, #water={np.count_nonzero(water.values)}, total={water.values.size}")
-        class_data = xr.where( masked, np.uint8(6), xr.where( water_mask, np.uint8(2), xr.where( land_mask, np.uint8(1), np.uint8(0) ) ) )
+        class_data = xr.where( masked, np.uint8(6), xr.where( water_inference, np.uint8(2), xr.where( land_mask, np.uint8(1), np.uint8(0) ) ) )
         result = da0.copy( data=class_data.values )
         result.attrs['nodata'] = 0
-        result.attrs['masks'] = masks
-        reliability = da0.copy( data=reliability_data.values )
-        return xr.Dataset( { "water_map": result,  "reliability": reliability } )
+        result.attrs['masks']  = masks
+        mixed_classes = da0.copy( data=mixed_class_data )
+        self.logger.info( f" NODATA count: {np.count_nonzero(class_data.values==0)}, mixed_classes count: {np.count_nonzero(mixed_class_data)}" )
+        return xr.Dataset( { "water_map": result,  "mixed_classes": mixed_classes } )
 
     def get_raw_water_map(self, dstr: str, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
