@@ -13,15 +13,16 @@ result_color_map = [
     (5, 'mask', (1, 1, 0.7))  #
 ]
 # /Volumes/Shared/Data/floodmap/Results/tpmaxwel/lake_462_patched_water_map_08292022.tif
-lake_index = 316
-date = "1007"
-use_utm = True
+# /Volumes/Shared/Data/floodmap/Results/tpmaxwel/lake_310_patched_water_map_10112022.nc
+lake_index = 310
+date = "1011"
+use_utm = False
 use_input = False
 year = 2022
 rasters = {}
 data_dir= "/Volumes/Shared/Data/floodmap/Results/tpmaxwel"
 data_layer = 'mpw' if use_input else f"Lake-{lake_index}"
-ext = ".tif" if use_utm else "-geog.nc"
+ext = ".tif" if use_utm else ".nc"
 if use_input:  fname = f"lake_{lake_index}_nrt_input_data_{date}{year}.nc"
 else:          fname = f"lake_{lake_index}_patched_water_map_{date}{year}{ext}"
 input_file = f"{data_dir}/{fname}"
