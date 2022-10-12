@@ -170,6 +170,7 @@ class WaterMapGenerator(ConfigurableObject):
         da: xr.DataArray = self.floodmap_data[-bin_size:]
         binSize = da.shape[0]
         masks = [ self.mask_value, self.mask_value+1, self.mask_value+2  ]
+        nodata_value = da.attrs['_FillValue']
         da0 = da[0].drop_vars( self.floodmap_data.dims[0] )
         masked = da0.isin( masks )
         class_cnts = [ self.total_class_occurrences(da,cval) for cval in range(4) ]
@@ -177,18 +178,29 @@ class WaterMapGenerator(ConfigurableObject):
             self.logger.info( f" --> class count({cval}): {class_cnts[cval]}" )
         land = self.count_class_occurrences( da, land_values )
         water =  self.count_class_occurrences( da, water_values )
+        nodata = self.count_class_occurrences( da, [nodata_value] )
         visible = ( water + land )
-        reliability_data = visible / float(binSize)
         prob_h20 = water / visible
-        water_mask = prob_h20 >= threshold
+        water_inference = prob_h20 >= threshold
         land_mask = land > 0
+        water_mask = water > 0
+        interp_mask = nodata == 8
+        nndata = np.count_nonzero(interp_mask)
+        mixed_class_data = land_mask & water_mask
+        nmixed = np.count_nonzero(mixed_class_data.values)
         self.logger.info( f"compute_raw_water_map: land_values={land_values}, water_values={water_values}, #land={np.count_nonzero(land.values)}, #water={np.count_nonzero(water.values)}, total={water.values.size}")
-        class_data = xr.where( masked, np.uint8(6), xr.where( water_mask, np.uint8(2), xr.where( land_mask, np.uint8(1), np.uint8(0) ) ) )
+        class_data = xr.where( masked, np.uint8(6), xr.where( water_inference, np.uint8(2), xr.where( land_mask, np.uint8(1), np.uint8(0) ) ) )
         result = da0.copy( data=class_data.values )
         result.attrs['nodata'] = 0
-        result.attrs['masks'] = masks
-        reliability = da0.copy( data=reliability_data.values )
-        return xr.Dataset( { "water_map": result,  "reliability": reliability } )
+        result.attrs['masks']  = masks
+        result.attrs['nndata'] = nndata
+        result.attrs['nviz'] = np.count_nonzero(visible.values)
+        result.attrs['nmixed'] = nmixed
+        result.attrs['interp_mask'] = interp_mask
+        result.attrs['_FillValue'] = 0
+        mixed_classes = da0.copy( data=mixed_class_data )
+        self.logger.info( f" NODATA count: {nndata}, mixed_classes count: {nmixed}" )
+        return xr.Dataset( { "water_map": result,  "mixed_classes": mixed_classes, "interp_mask": interp_mask } )
 
     def get_raw_water_map(self, dstr: str, **kwargs):
         # data_array = timeseries of LANCE floodmap data over all years & days configures in specs, cropped to lake bounds
@@ -231,11 +243,29 @@ class WaterMapGenerator(ConfigurableObject):
         ffill =  kwargs.get( "ffill", True )
 #        remove_anomalies = kwargs.get( "remove_anomalies", False )
 #         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
+        nndata = self.water_map.attrs['nndata']
+        nviz = float(self.water_map.attrs['nviz'])
+        nmixed = self.water_map.attrs['nmixed']
+        interp_mask = self.water_map.attrs['interp_mask']
+        pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
+        patched_result: xr.DataArray = pwmap.where( ~interp_mask, pwmap + 2 ) if highlight else pwmap
+        pct_interp = (nndata / nviz) * 100.0
+        pct_mixed  = (nmixed / nviz) * 100.0
+        print( f" ---> interpolate---> interpolate: highlight={highlight}, %interp = {pct_interp}, %mixed = {pct_mixed}")
+        patched_result.attrs['pct_interp'] = pct_interp
+        patched_result.attrs['pct_mixed'] = pct_mixed
+        return patched_result
+
+    def interpolate1(self, opspec: Dict, **kwargs) -> xr.DataArray:
+        highlight = kwargs.get("highlight", True)
+        ffill = kwargs.get("ffill", True)
+        #        remove_anomalies = kwargs.get( "remove_anomalies", False )
+        #         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
         pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
         valid_mask = (pwmap == self.water_map)
-        patched_result: xr.DataArray = pwmap.where( valid_mask, pwmap + 2 ) if highlight else pwmap
-        pct_interp =  (valid_mask.size - np.count_nonzero( valid_mask )) * 100.0 / valid_mask.size
-        print( f" ---> interpolate: highlight={highlight}, %interp = {pct_interp}")
+        patched_result: xr.DataArray = pwmap.where(valid_mask, pwmap + 2) if highlight else pwmap
+        pct_interp = (valid_mask.size - np.count_nonzero(valid_mask)) * 100.0 / valid_mask.size
+        print(f" ---> interpolate: highlight={highlight}, %interp = {pct_interp}")
         return patched_result
 
     def spatial_interpolate( self, opspec: Dict, **kwargs  ) -> xr.DataArray:
@@ -251,7 +281,8 @@ class WaterMapGenerator(ConfigurableObject):
 
     def temporal_ffill(self, water_map: xr.DataArray, **kwargs ) -> xr.DataArray:
         t0 = time.time()
-        water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != 0, np.nan )
+        nodata = self.floodmap_data.attrs['_FillValue']
+        water_history_data: xr.DataArray = self.floodmap_data.where( self.floodmap_data != nodata, np.nan )
         interp_water_history: xr.DataArray = water_history_data.ffill( water_history_data.dims[0] ).bfill( water_history_data.dims[0] ).astype( np.uint8 )
         interp_water_map: xr.DataArray = interp_water_history[-1,:,:].squeeze( drop = True )
         self.logger.info( f"Done temporal interpolate in time {time.time() - t0}, history data shape = {water_history_data.shape}" )
@@ -497,7 +528,7 @@ class WaterMapGenerator(ConfigurableObject):
             self.class_counts('utm_result', utm_result )
             latlon_result = sanitize( patched_water_map ).rename( dict( x="lon", y="lat" ) )
             stats_file = f"{results_dir}/{results_file}"
-            self.write_water_area_results( dtime, utm_result, stats_file )
+            self.write_water_area_results( dtime, utm_result, stats_file, **patched_water_map.attrs )
             try:
                 if format ==  'tif':    utm_result.xgeo.to_tif( result_water_map_file )
                 else:                   utm_result.astype(np.int).to_netcdf( result_water_map_file )
@@ -534,14 +565,14 @@ class WaterMapGenerator(ConfigurableObject):
     def write_water_area_results(self, rdate: date, patched_water_map: xr.DataArray, outfile_path: str,  **kwargs ):
         interp_water_class = kwargs.get( 'interp_water_class', 4 )
         water_classes = kwargs.get('water_classes', [2,4] )
-        water_counts, class_proportion = self.get_class_proportion(patched_water_map, interp_water_class, water_classes)
+        num_water_pixels, class_proportion = self.get_class_proportion(patched_water_map, interp_water_class, water_classes)
         file_exists = os.path.isfile(outfile_path)
         with open( outfile_path, "a" ) as outfile:
             if not file_exists:
-                outfile.write( "date water_area_km2 percent_interploated\n")
-            percent_interp = class_proportion.values
-            num_water_pixels = water_counts.values
-            outfile.write( f"{rdate.month:02d}-{rdate.day:02d}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
+                outfile.write( "date water_area_km2 percent_interploated percent_mixed\n")
+            percent_interp = kwargs.get('pct_interp', class_proportion )
+            percent_mixed = kwargs.get('pct_mixed', 0.0 )
+            outfile.write( f"{rdate.month:02d}-{rdate.day:02d}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.2f} {percent_mixed:.2f}\n" )
             self.logger.info( f"Wrote results to file {outfile_path}")
 
     def get_class_counts( self, array: np.ndarray )-> Dict:
@@ -574,8 +605,8 @@ class WaterMapGenerator(ConfigurableObject):
         rv = patched_water_map.fillna( self.mask_value )
         return rv
 
-    def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[xr.DataArray,xr.DataArray]:
+    def get_class_proportion(self, class_map: xr.DataArray, target_class: int, relevant_classes: List[int] ) -> Tuple[float,float]:
         sdims = [ class_map.dims[-1], class_map.dims[-2] ]
-        total_relevant_population = class_map.isin( relevant_classes ).sum( dim=sdims )
-        class_population = (class_map == target_class).sum( dim=sdims )
+        total_relevant_population = class_map.isin( relevant_classes ).sum( dim=sdims ).values
+        class_population = (class_map == target_class).sum( dim=sdims ).values
         return ( total_relevant_population,  ( class_population / total_relevant_population ) * 100 )

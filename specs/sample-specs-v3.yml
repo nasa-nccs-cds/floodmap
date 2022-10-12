@@ -6,7 +6,7 @@ defaults:
     skip_existing: False
     download_only: False
     download_all: False
-    op_range: [ 243, 243, 8 ]
+    op_range: [ 0, 300, 8 ]
     format: 'tif'
     lake_masks:
         basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"

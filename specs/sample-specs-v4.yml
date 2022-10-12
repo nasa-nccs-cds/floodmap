@@ -1,18 +1,16 @@
 defaults:
-    data_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/test/tpmaxwel1"
-    results_dir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/results/test/tpmaxwel2"
-    results_file: 'lake_{lake_index}_stats.csv'
-    water_class_thresholds: [ 0.02, 0.93 ]
-    log_dir: "/explore/nobackup/projects/ilab/cache/floodmap/logs/test/tpmaxwel2"
+    results_dir: "/Volumes/Shared/Data/floodmap/Results"
+    log_dir: "/Volumes/Shared/Data/floodmap/Logs"
     ncores: 1
     parallel: False
     skip_existing: False
     download_only: False
-    format: 'nc'
+    download_all: False
+    format: 'tif'
     lake_masks:
-        basedir: "/explore/nobackup/projects/ilab/projects/Birkett/MOD44W/lakes_lat_lon/"
-        file: "{lake_index}_2019.tif"
-        lake_index: 462
+        basedir: "/Volumes/Shared/Data/floodmap/LakeMasks/2020"
+        file: "{lake_index}_2020.tif"
+        lake_index_range: [0,400]
         mask: 3
         water: 1
 
@@ -23,7 +21,6 @@ defaults:
       product:  'MCDWD_L3_F2_NRT'
       collection: 61
       token: 'dHBtYXh3ZWw6ZEdodmJXRnpMbTFoZUhkbGJHeEFibUZ6WVM1bmIzWT06MTYzMTgxNTYzOTo2ZjRjMTZjMmRiMjE1ZGZhNGIzNGYxNGQxZmQ1YWFhODg3ZWIwOTg1'
-      history_length: 16
 
     water_maps:
         threshold: 0.5
