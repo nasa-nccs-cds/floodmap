@@ -1,6 +1,5 @@
 import geopandas as gpd
 import pandas as pd
-import rioxarray as rio
 from datetime import date
 from osgeo import osr
 from typing import List, Tuple, Dict, Optional
@@ -328,7 +327,9 @@ class WaterMapGenerator(ConfigurableObject):
                         if self.lake_mask is None:
                             cropped_tiles[tile] = tile_raster
                         else:
-                            lake_mask_interp: xr.DataArray = self.lake_mask.squeeze(drop=True).interp_like( tile_raster[0,:,:] ).fillna( lake_mask_value )
+                            lake_mask_interp: xr.DataArray = sanitize( self.lake_mask, True )
+                            lake_mask_interp = lake_mask_interp.interp_like( sanitize( tile_raster[0,:,:] ) )
+                            lake_mask_interp = lake_mask_interp.fillna( lake_mask_value )
                             tile_mask: xr.DataArray = ( lake_mask_interp == lake_mask_value )
                             tile_mask_data: np.ndarray = np.broadcast_to( tile_mask.values, tile_raster.shape ).flatten()
                             tile_raster_data: np.ndarray = tile_raster.values.flatten()
