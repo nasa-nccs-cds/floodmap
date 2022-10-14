@@ -21,9 +21,9 @@ for (fmtype, results_file) in results_files.items():
                 line = file.readline()
                 if iLine > 0:
 #                    print( f" {lake_index}[{iLine}]: {line}" )
-                    (date, water_area_km2, percent_interploated) = line.split(' ')
-                    pct_interp_values.append( float(percent_interploated) )
-                    interp_area.append( float(water_area_km2) * float(percent_interploated) / 100 )
+                    (date, water_area_km2, percent_interpolated) = line.split(' ')
+                    pct_interp_values.append( float(percent_interpolated) )
+                    interp_area.append( float(water_area_km2) * float(percent_interpolated) / 100 )
     pct_interp_ave = np.array( pct_interp_values ).mean()
     mean_interp_area = np.array( interp_area ).mean()
     print( f" {fmtype}: {pct_interp_ave}, {mean_interp_area}" )

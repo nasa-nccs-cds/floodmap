@@ -557,7 +557,7 @@ class WaterMapGenerator(ConfigurableObject):
         file_exists = os.path.isfile(outfile_path)
         with open( outfile_path, "a" ) as outfile:
             if not file_exists:
-                outfile.write( "date water_area_km2 percent_interploated\n")
+                outfile.write( "date water_area_km2 percent_interpolated\n")
             percent_interp = class_proportion.values
             num_water_pixels = water_counts.values
             outfile.write( f"{sdate} {num_water_pixels/16.0:.2f} {percent_interp:.1f}\n" )
@@ -570,7 +570,7 @@ class WaterMapGenerator(ConfigurableObject):
         file_exists = os.path.isfile(outfile_path)
         with open( outfile_path, "a" ) as outfile:
             if not file_exists:
-                outfile.write( "date water_area_km2 percent_interploated percent_mixed\n")
+                outfile.write( "date water_area_km2 percent_interpolated percent_mixed\n")
             percent_interp = kwargs.get('pct_interp', class_proportion )
             percent_mixed = kwargs.get('pct_mixed', 0.0 )
             outfile.write( f"{rdate.month:02d}-{rdate.day:02d}-{rdate.year} {num_water_pixels/16.0:.2f} {percent_interp:.2f} {percent_mixed:.2f}\n" )
