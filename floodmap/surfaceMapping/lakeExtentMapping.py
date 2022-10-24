@@ -248,8 +248,8 @@ class WaterMapGenerator(ConfigurableObject):
         interp_mask = self.water_map.attrs['interp_mask']
         pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
         patched_result: xr.DataArray = pwmap.where( ~interp_mask, pwmap + 2 ) if highlight else pwmap
-        pct_interp = (nndata / nviz) * 100.0
-        pct_mixed  = (nmixed / nviz) * 100.0
+        pct_interp = (nndata / nviz) * 100.0 if (nviz > 0) else 0.0
+        pct_mixed  = (nmixed / nviz) * 100.0 if (nviz > 0) else 0.0
         print( f" ---> interpolate---> interpolate: highlight={highlight}, %interp = {pct_interp}, %mixed = {pct_mixed}")
         patched_result.attrs['pct_interp'] = pct_interp
         patched_result.attrs['pct_mixed'] = pct_mixed
