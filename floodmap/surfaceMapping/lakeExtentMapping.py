@@ -183,8 +183,9 @@ class WaterMapGenerator(ConfigurableObject):
         water_inference = prob_h20 >= threshold
         land_mask = land > 0
         water_mask = water > 0
-        interp_mask = nodata == 8
+        interp_mask = nodata == binSize
         nndata = np.count_nonzero(interp_mask)
+        nlandwater = np.count_nonzero(visible.values)
         mixed_class_data = land_mask & water_mask
         nmixed = np.count_nonzero(mixed_class_data.values)
         self.logger.info( f"compute_raw_water_map: land_values={land_values}, water_values={water_values}, #land={np.count_nonzero(land.values)}, #water={np.count_nonzero(water.values)}, total={water.values.size}")
@@ -193,7 +194,7 @@ class WaterMapGenerator(ConfigurableObject):
         result.attrs['nodata'] = 0
         result.attrs['masks']  = masks
         result.attrs['nndata'] = nndata
-        result.attrs['nviz'] = np.count_nonzero(visible.values)
+        result.attrs['nviz'] =  nlandwater + nndata
         result.attrs['nmixed'] = nmixed
         result.attrs['interp_mask'] = interp_mask
         result.attrs['_FillValue'] = 0
@@ -255,17 +256,17 @@ class WaterMapGenerator(ConfigurableObject):
         patched_result.attrs['pct_mixed'] = pct_mixed
         return patched_result
 
-    def interpolate1(self, opspec: Dict, **kwargs) -> xr.DataArray:
-        highlight = kwargs.get("highlight", True)
-        ffill = kwargs.get("ffill", True)
-        #        remove_anomalies = kwargs.get( "remove_anomalies", False )
-        #         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
-        pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
-        valid_mask = (pwmap == self.water_map)
-        patched_result: xr.DataArray = pwmap.where(valid_mask, pwmap + 2) if highlight else pwmap
-        pct_interp = (valid_mask.size - np.count_nonzero(valid_mask)) * 100.0 / valid_mask.size
-        print(f" ---> interpolate: highlight={highlight}, %interp = {pct_interp}")
-        return patched_result
+    # def interpolate1(self, opspec: Dict, **kwargs) -> xr.DataArray:
+    #     highlight = kwargs.get("highlight", True)
+    #     ffill = kwargs.get("ffill", True)
+    #     #        remove_anomalies = kwargs.get( "remove_anomalies", False )
+    #     #         init_water_map: xr.DataArray = self.spatial_interpolate( opspec, **kwargs ) if remove_anomalies else self.water_map
+    #     pwmap: xr.DataArray = self.temporal_ffill(self.water_map) if ffill else self.water_map
+    #     valid_mask = (pwmap == self.water_map)
+    #     patched_result: xr.DataArray = pwmap.where(valid_mask, pwmap + 2) if highlight else pwmap
+    #     pct_interp = (valid_mask.size - np.count_nonzero(valid_mask)) * 100.0 / valid_mask.size
+    #     print(f" ---> interpolate: highlight={highlight}, %interp = {pct_interp}")
+    #     return patched_result
 
     def spatial_interpolate( self, opspec: Dict, **kwargs  ) -> xr.DataArray:
         t0 = time.time()

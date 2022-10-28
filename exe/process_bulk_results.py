@@ -38,25 +38,25 @@ class FloodmapProcessor:
         dsets: Dict[str, xa.Dataset] = self.get_datasets()
         return  { fmversion: dsets[fmversion].data_vars[ name ] for fmversion in [ "legacy", 'nrt' ] }
 
-    def get_means(self):
-        water_area_means = {}
-        interp_area_means = {}
-        pct_interp_means = {}
-        dsets = self.get_datasets()
-        for fmversion in [ "legacy", 'nrt' ]:
-            water_area: xa.DataArray = dsets[fmversion].data_vars['water_area']
-            water_area_mean = water_area.mean(skipna=True).values.tolist()
-            water_area_means[fmversion] = water_area_mean
-            pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp']
-            interp_area_means[fmversion] = ( pct_interp_array * water_area ).mean(skipna=True).values.tolist()
-            pct_interp_means[fmversion] = pct_interp_array.mean(skipna=True).values.tolist()
-        print(f"\nMeans: {water_area_means}")
-        print(f"Pct DIFF: {self.pct_diff(*list(water_area_means.values())):.2f} %")
-        print(f"\nPct Interp: {pct_interp_means}")
-        print(f"Pct DIFF: {self.pct_diff(*list(pct_interp_means.values())):.2f} %")
-        print(f"\nInterp Area: {interp_area_means}")
-        print(f"Pct DIFF: {self.pct_diff(*list(interp_area_means.values())):.2f} %")
-        return dict( water_area=water_area_means, interp_area=interp_area_means, pct_interp=pct_interp_means )
+    # def get_means(self):
+    #     water_area_means = {}
+    #     interp_area_means = {}
+    #     pct_interp_means = {}
+    #     dsets = self.get_datasets()
+    #     for fmversion in [ "legacy", 'nrt' ]:
+    #         water_area: xa.DataArray = dsets[fmversion].data_vars['water_area']
+    #         water_area_mean = water_area.mean(skipna=True).values.tolist()
+    #         water_area_means[fmversion] = water_area_mean
+    #         pct_interp_array: xa.DataArray = dsets[fmversion].data_vars['pct_interp']
+    #         interp_area_means[fmversion] = ( pct_interp_array * water_area ).mean(skipna=True).values.tolist()
+    #         pct_interp_means[fmversion] = pct_interp_array.mean(skipna=True).values.tolist()
+    #     print(f"\nMeans: {water_area_means}")
+    #     print(f"Pct DIFF: {self.pct_diff(*list(water_area_means.values())):.2f} %")
+    #     print(f"\nPct Interp: {pct_interp_means}")
+    #     print(f"Pct DIFF: {self.pct_diff(*list(pct_interp_means.values())):.2f} %")
+    #     print(f"\nInterp Area: {interp_area_means}")
+    #     print(f"Pct DIFF: {self.pct_diff(*list(interp_area_means.values())):.2f} %")
+    #     return dict( water_area=water_area_means, interp_area=interp_area_means, pct_interp=pct_interp_means )
 
     def get_interp_diff(self):
         water_vars: Dict[str, xa.DataArray] = self.get_vars('water_area')
